@@ -1,134 +1,154 @@
-# Decision-Making Under Uncertainty in Fintech Products
+# Decision Quality Framework
 
-This project explores how to make high-stakes product decisions in fintech environments where uncertainty, asymmetric risk, and limited capacity are the norm.
+## What this is
 
-The focus is not on optimizing metrics, but on choosing actions that preserve long-term value while keeping downside risk within acceptable bounds — especially when some consequences are difficult or impossible to reverse.
+This project is a framework for evaluating decision quality under uncertainty.
 
----
+It is designed to help reason about difficult product and business decisions where:
+- outcomes are uncertain,
+- experiments are not possible,
+- and the cost of being wrong is asymmetric.
 
-## Problem Context
+The framework compares alternative decisions side by side, including the option to do nothing, using explicit and traceable assumptions.
 
-Product teams often face decisions where multiple paths appear reasonable:
-
-- Invest in stabilizing the existing system
-- Extend the current product to mitigate user-facing failures
-- Introduce a new capability that opens additional value streams
-
-These choices are usually framed as prioritization problems. In practice, they are **decisions under uncertainty** with very different risk profiles.
-
-This repository presents a structured way to reason about such decisions, grounded in real-world constraints common to fintech products:
-- fragile user trust
-- complex, interdependent systems
-- regulatory and operational risk
-- limited engineering capacity
+The goal is not to find the “right” answer, but to understand the trade-offs involved in choosing one option over another.
 
 ---
 
-## Decision Framing
+## What this is not
 
-The core decision examined here is:
+This project is **not** a forecasting tool.
 
-> How should limited product and engineering capacity be allocated when the system shows signs of fragility, but opportunities for expansion exist?
+It does not try to predict what will happen, estimate precise outcomes, or assess accuracy.
 
-Rather than asking which option maximizes short-term impact, this framework asks:
-- Where does downside risk concentrate?
-- Which mistakes are survivable, and which compound over time?
-- What can be learned early, and what only becomes visible later?
+It is also **not** an optimization or recommendation engine.
 
----
-
-## Options Considered
-
-The framework evaluates three structurally different choices.
-
-### 1. Stabilize the Core
-Focus capacity on reducing known failure modes in the existing product flow, improving reliability, predictability, and maintainability. New feature development is intentionally slowed during this period.
-
-### 2. Feature Extension
-Ship an extension to the current product that augments the existing flow. This may reduce user exposure to failures or improve outcomes without directly removing underlying system issues.
-
-### 3. New Capability
-Introduce a new capability that expands functional or market scope. This creates new value streams but increases system complexity and long-term ownership costs.
-
-Each option is evaluated along the same dimensions to avoid biased comparison.
+The framework does not choose for you, rank decisions automatically, or replace judgment. It exists to support clearer thinking, not to automate decisions.
 
 ---
 
-## Evaluation Dimensions
+## How it works (high level)
 
-The decision framework explicitly considers:
+The framework follows a simple, consistent flow.
 
-- **Expected value**  
-  Potential impact on users and the business under reasonable assumptions.
+### Decision framing
 
-- **Downside severity**  
-  The worst credible outcome if the decision turns out poorly.
+Each decision is defined explicitly:
+- the decision question,
+- the decision owner,
+- the available options (including “do nothing”),
+- constraints,
+- and reversibility.
 
-- **Uncertainty**  
-  Confidence in estimates and sensitivity to assumptions.
+If these are not clear, the framework is not applied.
 
-- **Reversibility**  
-  Ability to roll back or contain negative effects once deployed.
+### Uncertainty modeling
 
-- **Time sensitivity**  
-  How delays or premature action affect long-term outcomes.
+Key assumptions are expressed as ranges and distributions rather than single numbers.
 
----
+All assumptions are:
+- explicit,
+- documented in plain language,
+- and traceable.
 
-## Irreversible Risk
+Synthetic data is used deliberately to explore uncertainty, not to approximate reality.
 
-A central theme of this work is that not all risks behave the same way.
+### Simulation
 
-Some risks are visible and immediate. Others accumulate silently by increasing complexity, eroding trust, or limiting future options. Decisions that appear successful in the short term can still produce long-lasting regret if they reduce the system’s ability to evolve safely.
+The same uncertainty draws are used across all options.
 
-Understanding where irreversibility lies is often more important than predicting upside.
+This allows outcomes to be compared under identical beliefs, rather than evaluated in isolation.
 
----
+The simulation exists to support comparison, not to impress or optimize.
 
-## Recommendation Logic
+### Comparative evaluation
 
-The framework intentionally avoids presenting a universally “correct” answer.
-
-Instead, it supports **bounded recommendations**:
-- a clear next step
-- explicit guardrails
-- predefined review points
-- agreed-upon stop signals
-
-This allows teams to act decisively without pretending certainty, and to revisit decisions as new information emerges.
+Each option is evaluated using decision-quality metrics rather than point estimates.
 
 ---
 
-## Why This Exists
+## How to read the outputs
 
-This project is not an experiment write-up or a prioritization template.
+The framework produces several complementary views.
 
-It is an attempt to:
-- make uncertainty explicit rather than hidden
-- separate judgment from confidence theater
-- help decision-makers choose battles deliberately instead of reactively
+### Expected value
 
-The goal is not to eliminate regret, but to keep it contained.
+The average outcome across many plausible futures.
+
+This shows what tends to work well, but should never be read alone.
+
+### Downside risk
+
+A view of how bad things can get under unfavorable conditions.
+
+This matters when failures are costly or irreversible.
+
+### Regret
+
+How much worse an option performs compared to the best alternative in the same situation.
+
+Regret highlights decisions that are painful when wrong, even if they look reasonable on average.
+
+### Win rates
+
+How often an option performs best across plausible futures.
+
+This helps distinguish robust choices from those that rely on optimistic assumptions.
+
+No single metric is sufficient on its own. The framework is designed to be read holistically.
 
 ---
 
-## Next Steps
+## Example decision
 
-The next phase of this project is to translate this qualitative framework into a lightweight **decision simulator**.
+V1 of this project includes a single, fully worked decision case.
 
-That work will require:
-- public, domain-relevant data to anchor assumptions
-- explicit modeling of uncertainty and downside
-- careful separation between signal and speculation
+The case describes a common situation:
+- ongoing issues in part of a product,
+- pressure to keep moving forward,
+- limited capacity,
+- and no safe way to experiment before committing.
 
-The current repository serves as the conceptual foundation for that effort.
+The decision involves multiple realistic options, including doing nothing, each with different risks and degrees of irreversibility.
+
+The case is written to be understandable without reading the code.
 
 ---
 
-## Status
+## Intended audience
 
-This is an active, evolving exploration.
-Feedback, critique, and alternative framings are welcome.
+This project is written for:
+- senior product managers,
+- senior data practitioners,
+- and decision-makers responsible for irreversible or high-risk choices.
+
+It assumes comfort with uncertainty and trade-offs, and does not attempt to simplify decisions beyond what clarity allows.
+
+---
+
+## Design philosophy
+
+Several principles guide this project.
+
+- **Judgment over automation**  
+  The framework supports thinking; it does not replace it.
+
+- **Transparency over performance**  
+  Clear assumptions matter more than clever techniques.
+
+- **Comparison over conclusions**  
+  Decisions are evaluated relative to alternatives, not in isolation.
+
+- **Clarity over scale**  
+  This is a thinking tool, not a general-purpose library.
+
+---
+
+## Final note
+
+If this project starts to feel like a model, a product, or a demo, it has gone too far.
+
+The purpose is to reason about decision quality under uncertainty, not to predict outcomes or recommend actions.
 
 ---
 
