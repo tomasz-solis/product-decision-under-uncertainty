@@ -1,0 +1,135 @@
+# simulator/config.yaml
+project:
+  seed: 7
+
+simulation:
+  n_worlds: 20000
+  volume: 100000
+  scenario: base  # base | conservative | aggressive
+
+# Scenario overrides: only the listed params are overridden for that scenario.
+# Everything else stays as defined in `params`.
+scenarios:
+  base: {}
+
+  conservative:
+    stabilize_failure_reduction:
+      low: 0.25
+      mode: 0.45
+      high: 0.70
+    extension_uptake:
+      low: 0.08
+      mode: 0.15
+      high: 0.25
+    extension_exposure_reduction:
+      low: 0.05
+      mode: 0.15
+      high: 0.30
+
+  aggressive:
+    stabilize_failure_reduction:
+      low: 0.05
+      mode: 0.20
+      high: 0.40
+    extension_uptake:
+      low: 0.20
+      mode: 0.35
+      high: 0.55
+    extension_exposure_reduction:
+      low: 0.30
+      mode: 0.50
+      high: 0.70
+
+# Supported dists: tri (low, mode, high), uniform (low, high)
+params:
+  baseline_failure_rate:
+    dist: tri
+    low: 0.02
+    mode: 0.05
+    high: 0.10
+
+  failure_to_churn_rel:
+    dist: tri
+    low: 0.05
+    mode: 0.15
+    high: 0.30
+
+  cost_per_failure_eur:
+    dist: tri
+    low: 3.0
+    mode: 8.0
+    high: 15.0
+
+  extension_uptake:
+    dist: tri
+    low: 0.10
+    mode: 0.20
+    high: 0.35
+
+  extension_loss_rate:
+    dist: tri
+    low: 0.01
+    mode: 0.03
+    high: 0.06
+
+  rev_per_success_eur:
+    dist: tri
+    low: 0.50
+    mode: 1.00
+    high: 2.00
+
+  base_churn:
+    dist: tri
+    low: 0.01
+    mode: 0.03
+    high: 0.08
+
+  regression_prob:
+    dist: tri
+    low: 0.01
+    mode: 0.03
+    high: 0.08
+
+  regression_cost_eur:
+    dist: tri
+    low: 2000.0
+    mode: 10000.0
+    high: 50000.0
+
+  stabilize_failure_reduction:
+    dist: tri
+    low: 0.10
+    mode: 0.30
+    high: 0.60
+
+  extension_exposure_reduction:
+    dist: tri
+    low: 0.05
+    mode: 0.20
+    high: 0.50
+
+  new_capability_uplift:
+    dist: tri
+    low: 0.02
+    mode: 0.08
+    high: 0.20
+
+  extension_rev_per_uptake_eur:
+    dist: tri
+    low: 0.20
+    mode: 0.50
+    high: 1.00
+
+  new_capability_regression_multiplier:
+    dist: tri
+    low: 1.2
+    mode: 1.5
+    high: 2.0
+
+  # "Do nothing" is rarely free. This is a simple proxy for drift:
+  # ongoing maintenance, incident response, or trust erosion that keeps happening.
+  do_nothing_drift_cost_eur:
+    dist: tri
+    low: 0.0
+    mode: 2000.0
+    high: 12000.0
