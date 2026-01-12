@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import copy
+from typing import Any
 
 from simulator.config import (
     load_config,
@@ -117,16 +119,54 @@ def simulate_option_new_capability(p: pd.DataFrame, volume: int) -> np.ndarray:
     return revenue - failure_cost - regression_cost - churn_penalty
 
 
-def run_simulation(config_path: str | Path) -> pd.DataFrame:
+def run_simulation(
+    config_path: str | Path,
+    n_worlds: int | None = None,
+    seed: int | None = None,
+    scenario: str | None = None,
+    param_overrides: dict[str, dict[str, float]] | None = None,
+) -> pd.DataFrame:
+    """
+    Run one comparative simulation.
+
+    - Scenario overrides come from config.yaml (cfg["scenarios"])
+    - UI overrides are applied in-memory (param_overrides)
+    - Returns one row per simulated world (params + option values + scenario)
+    """
     cfg = load_config(config_path)
     sim = get_simulation_settings(cfg)
+
+    # Allow callers (Streamlit) to override run settings without editing YAML
+    if n_worlds is not None:
+        sim["n_worlds"] = int(n_worlds)
+    if scenario is not None:
+        sim["scenario"] = str(scenario)
 
     # Apply scenario overrides before parsing params
     cfg = apply_scenario(cfg, sim["scenario"])
 
-    seed = get_seed(cfg)
-    param_specs = parse_param_specs(cfg)
+    # Apply in-memory overrides (Streamlit sliders later)
+    # Expected shape: {"baseline_failure_rate": {"low": 0.02, "mode": 0.05, "high": 0.1}, ...}
+    if param_overrides:
+        if "params" not in cfg or not isinstance(cfg["params"], dict):
+            raise ValueError("Config must contain a non-empty 'params' mapping.")
+        for param_name, ov in param_overrides.items():
+            if param_name not in cfg["params"]:
+                raise ValueError(f"Override references unknown param '{param_name}'.")
+            if not isinstance(ov, dict):
+                raise ValueError(f"Override for '{param_name}' must be a dict (low/mode/high).")
 
+            # Only override fields provided
+            for k in ("low", "mode", "high"):
+                if k in ov:
+                    cfg["params"][param_name][k] = float(ov[k])
+
+    if seed is None:
+        seed = get_seed(cfg)
+    else:
+        seed = int(seed)
+
+    param_specs = parse_param_specs(cfg)
     p = sample_params(sim["n_worlds"], param_specs, seed=seed)
 
     out = pd.DataFrame({
@@ -136,19 +176,16 @@ def run_simulation(config_path: str | Path) -> pd.DataFrame:
         "new_capability": simulate_option_new_capability(p, sim["volume"]),
     })
 
-    # Keep the scenario name for traceability
     out["scenario"] = sim["scenario"]
 
     return pd.concat([p, out], axis=1)
 
 
-def run_all_scenarios(config_path: str | Path) -> pd.DataFrame:
-    """
-    Run the simulator for every scenario defined in config.yaml and return a long table:
-    scenario x option with win_rate, mean, and p05.
-
-    This stays intentionally simple and readable.
-    """
+def run_all_scenarios(
+    config_path: str | Path,
+    n_worlds: int | None = None,
+    seed: int | None = None,
+) -> pd.DataFrame:
     base_cfg = load_config(config_path)
 
     scenarios = base_cfg.get("scenarios", {})
@@ -156,20 +193,23 @@ def run_all_scenarios(config_path: str | Path) -> pd.DataFrame:
         raise ValueError("No scenarios found in config.yaml under 'scenarios'.")
 
     base_sim = get_simulation_settings(base_cfg)
+    if n_worlds is None:
+        n_worlds = int(base_sim["n_worlds"])
+    if seed is None:
+        seed = int(get_seed(base_cfg))
 
     rows = []
     for scenario_name in scenarios.keys():
-        # Use the same simulation settings, just swap the scenario
         cfg = load_config(config_path)
         cfg.setdefault("simulation", {})
         cfg["simulation"]["scenario"] = scenario_name
 
         sim = get_simulation_settings(cfg)
+        sim["n_worlds"] = int(n_worlds)  # override
         cfg = apply_scenario(cfg, sim["scenario"])
 
-        seed = get_seed(cfg)
         param_specs = parse_param_specs(cfg)
-        p = sample_params(sim["n_worlds"], param_specs, seed=seed)
+        p = sample_params(sim["n_worlds"], param_specs, seed=int(seed))
 
         out = pd.DataFrame({
             "do_nothing": simulate_option_do_nothing(p, sim["volume"]),
@@ -190,8 +230,6 @@ def run_all_scenarios(config_path: str | Path) -> pd.DataFrame:
                 "p05_value_eur": float(out[opt].quantile(0.05)),
             })
 
-
-    # stable ordering
     return (
         pd.DataFrame(rows)
         .sort_values(["scenario", "win_rate"], ascending=[True, False])
@@ -267,22 +305,31 @@ def sensitivity_analysis(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    CONFIG_PATH = "simulator/config.yaml"
+
+    cfg = load_config(CONFIG_PATH)
+
+    n_worlds = int(cfg["simulation"].get("n_worlds", 20000))
+    seed = int(cfg["project"].get("seed", 7))
+
     print("Note: these are simulated comparisons under uncertainty. They are not forecasts.\n")
 
-    df = run_simulation("simulator/config.yaml")
+    df = run_simulation(
+        CONFIG_PATH,
+        n_worlds=n_worlds,
+        seed=seed,
+    )
+
+    summary = summarize_results(df)
+    diagnostics = decision_diagnostics(df)
+    sensitivity = sensitivity_analysis(df)
+    scenarios = run_all_scenarios(CONFIG_PATH, n_worlds=n_worlds, seed=seed)
 
     print("Summary (per option across plausible futures)")
-    summary = summarize_results(df)
     print(summary.to_string(index=False))
-
     print("\nDecision diagnostics (comparative)")
-    diag = decision_diagnostics(df)
-    print(diag.to_string(index=False))
-
+    print(diagnostics.to_string(index=False))
     print("\nSensitivity (feature_extension vs stabilize_core)")
-    sens = sensitivity_analysis(df)
-    print(sens.head(10).to_string(index=False))
-
+    print(sensitivity.head(10).to_string(index=False))
     print("\nScenario comparison (per scenario, per option)")
-    sc = run_all_scenarios("simulator/config.yaml")
-    print(sc.to_string(index=False))
+    print(scenarios.to_string(index=False))

@@ -2,6 +2,8 @@
 
 ## What this is
 
+**This tool is designed to evolve into a data product, but today it exists to make decision quality visible.**
+
 This project is a framework for evaluating decision quality under uncertainty.
 
 It is designed to help reason about difficult product and business decisions where:
@@ -149,6 +151,12 @@ Several principles guide this project.
 If this project starts to feel like a model, a product, or a demo, it has gone too far.
 
 The purpose is to reason about decision quality under uncertainty, not to predict outcomes or recommend actions.
+
+---
+
+## How to run
+
+
 
 ---
 

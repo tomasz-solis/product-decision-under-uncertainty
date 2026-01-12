@@ -47,53 +47,49 @@ def get_simulation_settings(cfg: Dict[str, Any]) -> Dict[str, Any]:
     return {"n_worlds": n_worlds, "volume": volume, "scenario": scenario}
 
 
-def apply_scenario(cfg: Dict[str, Any], scenario_name: str) -> Dict[str, Any]:
+def apply_scenario(cfg: dict, scenario_name: str) -> dict:
     """
-    Return a new config with scenario overrides applied.
+    Apply a scenario by overriding entries in cfg["params"].
 
-    Overrides are expected under:
-      cfg["scenarios"][scenario_name][param_name] = {low, mode, high}
+    Supports both YAML shapes:
+    1) scenarios.<name>.overrides.<param> = {...}
+    2) scenarios.<name>.<param> = {...}
+
+    This function is pure:
+    - does not mutate input cfg
+    - returns a new dict
     """
-    cfg2 = copy.deepcopy(cfg)
+    new_cfg = copy.deepcopy(cfg)
 
-    scenarios = cfg2.get("scenarios", {})
-    if not isinstance(scenarios, dict) or not scenarios:
-        # No scenarios defined: treat as no-op
-        return cfg2
-
+    scenarios = new_cfg.get("scenarios", {})
     if scenario_name not in scenarios:
-        raise ValueError(f"Scenario '{scenario_name}' not found in config.yaml (scenarios).")
+        raise KeyError(f"Unknown scenario '{scenario_name}'. Available: {list(scenarios.keys())}")
 
-    overrides = scenarios[scenario_name]
+    scenario_entry = scenarios.get(scenario_name) or {}
+
+    # Support both: {"overrides": {...}} and direct mapping {...}
+    overrides = scenario_entry.get("overrides", scenario_entry)
+
     if overrides is None:
-        return cfg2
-    if not isinstance(overrides, dict):
-        raise ValueError(f"Scenario '{scenario_name}' must be a mapping/dict.")
+        overrides = {}
 
-    params = cfg2.get("params")
-    if not isinstance(params, dict) or not params:
+    if "params" not in new_cfg or not isinstance(new_cfg["params"], dict) or not new_cfg["params"]:
         raise ValueError("Config must contain a non-empty 'params' mapping.")
 
-    for param_name, ov in overrides.items():
-        if param_name not in params:
-            raise ValueError(f"Scenario override references unknown param '{param_name}'.")
-        if not isinstance(ov, dict):
-            raise ValueError(f"Scenario override for '{param_name}' must be a mapping/dict.")
+    if not isinstance(overrides, dict):
+        raise TypeError(f"Scenario '{scenario_name}' must be a dict (or contain an 'overrides' dict).")
 
-        # Only override fields that exist in the distribution.
-        dist = params[param_name].get("dist")
-        if dist not in ("tri", "uniform"):
-            raise ValueError(f"Param '{param_name}': unsupported dist '{dist}'.")
+    for param_name, param_override in overrides.items():
+        if param_name not in new_cfg["params"]:
+            raise KeyError(f"Scenario override for unknown param '{param_name}'.")
 
-        # Apply low/high always. Apply mode only for tri.
-        for k in ("low", "high"):
-            if k in ov:
-                params[param_name][k] = float(ov[k])
+        if not isinstance(param_override, dict):
+            raise TypeError(f"Override for param '{param_name}' must be a dict (e.g. low/mode/high).")
 
-        if dist == "tri" and "mode" in ov:
-            params[param_name]["mode"] = float(ov["mode"])
+        # Merge: scenario only overrides the fields it provides
+        new_cfg["params"][param_name] = {**new_cfg["params"][param_name], **param_override}
 
-    return cfg2
+    return new_cfg
 
 
 def parse_param_specs(cfg: Dict[str, Any]) -> Dict[str, ParamSpec]:
