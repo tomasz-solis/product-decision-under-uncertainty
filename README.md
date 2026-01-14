@@ -1,10 +1,8 @@
-# Decision Quality Framework
+# Decision Quality Under Uncertainty
 
 ## What this is
 
-**This tool is designed to evolve into a data product, but today it exists to make decision quality visible.**
-
-This project is a framework for evaluating decision quality under uncertainty.
+This tool exists to make decision quality visible under uncertainty.
 
 It is designed to help reason about difficult product and business decisions where:
 - outcomes are uncertain,
@@ -21,7 +19,7 @@ The goal is not to find the “right” answer, but to understand the trade-offs
 
 This project is **not** a forecasting tool.
 
-It does not try to predict what will happen, estimate precise outcomes, or assess accuracy.
+It does not try to predict outcomes or assess accuracy.
 
 It is also **not** an optimization or recommendation engine.
 
@@ -31,7 +29,8 @@ The framework does not choose for you, rank decisions automatically, or replace 
 
 ## How it works (high level)
 
-The framework follows a simple, consistent flow.
+The framework is intentionally small and opinionated.
+It follows a simple, consistent flow.
 
 ### Decision framing
 
@@ -65,7 +64,7 @@ The simulation exists to support comparison, not to impress or optimize.
 
 ### Comparative evaluation
 
-Each option is evaluated using decision-quality metrics rather than point estimates.
+Each option is evaluated using decision-quality metrics rather than point estimates alone.
 
 ---
 
@@ -81,7 +80,7 @@ This shows what tends to work well, but should never be read alone.
 
 ### Downside risk
 
-A view of how bad things can get under unfavorable conditions.
+A view of how bad things can get under unfavorable conditions, when recovery is slow or impossible.
 
 This matters when failures are costly or irreversible.
 
@@ -105,7 +104,7 @@ No single metric is sufficient on its own. The framework is designed to be read 
 
 V1 of this project includes a single, fully worked decision case.
 
-The case describes a common situation:
+The case describes a familiar situation in mature products:
 - ongoing issues in part of a product,
 - pressure to keep moving forward,
 - limited capacity,
@@ -132,6 +131,9 @@ It assumes comfort with uncertainty and trade-offs, and does not attempt to simp
 
 Several principles guide this project.
 
+- **Clarity over scale**  
+  This is a thinking tool, not a general-purpose library.
+
 - **Judgment over automation**  
   The framework supports thinking; it does not replace it.
 
@@ -140,9 +142,6 @@ Several principles guide this project.
 
 - **Comparison over conclusions**  
   Decisions are evaluated relative to alternatives, not in isolation.
-
-- **Clarity over scale**  
-  This is a thinking tool, not a general-purpose library.
 
 ---
 
@@ -156,13 +155,46 @@ The purpose is to reason about decision quality under uncertainty, not to predic
 
 ## How to run
 
+This project currently runs as a local, exploratory tool.
 
+The interface is intentionally minimal. The goal is to make assumptions and trade-offs visible, not to provide a polished application.
+
+### Setup
+```bash
+pip install -r requirements.txt
+```
+
+### Run
+```bash
+streamlit run app.py
+```
+
+The app will open locally in your browser.
+
+From there, you can:
+
+- review the example decision included in the project
+- adjust assumptions and ranges
+- compare decision options under the same uncertainty draws
+
+There is no persistence layer, user management, or production configuration.
+This is deliberate.
+
+### Why this is not deployed
+
+The framework is meant to be used close to the decision being discussed.
+
+Running it locally keeps:
+- assumptions inspectable,
+- iteration cheap,
+- ownership clear.
+
+If the tool ever needs to be deployed, that will be a separate decision—made with its own trade-offs.
 
 ---
 
 ## Contact
 
 Tomasz Solis
-- Email: tomasz.solis@gmail.com
 - [LinkedIn](https://linkedin.com/in/tomaszsolis)
 - [GitHub](https://github.com/tomasz-solis)

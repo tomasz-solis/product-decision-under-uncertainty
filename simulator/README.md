@@ -30,10 +30,10 @@ All outputs are meant to be read comparatively, not as predictions.
 
 The simulator does not:
 
-- predict real-world outcomes
-- estimate company-specific metrics
 - recommend a decision
 - optimize parameters
+- predict real-world outcomes
+- estimate company-specific metrics
 - validate assumptions
 
 It exists to support reasoning about trade-offs, not to automate decisions.
