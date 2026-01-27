@@ -1,13 +1,25 @@
 # app.py
 from __future__ import annotations
 
+import logging
 import math
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from scipy import stats
+from statsmodels.tsa.seasonal import seasonal_decompose
 import streamlit as st
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Rate limiting constants
+MAX_SIMULATIONS_PER_HOUR = 100
+MAX_CSV_SIZE_MB = 10
 
 from simulator.config import load_config, get_seed, get_simulation_settings
 from simulator.mvp_simulator import (
@@ -55,6 +67,317 @@ def _group_for_param(name: str) -> str:
 
 def _is_number(x: Any) -> bool:
     return isinstance(x, (int, float)) and math.isfinite(x)
+
+
+def _check_rate_limit() -> bool:
+    """Check if user hit rate limit. Returns True if ok to proceed."""
+    import time
+    now = time.time()
+
+    if 'simulation_timestamps' not in st.session_state:
+        st.session_state.simulation_timestamps = []
+
+    one_hour_ago = now - 3600
+    st.session_state.simulation_timestamps = [
+        ts for ts in st.session_state.simulation_timestamps
+        if ts > one_hour_ago
+    ]
+
+    if len(st.session_state.simulation_timestamps) >= MAX_SIMULATIONS_PER_HOUR:
+        return False
+
+    st.session_state.simulation_timestamps.append(now)
+    return True
+
+
+def _check_csv_size(uploaded_file) -> bool:
+    """Check if uploaded CSV is under size limit."""
+    if uploaded_file is None:
+        return True
+
+    size_mb = uploaded_file.size / (1024 * 1024)
+    return size_mb <= MAX_CSV_SIZE_MB
+
+
+def _bootstrap_ci(data: np.ndarray, percentile: float, n_bootstrap: int = 1000, confidence: float = 0.95) -> Tuple[float, float]:
+    """Bootstrap CI for a percentile. Returns (lower, upper)."""
+    np.random.seed(42)
+    bootstrap_stats = []
+    for _ in range(n_bootstrap):
+        sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_stats.append(np.percentile(sample, percentile))
+
+    alpha = 1 - confidence
+    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
+    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+    return float(lower), float(upper)
+
+
+def _test_normality(data: pd.Series) -> Dict[str, Any]:
+    """Test if data is normal. Uses Shapiro-Wilk or Anderson-Darling."""
+    clean = data.dropna()
+    if len(clean) < 3:
+        return {"error": "Insufficient data"}
+
+    if len(clean) > 5000:
+        result = stats.anderson(clean, dist='norm')
+        is_normal = result.statistic < result.critical_values[2]
+        return {"test": "anderson", "is_normal": is_normal, "statistic": float(result.statistic)}
+    else:
+        statistic, p_value = stats.shapiro(clean)
+        is_normal = p_value > 0.05
+        return {"test": "shapiro", "is_normal": is_normal, "p_value": float(p_value)}
+
+
+def _detect_time_series_pattern(data: pd.Series, dates: Optional[pd.Series] = None) -> Optional[Dict[str, Any]]:
+    """Detect seasonality and trend using STL decomposition."""
+    clean = data.dropna()
+    if len(clean) < 14:
+        return None
+
+    try:
+        if dates is not None:
+            ts = pd.Series(clean.values, index=pd.to_datetime(dates.dropna()))
+        else:
+            ts = pd.Series(clean.values)
+
+        result = seasonal_decompose(ts, model='additive', period=min(7, len(ts) // 2), extrapolate_trend='freq')
+
+        seasonal_strength = float(np.var(result.seasonal)) / float(np.var(result.seasonal + result.resid))
+        trend_strength = float(np.var(result.trend.dropna())) / float(np.var(result.observed.dropna()))
+
+        return {
+            "has_seasonality": seasonal_strength > 0.1,
+            "has_trend": trend_strength > 0.1,
+            "seasonal_strength": seasonal_strength,
+            "trend_strength": trend_strength,
+        }
+    except Exception:
+        return None
+
+
+def _calculate_correlation_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Tuple[str, str, float]]]:
+    """Calculate correlation matrix and find strong correlations (|r| > 0.7)."""
+    numeric_df = df.select_dtypes(include=[np.number])
+    if numeric_df.shape[1] < 2:
+        return pd.DataFrame(), []
+
+    corr_matrix = numeric_df.corr()
+
+    strong_corr = []
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i + 1, len(corr_matrix.columns)):
+            corr_val = corr_matrix.iloc[i, j]
+            if abs(corr_val) > 0.7:
+                strong_corr.append((
+                    corr_matrix.columns[i],
+                    corr_matrix.columns[j],
+                    float(corr_val)
+                ))
+
+    return corr_matrix, strong_corr
+
+
+def _calculate_quality_score(quality_metrics: Dict[str, Any]) -> int:
+    """Score data quality 0-100 based on sample size, variance, outliers, skewness."""
+    score = 100
+    n = quality_metrics.get('n', 0)
+    cv = quality_metrics.get('cv', 0)
+    outlier_pct = quality_metrics.get('outlier_pct', 0)
+    skewness = abs(quality_metrics.get('skewness', 0))
+
+    if n < 10:
+        score -= 40
+    elif n < 30:
+        score -= 30
+    elif n < 50:
+        score -= 15
+    elif n < 100:
+        score -= 5
+
+    if cv > 1.0:
+        score -= 20
+    elif cv > 0.5:
+        score -= 10
+
+    if outlier_pct > 10:
+        score -= 15
+    elif outlier_pct > 5:
+        score -= 7
+
+    if skewness > 2:
+        score -= 15
+    elif skewness > 1:
+        score -= 7
+
+    if quality_metrics.get('normality', {}).get('is_normal', False):
+        score += 5
+
+    return max(0, min(100, score))
+
+
+def _analyze_data_quality(data: pd.Series, col_name: str) -> Dict[str, Any]:
+    """Run stats on a column and return metrics, warnings, insights."""
+    clean = data.dropna()
+    n = len(clean)
+
+    if n == 0:
+        return {"error": "No valid data"}
+
+    mean = float(clean.mean())
+    std = float(clean.std())
+    median = float(clean.median())
+    cv = abs(std / mean) if mean != 0 else float('inf')
+
+    skewness = float(clean.skew())
+    kurtosis = float(clean.kurtosis())
+
+    q1 = float(clean.quantile(0.25))
+    q3 = float(clean.quantile(0.75))
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    outliers = ((clean < lower_bound) | (clean > upper_bound)).sum()
+    outlier_pct = 100 * outliers / n
+
+    normality = _test_normality(clean)
+
+    ci_low, ci_high = (None, None), (None, None), (None, None)
+    if n >= 30:
+        ci_low = _bootstrap_ci(clean.values, 5, n_bootstrap=500)
+        ci_mid = _bootstrap_ci(clean.values, 50, n_bootstrap=500)
+        ci_high = _bootstrap_ci(clean.values, 95, n_bootstrap=500)
+
+    warnings = []
+    insights = []
+
+    if n < 30:
+        warnings.append(f"⚠️ Only {n} samples - might be noisy")
+    else:
+        insights.append(f"✓ Good size (n={n})")
+
+    if cv > 0.5:
+        warnings.append(f"⚠️ High variance (CV={cv:.2f})")
+    elif cv < 0.1:
+        insights.append(f"✓ Stable (CV={cv:.2f})")
+
+    if outlier_pct > 5:
+        warnings.append(f"⚠️ {outliers} outliers ({outlier_pct:.1f}%)")
+
+    if abs(skewness) > 1:
+        warnings.append(f"⚠️ Skewed (skew={skewness:.2f})")
+
+    if not normality.get("is_normal", True):
+        insights.append(f"ℹ️ Non-normal. Percentile ranges ok.")
+
+    return {
+        "n": n,
+        "mean": mean,
+        "median": median,
+        "std": std,
+        "cv": cv,
+        "skewness": skewness,
+        "kurtosis": kurtosis,
+        "outliers": outliers,
+        "outlier_pct": outlier_pct,
+        "normality": normality,
+        "ci_p05": ci_low,
+        "ci_p50": ci_mid,
+        "ci_p95": ci_high,
+        "warnings": warnings,
+        "insights": insights
+    }
+
+
+def _create_distribution_plot(data: pd.Series, col_name: str, p05: float, p50: float, p95: float) -> go.Figure:
+    """Histogram with p5/p50/p95 lines."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Histogram(
+        x=data,
+        name="Distribution",
+        nbinsx=30,
+        marker=dict(color='lightblue', line=dict(color='darkblue', width=1))
+    ))
+
+    fig.add_vline(x=p05, line_dash="dash", line_color="orange", annotation_text="p5")
+    fig.add_vline(x=p50, line_dash="solid", line_color="red", annotation_text="p50 (median)")
+    fig.add_vline(x=p95, line_dash="dash", line_color="orange", annotation_text="p95")
+
+    fig.update_layout(
+        title=f"Distribution: {col_name}",
+        xaxis_title=col_name,
+        yaxis_title="Count",
+        showlegend=False,
+        height=300
+    )
+
+    return fig
+
+
+def _create_comparison_chart(csv_col: str, csv_ranges: Dict, yaml_ranges: Dict) -> go.Figure:
+    """Before/after bar chart."""
+    fig = go.Figure()
+
+    categories = ['Low (p5)', 'Mode (p50)', 'High (p95)']
+
+    fig.add_trace(go.Bar(
+        name='Current (YAML)',
+        x=categories,
+        y=[yaml_ranges.get('low', 0), yaml_ranges.get('mode', 0), yaml_ranges.get('high', 0)],
+        marker_color='lightgray'
+    ))
+
+    fig.add_trace(go.Bar(
+        name='Suggested (Data)',
+        x=categories,
+        y=[csv_ranges['low'], csv_ranges['mode'], csv_ranges['high']],
+        marker_color='lightblue'
+    ))
+
+    fig.update_layout(
+        title=f"Range Comparison: {csv_col}",
+        yaxis_title="Value",
+        barmode='group',
+        height=300
+    )
+
+    return fig
+
+
+def _create_correlation_heatmap(corr_matrix: pd.DataFrame) -> go.Figure:
+    """Correlation heatmap."""
+    fig = go.Figure(data=go.Heatmap(
+        z=corr_matrix.values,
+        x=corr_matrix.columns,
+        y=corr_matrix.columns,
+        colorscale='RdBu',
+        zmid=0,
+        text=corr_matrix.values,
+        texttemplate='%{text:.2f}',
+        textfont={"size": 10},
+        colorbar=dict(title="Correlation")
+    ))
+
+    fig.update_layout(
+        title="Correlation Matrix",
+        xaxis_title="Parameters",
+        yaxis_title="Parameters",
+        height=500,
+        width=500
+    )
+
+    return fig
+
+
+def _get_quality_color(score: int) -> str:
+    """Return emoji based on quality score."""
+    if score >= 80:
+        return "🟢"
+    elif score >= 60:
+        return "🟡"
+    else:
+        return "🔴"
 
 
 def _clamp_triplet(low: float, mode: float, high: float) -> Tuple[float, float, float]:
@@ -242,11 +565,18 @@ with st.sidebar:
                 mime="text/csv",
             )
 
-        uploaded_file = st.file_uploader("Choose CSV file", type="csv")
+        st.caption(f"Max file size: {MAX_CSV_SIZE_MB}MB")
+        uploaded_file = st.file_uploader("Choose CSV file", type="csv", label_visibility="visible")
 
         if uploaded_file is not None:
+            # Check CSV size limit
+            if not _check_csv_size(uploaded_file):
+                st.error(f"❌ File too large (max {MAX_CSV_SIZE_MB}MB)")
+                st.stop()
+
             try:
                 df_upload = pd.read_csv(uploaded_file)
+                logger.info(f"CSV uploaded: {len(df_upload)} rows, {len(df_upload.columns)} columns, size: {uploaded_file.size / 1024:.1f}KB")
                 st.write(f"Loaded {len(df_upload)} rows, {len(df_upload.columns)} columns")
 
                 # Show preview
@@ -261,24 +591,107 @@ with st.sidebar:
                 else:
                     st.write(f"Found {len(numeric_cols)} numeric columns")
 
+                    # Advanced Analytics Section
+                    st.divider()
+
+                    # Correlation Analysis
+                    if len(numeric_cols) >= 2:
+                        with st.expander("🔗 Correlation Analysis", expanded=False):
+                            corr_matrix, strong_corr = _calculate_correlation_matrix(df_upload[numeric_cols])
+
+                            if not corr_matrix.empty:
+                                fig_corr = _create_correlation_heatmap(corr_matrix)
+                                st.plotly_chart(fig_corr, use_container_width=True)
+
+                                if strong_corr:
+                                    st.warning(f"**Found {len(strong_corr)} strong correlations (|r| > 0.7):**")
+                                    for col1, col2, corr_val in strong_corr:
+                                        st.write(f"• **{col1}** ↔ **{col2}**: r = {corr_val:.3f}")
+                                    st.caption("⚠️ These params move together - might affect ranges")
+                                else:
+                                    st.success("✓ No strong correlations. Params look independent.")
+
+                    # Time Series Detection (if date column exists)
+                    date_cols = [col for col in df_upload.columns if 'date' in col.lower()]
+                    if date_cols:
+                        with st.expander("📅 Time Series Patterns", expanded=False):
+                            date_col = date_cols[0]
+                            st.write(f"Detected date column: **{date_col}**")
+
+                            for csv_col in numeric_cols:
+                                ts_pattern = _detect_time_series_pattern(df_upload[csv_col], df_upload[date_col])
+                                if ts_pattern:
+                                    st.write(f"**{csv_col}:**")
+                                    if ts_pattern.get('has_seasonality'):
+                                        st.warning(f"⚠️ Seasonality detected (strength: {ts_pattern['seasonal_strength']:.2f})")
+                                    if ts_pattern.get('has_trend'):
+                                        st.warning(f"⚠️ Trend detected (strength: {ts_pattern['trend_strength']:.2f})")
+                                    if ts_pattern.get('has_seasonality') or ts_pattern.get('has_trend'):
+                                        st.caption("Check if historical ranges still make sense")
+
+                    # Quality Score Dashboard
+                    st.divider()
+                    st.subheader("📊 Data Quality Dashboard")
+
+                    # First pass: analyze all columns to show quality dashboard
+                    quality_scores_all = {}
+                    for csv_col in numeric_cols:
+                        col_data = df_upload[csv_col].dropna()
+                        if len(col_data) >= 10:
+                            quality = _analyze_data_quality(col_data, csv_col)
+                            score = _calculate_quality_score(quality)
+                            quality_scores_all[csv_col] = {
+                                "score": score,
+                                "n": quality.get('n', 0),
+                                "cv": quality.get('cv', 0),
+                                "outliers": quality.get('outliers', 0)
+                            }
+
+                    # Display quality dashboard
+                    if quality_scores_all:
+                        cols_dash = st.columns(min(4, len(quality_scores_all)))
+                        for idx, (col_name, scores) in enumerate(quality_scores_all.items()):
+                            with cols_dash[idx % len(cols_dash)]:
+                                color = _get_quality_color(scores['score'])
+                                st.metric(
+                                    label=f"{color} {col_name}",
+                                    value=f"{scores['score']}/100",
+                                    delta=f"n={scores['n']}"
+                                )
+
                     # Let user map columns to parameters
+                    st.divider()
                     st.subheader("Map columns to parameters")
                     st.caption("Select which CSV columns should update which parameters. Uncheck to skip.")
 
                     suggested_ranges = {}
                     mappings = {}
+                    quality_issues = []
 
                     for csv_col in numeric_cols:
                         col_data = df_upload[csv_col].dropna()
                         if len(col_data) < 10:
                             continue
 
+                        # Analyze data quality
+                        quality = _analyze_data_quality(col_data, csv_col)
+                        score = _calculate_quality_score(quality)
+
                         # Calculate suggested ranges
                         p05 = float(np.percentile(col_data, 5))
                         p50 = float(np.percentile(col_data, 50))
                         p95 = float(np.percentile(col_data, 95))
 
-                        suggested_ranges[csv_col] = {"low": p05, "mode": p50, "high": p95}
+                        suggested_ranges[csv_col] = {
+                            "low": p05,
+                            "mode": p50,
+                            "high": p95,
+                            "quality": quality
+                        }
+
+                        # Track columns with quality issues
+                        if quality.get("warnings"):
+                            quality_issues.append((csv_col, quality["warnings"]))
 
                         # Find matching parameter name (if any)
                         matching_param = None
@@ -305,15 +718,106 @@ with st.sidebar:
                             if use_col:
                                 st.caption(f"{p05:.4f} / {p50:.4f} / {p95:.4f}")
 
+                        # Show detailed quality info for selected columns
+                        if use_col:
+                            # Warnings
+                            if quality.get("warnings"):
+                                for warning in quality["warnings"]:
+                                    st.caption(warning)
+
+                            # Insights
+                            if quality.get("insights"):
+                                for insight in quality["insights"]:
+                                    st.caption(insight)
+
+                            # Show distribution plot
+                            with st.expander(f"📊 View distribution: {csv_col}", expanded=False):
+                                # Distribution histogram
+                                fig = _create_distribution_plot(col_data, csv_col, p05, p50, p95)
+                                st.plotly_chart(fig, use_container_width=True)
+
+                                # Statistical summary
+                                st.write("**Statistical Summary:**")
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric("Mean", f"{quality['mean']:.4f}")
+                                    st.metric("Median", f"{quality['median']:.4f}")
+                                with col_b:
+                                    st.metric("Std Dev", f"{quality['std']:.4f}")
+                                    st.metric("CV", f"{quality['cv']:.3f}")
+                                with col_c:
+                                    st.metric("Skewness", f"{quality['skewness']:.3f}")
+                                    st.metric("Outliers", f"{quality['outliers']}")
+
+                                # Bootstrap CIs if available
+                                if quality.get('ci_p05') and quality['ci_p05'][0] is not None:
+                                    st.write("**95% Confidence Intervals:**")
+                                    st.caption(f"p5:  [{quality['ci_p05'][0]:.4f}, {quality['ci_p05'][1]:.4f}]")
+                                    st.caption(f"p50: [{quality['ci_p50'][0]:.4f}, {quality['ci_p50'][1]:.4f}]")
+                                    st.caption(f"p95: [{quality['ci_p95'][0]:.4f}, {quality['ci_p95'][1]:.4f}]")
+
+                                # Comparison with current YAML if parameter exists
+                                if target_param in params:
+                                    st.write("**Comparison with current config:**")
+                                    yaml_ranges = params[target_param]
+                                    comparison_fig = _create_comparison_chart(
+                                        csv_col,
+                                        {"low": p05, "mode": p50, "high": p95},
+                                        yaml_ranges
+                                    )
+                                    st.plotly_chart(comparison_fig, use_container_width=True)
+
+                    # Show overall data quality summary if there are issues
+                    if quality_issues:
+                        with st.expander("⚠️ Data Quality Summary", expanded=False):
+                            for col, warnings in quality_issues:
+                                st.write(f"**{col}:**")
+                                for w in warnings:
+                                    st.write(f"  {w}")
+
                     if mappings:
                         st.divider()
+
+                        # Bulk Comparison View
+                        with st.expander("📋 Bulk Comparison: All Parameters", expanded=False):
+                            comparison_data = []
+                            for csv_col, param_name in mappings.items():
+                                ranges = suggested_ranges[csv_col]
+                                yaml_range = params.get(param_name, {})
+                                quality_info = ranges['quality']
+                                quality_score = _calculate_quality_score(quality_info)
+
+                                comparison_data.append({
+                                    "CSV Column": csv_col,
+                                    "→ Parameter": param_name,
+                                    "Quality": f"{_get_quality_color(quality_score)} {quality_score}/100",
+                                    "Current Low": yaml_range.get('low', '-'),
+                                    "Suggested Low": ranges['low'],
+                                    "Current Mode": yaml_range.get('mode', '-'),
+                                    "Suggested Mode": ranges['mode'],
+                                    "Current High": yaml_range.get('high', '-'),
+                                    "Suggested High": ranges['high'],
+                                    "Sample Size": quality_info.get('n', '-'),
+                                })
+
+                            if comparison_data:
+                                comparison_df = pd.DataFrame(comparison_data)
+                                st.dataframe(comparison_df, use_container_width=True)
+                                st.caption("Sort by Quality to see best data first")
+
                         if st.button("Apply suggested ranges", type="primary"):
                             # Apply mappings to session state
+                            applied = []
                             for csv_col, param_name in mappings.items():
                                 ranges = suggested_ranges[csv_col]
                                 st.session_state[f"{param_name}__low"] = ranges["low"]
                                 st.session_state[f"{param_name}__mode"] = ranges["mode"]
                                 st.session_state[f"{param_name}__high"] = ranges["high"]
+                                applied.append(f"{csv_col} → {param_name}")
+
+                            # Log the application
+                            logger.info(f"Applied {len(mappings)} parameter ranges from CSV: {', '.join(applied)}")
+
                             st.success(f"Applied {len(mappings)} parameter ranges from your data")
                             st.rerun()
                     else:
@@ -389,6 +893,10 @@ with st.sidebar:
 
 
 if run_btn:
+    if not _check_rate_limit():
+        st.error(f"❌ Rate limit hit ({MAX_SIMULATIONS_PER_HOUR}/hour). Try again later.")
+        st.stop()
+
     overrides = _build_overrides_from_state(cfg)
 
     if overrides:
@@ -398,6 +906,7 @@ if run_btn:
         st.caption("No assumption overrides applied (using YAML as-is).")
 
     try:
+        logger.info(f"Running simulation: n_worlds={n_worlds}, seed={seed}, scenario={scenario}, overrides={len(overrides) if overrides else 0}")
         df = run_simulation(
             CONFIG_PATH,
             n_worlds=int(n_worlds),
@@ -405,7 +914,9 @@ if run_btn:
             scenario=str(scenario),
             param_overrides=overrides if overrides else None,
         )
+        logger.info(f"Simulation completed successfully: {len(df)} worlds simulated")
     except Exception as e:
+        logger.error(f"Simulation failed: {str(e)}", exc_info=True)
         st.error(f"Simulation failed: {str(e)}")
         st.stop()
 
@@ -427,7 +938,46 @@ if run_btn:
     sc = run_all_scenarios(CONFIG_PATH, n_worlds=int(n_worlds), seed=int(seed))
     st.dataframe(_format_rate_cols(_format_money_cols(sc)), width='stretch')
 
+    # --- Export Results -------------------------------------------------------
+    st.divider()
+    st.subheader("Export Results")
+
+    col_export1, col_export2, col_export3 = st.columns(3)
+
+    with col_export1:
+        # Export raw simulation data
+        csv_raw = df.to_csv(index=False)
+        st.download_button(
+            label="Download raw simulation data (CSV)",
+            data=csv_raw,
+            file_name=f"simulation_raw_{scenario}_{seed}.csv",
+            mime="text/csv",
+        )
+
+    with col_export2:
+        # Export summary
+        summary_df = summarize_results(df)
+        csv_summary = summary_df.to_csv(index=False)
+        st.download_button(
+            label="Download summary (CSV)",
+            data=csv_summary,
+            file_name=f"simulation_summary_{scenario}_{seed}.csv",
+            mime="text/csv",
+        )
+
+    with col_export3:
+        # Export diagnostics
+        diag_df = decision_diagnostics(df)
+        csv_diag = diag_df.to_csv(index=False)
+        st.download_button(
+            label="Download diagnostics (CSV)",
+            data=csv_diag,
+            file_name=f"simulation_diagnostics_{scenario}_{seed}.csv",
+            mime="text/csv",
+        )
+
     # --- Charts (Plotly) ------------------------------------------------------
+    st.divider()
     st.subheader("Outcome distributions across plausible futures")
     st.caption("Each point is one simulated world under the current assumptions.")
 
