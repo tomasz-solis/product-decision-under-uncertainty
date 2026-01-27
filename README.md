@@ -180,6 +180,36 @@ From there, you can:
 There is no persistence layer, user management, or production configuration.
 This is deliberate.
 
+### Using historical data to inform ranges
+
+If you have historical data (CSV format), you can upload it directly in the app:
+
+1. Click "Upload data to suggest ranges" in the sidebar
+2. Upload your CSV file (must have numeric columns)
+3. Map CSV columns to parameters (app will auto-match when possible)
+4. Review suggested ranges (5th/50th/95th percentiles)
+5. Click "Apply suggested ranges"
+
+The app calculates ranges from your data but you can still adjust them manually afterward.
+
+**Important**: The app suggests ranges based on historical data. You review, adjust, and own the final ranges. Past patterns may not reflect future uncertainty.
+
+For batch processing, use the CLI tool:
+```bash
+python3 simulator/analyze_data.py your_data.csv --summary --output ranges.yaml
+```
+
+### Running tests
+
+To run the test suite:
+
+```bash
+pip install -r requirements.txt
+pytest test_simulator.py -v
+```
+
+The tests cover core simulation logic, parameter sampling, and edge cases.
+
 ### Why this is not deployed
 
 The framework is meant to be used close to the decision being discussed.
