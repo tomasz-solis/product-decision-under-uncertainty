@@ -1,8 +1,10 @@
 # app.py
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, Tuple
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -52,7 +54,7 @@ def _group_for_param(name: str) -> str:
 
 
 def _is_number(x: Any) -> bool:
-    return isinstance(x, (int, float)) and x == x  # NaN-safe-ish
+    return isinstance(x, (int, float)) and math.isfinite(x)
 
 
 def _clamp_triplet(low: float, mode: float, high: float) -> Tuple[float, float, float]:
@@ -110,9 +112,9 @@ def _diff_table(cfg: dict, overrides: Dict[str, Dict[str, float]]) -> pd.DataFra
                 "base_low": base.get("low"),
                 "base_mode": base.get("mode"),
                 "base_high": base.get("high"),
-                "new_low": low,
-                "new_mode": mode,
-                "new_high": high,
+                "new_low": ov.get("low"),
+                "new_mode": ov.get("mode"),
+                "new_high": ov.get("high"),
             }
         )
     return pd.DataFrame(rows)
@@ -180,7 +182,7 @@ with st.sidebar:
     n_worlds = st.number_input(
         "Simulation runs",
         min_value=1_000,
-        max_value=500_000,
+        max_value=100_000,
         value=int(sim.get("n_worlds", 20_000)),
         step=1_000,
     )
@@ -194,6 +196,131 @@ with st.sidebar:
 
     st.divider()
     st.header("Assumptions")
+
+    with st.expander("Upload data to suggest ranges", expanded=False):
+        st.write("Upload a CSV with historical data. The app will suggest parameter ranges based on your data.")
+
+        with st.expander("📋 What format do I need?", expanded=False):
+            st.markdown("""
+            **Required format:**
+            - CSV file with column headers
+            - At least one numeric column
+            - At least 10 rows of data (more is better)
+
+            **Example:**
+            ```
+            date,failure_rate,revenue,cost,churn
+            2024-01-01,0.045,102.5,48.2,0.012
+            2024-01-02,0.052,98.3,51.0,0.015
+            2024-01-03,0.048,105.1,49.5,0.011
+            ...
+            ```
+
+            **Tips:**
+            - Column names should match your parameter names (e.g., `baseline_failure_rate`)
+            - Non-numeric columns (like dates) are automatically skipped
+            - The app calculates 5th/50th/95th percentiles from your data
+            """)
+
+            # Generate example CSV for download
+            example_csv = """date,baseline_failure_rate,revenue_per_success,cost_per_failure,churn_rate
+2024-01-01,0.045,102.5,48.2,0.012
+2024-01-02,0.052,98.3,51.0,0.015
+2024-01-03,0.048,105.1,49.5,0.011
+2024-01-04,0.061,95.8,52.3,0.018
+2024-01-05,0.044,103.2,47.8,0.010
+2024-01-06,0.055,99.7,50.1,0.014
+2024-01-07,0.047,101.8,48.9,0.012
+2024-01-08,0.050,100.5,49.7,0.013
+2024-01-09,0.058,97.2,51.8,0.016
+2024-01-10,0.046,104.3,48.5,0.011"""
+
+            st.download_button(
+                label="Download example CSV template",
+                data=example_csv,
+                file_name="example_data.csv",
+                mime="text/csv",
+            )
+
+        uploaded_file = st.file_uploader("Choose CSV file", type="csv")
+
+        if uploaded_file is not None:
+            try:
+                df_upload = pd.read_csv(uploaded_file)
+                st.write(f"Loaded {len(df_upload)} rows, {len(df_upload.columns)} columns")
+
+                # Show preview
+                with st.expander("Preview data", expanded=False):
+                    st.dataframe(df_upload.head(10))
+
+                # Find numeric columns
+                numeric_cols = [col for col in df_upload.columns if pd.api.types.is_numeric_dtype(df_upload[col])]
+
+                if not numeric_cols:
+                    st.warning("No numeric columns found in CSV")
+                else:
+                    st.write(f"Found {len(numeric_cols)} numeric columns")
+
+                    # Let user map columns to parameters
+                    st.subheader("Map columns to parameters")
+                    st.caption("Select which CSV columns should update which parameters. Uncheck to skip.")
+
+                    suggested_ranges = {}
+                    mappings = {}
+
+                    for csv_col in numeric_cols:
+                        col_data = df_upload[csv_col].dropna()
+                        if len(col_data) < 10:
+                            continue
+
+                        # Calculate suggested ranges
+                        p05 = float(np.percentile(col_data, 5))
+                        p50 = float(np.percentile(col_data, 50))
+                        p95 = float(np.percentile(col_data, 95))
+
+                        suggested_ranges[csv_col] = {"low": p05, "mode": p50, "high": p95}
+
+                        # Find matching parameter name (if any)
+                        matching_param = None
+                        for p_name in params.keys():
+                            if csv_col.lower().replace("_", "") in p_name.lower().replace("_", ""):
+                                matching_param = p_name
+                                break
+
+                        # Create mapping UI
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col1:
+                            use_col = st.checkbox(csv_col, value=(matching_param is not None), key=f"use_{csv_col}")
+                        with col2:
+                            if use_col:
+                                target_param = st.selectbox(
+                                    "maps to",
+                                    options=list(params.keys()),
+                                    index=list(params.keys()).index(matching_param) if matching_param else 0,
+                                    key=f"map_{csv_col}",
+                                    label_visibility="collapsed"
+                                )
+                                mappings[csv_col] = target_param
+                        with col3:
+                            if use_col:
+                                st.caption(f"{p05:.4f} / {p50:.4f} / {p95:.4f}")
+
+                    if mappings:
+                        st.divider()
+                        if st.button("Apply suggested ranges", type="primary"):
+                            # Apply mappings to session state
+                            for csv_col, param_name in mappings.items():
+                                ranges = suggested_ranges[csv_col]
+                                st.session_state[f"{param_name}__low"] = ranges["low"]
+                                st.session_state[f"{param_name}__mode"] = ranges["mode"]
+                                st.session_state[f"{param_name}__high"] = ranges["high"]
+                            st.success(f"Applied {len(mappings)} parameter ranges from your data")
+                            st.rerun()
+                    else:
+                        st.info("Check at least one column to apply ranges")
+
+            except Exception as e:
+                st.error(f"Error loading CSV: {str(e)}")
 
     with st.expander("Edit parameter ranges (in-memory)", expanded=False):
         st.write("These changes are temporary. They won’t modify the YAML.")
@@ -270,13 +397,17 @@ if run_btn:
     else:
         st.caption("No assumption overrides applied (using YAML as-is).")
 
-    df = run_simulation(
-        CONFIG_PATH,
-        n_worlds=int(n_worlds),
-        seed=int(seed),
-        scenario=str(scenario),
-        param_overrides=overrides if overrides else None,
-    )
+    try:
+        df = run_simulation(
+            CONFIG_PATH,
+            n_worlds=int(n_worlds),
+            seed=int(seed),
+            scenario=str(scenario),
+            param_overrides=overrides if overrides else None,
+        )
+    except Exception as e:
+        st.error(f"Simulation failed: {str(e)}")
+        st.stop()
 
     # --- Tables ---------------------------------------------------------------
     c1, c2 = st.columns([1, 1])
