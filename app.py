@@ -29,6 +29,16 @@ from simulator.mvp_simulator import (
     sensitivity_analysis,
     run_all_scenarios,
 )
+from simulator.visualizations import (
+    create_decision_dashboard,
+    create_risk_profile_chart,
+    create_regret_comparison,
+    create_scenario_comparison,
+    create_trade_off_matrix,
+    create_executive_summary_table,
+    clean_label,
+    OPTION_LABELS,
+)
 
 CONFIG_PATH = "simulator/config.yaml"
 
@@ -242,7 +252,7 @@ def _analyze_data_quality(data: pd.Series, col_name: str) -> Dict[str, Any]:
 
     normality = _test_normality(clean)
 
-    ci_low, ci_high = (None, None), (None, None), (None, None)
+    ci_low, ci_mid, ci_high = (None, None), (None, None), (None, None)
     if n >= 30:
         ci_low = _bootstrap_ci(clean.values, 5, n_bootstrap=500)
         ci_mid = _bootstrap_ci(clean.values, 50, n_bootstrap=500)
@@ -476,6 +486,28 @@ def _format_rate_cols(df: pd.DataFrame) -> pd.DataFrame:
             out[c] = out[c].map(lambda x: f"{x:.3f}" if pd.notnull(x) else x)
     return out
 
+
+def _clean_table_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean column names and option/parameter names in tables for display."""
+    out = df.copy()
+
+    # Clean column names
+    out.columns = [clean_label(col) for col in out.columns]
+
+    # Clean 'option' column if it exists
+    if 'Option' in out.columns:
+        out['Option'] = out['Option'].apply(lambda x: clean_label(OPTION_LABELS.get(x, x)))
+
+    # Clean 'parameter' column if it exists
+    if 'Parameter' in out.columns:
+        out['Parameter'] = out['Parameter'].apply(clean_label)
+
+    # Clean 'scenario' column if it exists
+    if 'Scenario' in out.columns:
+        out['Scenario'] = out['Scenario'].str.title()
+
+    return out
+
 # --- App ----------------------------------------------------------------------
 
 st.set_page_config(page_title="Decision Quality Simulator", layout="wide")
@@ -515,6 +547,14 @@ with st.sidebar:
 
     scenario_default = sim.get("scenario", "base")
     scenario_idx = scenario_keys.index(scenario_default) if scenario_default in scenario_keys else 0
+
+    st.markdown("""
+    **Scenario definitions:**
+    - **Base**: Default parameter ranges from config
+    - **Conservative**: Lower effectiveness (↓ adoption, ↓ impact)
+    - **Aggressive**: Higher effectiveness (↑ adoption, ↑ impact)
+    """)
+
     scenario = st.selectbox("Scenario", options=scenario_keys, index=scenario_idx)
 
     st.divider()
@@ -601,7 +641,7 @@ with st.sidebar:
 
                             if not corr_matrix.empty:
                                 fig_corr = _create_correlation_heatmap(corr_matrix)
-                                st.plotly_chart(fig_corr, use_container_width=True)
+                                st.plotly_chart(fig_corr, width='stretch')
 
                                 if strong_corr:
                                     st.warning(f"**Found {len(strong_corr)} strong correlations (|r| > 0.7):**")
@@ -734,7 +774,7 @@ with st.sidebar:
                             with st.expander(f"📊 View distribution: {csv_col}", expanded=False):
                                 # Distribution histogram
                                 fig = _create_distribution_plot(col_data, csv_col, p05, p50, p95)
-                                st.plotly_chart(fig, use_container_width=True)
+                                st.plotly_chart(fig, width='stretch')
 
                                 # Statistical summary
                                 st.write("**Statistical Summary:**")
@@ -765,7 +805,7 @@ with st.sidebar:
                                         {"low": p05, "mode": p50, "high": p95},
                                         yaml_ranges
                                     )
-                                    st.plotly_chart(comparison_fig, use_container_width=True)
+                                    st.plotly_chart(comparison_fig, width='stretch')
 
                     # Show overall data quality summary if there are issues
                     if quality_issues:
@@ -802,7 +842,7 @@ with st.sidebar:
 
                             if comparison_data:
                                 comparison_df = pd.DataFrame(comparison_data)
-                                st.dataframe(comparison_df, use_container_width=True)
+                                st.dataframe(comparison_df, width='stretch')
                                 st.caption("Sort by Quality to see best data first")
 
                         if st.button("Apply suggested ranges", type="primary"):
@@ -920,93 +960,234 @@ if run_btn:
         st.error(f"Simulation failed: {str(e)}")
         st.stop()
 
-    # --- Tables ---------------------------------------------------------------
-    c1, c2 = st.columns([1, 1])
-
-    with c1:
-        st.subheader("Summary")
-        st.dataframe(_format_money_cols(summarize_results(df)), width='stretch')
-
-    with c2:
-        st.subheader("Decision diagnostics")
-        st.dataframe(_format_rate_cols(_format_money_cols(decision_diagnostics(df))), width='stretch')
-
-    st.subheader("Sensitivity (feature_extension vs stabilize_core)")
-    st.dataframe(_format_rate_cols(sensitivity_analysis(df)), width='stretch')
-
-    st.subheader("Scenario comparison")
-    sc = run_all_scenarios(CONFIG_PATH, n_worlds=int(n_worlds), seed=int(seed))
-    st.dataframe(_format_rate_cols(_format_money_cols(sc)), width='stretch')
-
-    # --- Export Results -------------------------------------------------------
+    # --- Charts ------------------------------------------------------
     st.divider()
-    st.subheader("Export Results")
 
-    col_export1, col_export2, col_export3 = st.columns(3)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Executive Dashboard", "Distributions", "Details", "Methodology", "Export"])
 
-    with col_export1:
-        # Export raw simulation data
-        csv_raw = df.to_csv(index=False)
-        st.download_button(
-            label="Download raw simulation data (CSV)",
-            data=csv_raw,
-            file_name=f"simulation_raw_{scenario}_{seed}.csv",
-            mime="text/csv",
-        )
-
-    with col_export2:
-        # Export summary
+    with tab1:
         summary_df = summarize_results(df)
-        csv_summary = summary_df.to_csv(index=False)
-        st.download_button(
-            label="Download summary (CSV)",
-            data=csv_summary,
-            file_name=f"simulation_summary_{scenario}_{seed}.csv",
-            mime="text/csv",
+        diag = decision_diagnostics(df)
+        sens = sensitivity_analysis(df)
+
+        # 1. Dashboard - builds metric understanding
+        st.plotly_chart(create_decision_dashboard(summary_df, diag, sens), width='stretch')
+
+        # 2. Trade-off Matrix - shows what to avoid with context
+        st.plotly_chart(create_trade_off_matrix(summary_df, diag), width='stretch')
+
+        # 3. Executive Summary Table - numbers for those who want them
+        st.subheader("Executive Summary Table")
+        export_table = create_executive_summary_table(summary_df, diag)
+        st.dataframe(export_table, width='stretch')
+
+        # 4. Risk Profile - deeper risk analysis
+        st.subheader("Risk Profile")
+        st.plotly_chart(create_risk_profile_chart(summary_df), width='stretch')
+
+        # 5. Regret Analysis - deeper regret analysis
+        st.subheader("Regret Analysis")
+        st.plotly_chart(create_regret_comparison(diag), width='stretch')
+
+    with tab2:
+        st.subheader("Outcome distributions across plausible futures")
+        st.caption("Each point is one simulated world under the current assumptions.")
+
+        v = _long_values(df)
+        v["option"] = pd.Categorical(v["option"], categories=OPTION_COLS, ordered=True)
+
+        # Apply clean labels
+        v["option_clean"] = v["option"].apply(lambda x: clean_label(OPTION_LABELS.get(x, x)))
+
+        fig1 = px.violin(
+            v,
+            x="option_clean",
+            y="value_eur",
+            box=True,
+            points=False,
         )
-
-    with col_export3:
-        # Export diagnostics
-        diag_df = decision_diagnostics(df)
-        csv_diag = diag_df.to_csv(index=False)
-        st.download_button(
-            label="Download diagnostics (CSV)",
-            data=csv_diag,
-            file_name=f"simulation_diagnostics_{scenario}_{seed}.csv",
-            mime="text/csv",
+        fig1.update_layout(
+            yaxis_title="Value (k€)",
+            xaxis_title="",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font=dict(size=16, color='black'),
+            height=550,
+            margin=dict(l=80, r=80, t=80, b=80)
         )
+        fig1.update_xaxes(showgrid=False, tickfont=dict(size=14, color='black'))
+        fig1.update_yaxes(showgrid=True, gridcolor='#d0d0d0', tickfont=dict(size=14, color='black'), title_font=dict(size=16, color='black'))
+        st.plotly_chart(fig1, width='stretch')
 
-    # --- Charts (Plotly) ------------------------------------------------------
-    st.divider()
-    st.subheader("Outcome distributions across plausible futures")
-    st.caption("Each point is one simulated world under the current assumptions.")
+        st.subheader("Regret across plausible futures")
+        st.caption("Regret is measured per world against the best-performing option in that same world.")
 
-    v = _long_values(df)
-    v["option"] = pd.Categorical(v["option"], categories=OPTION_COLS, ordered=True)
+        r = _regret_long(df)
+        r["option"] = pd.Categorical(r["option"], categories=OPTION_COLS, ordered=True)
 
-    fig1 = px.violin(
-        v,
-        x="option",
-        y="value_eur",
-        box=True,
-        points=False,
-    )
-    fig1.update_layout(yaxis_title="Value (EUR)", xaxis_title="")
-    st.plotly_chart(fig1, width='stretch')
+        # Apply clean labels
+        r["option_clean"] = r["option"].apply(lambda x: clean_label(OPTION_LABELS.get(x, x)))
 
-    st.subheader("Regret across plausible futures")
-    st.caption("Regret is measured per world against the best-performing option in that same world.")
+        fig2 = px.box(
+            r,
+            x="option_clean",
+            y="regret_eur",
+            points=False,
+        )
+        fig2.update_layout(
+            yaxis_title="Regret (k€)",
+            xaxis_title="",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font=dict(size=16, color='black'),
+            height=550,
+            margin=dict(l=80, r=80, t=80, b=80)
+        )
+        fig2.update_xaxes(showgrid=False, tickfont=dict(size=14, color='black'))
+        fig2.update_yaxes(showgrid=True, gridcolor='#d0d0d0', tickfont=dict(size=14, color='black'), title_font=dict(size=16, color='black'))
+        st.plotly_chart(fig2, width='stretch')
 
-    r = _regret_long(df)
-    r["option"] = pd.Categorical(r["option"], categories=OPTION_COLS, ordered=True)
-    fig2 = px.box(
-        r,
-        x="option",
-        y="regret_eur",
-        points=False,
-    )
-    fig2.update_layout(yaxis_title="Regret (EUR)", xaxis_title="")
-    st.plotly_chart(fig2, width='stretch')
+    with tab3:
+        st.subheader("Raw Tables")
+        st.caption("Detailed numerical breakdowns for deep analysis.")
+
+        c1, c2 = st.columns([1, 1])
+
+        with c1:
+            st.subheader("Summary")
+            st.dataframe(_clean_table_names(_format_money_cols(summary_df)), width='stretch')
+
+        with c2:
+            st.subheader("Decision Diagnostics")
+            st.dataframe(_clean_table_names(_format_rate_cols(_format_money_cols(diag))), width='stretch')
+
+        st.subheader("Sensitivity (Feature Extension vs Stabilize Core)")
+        st.dataframe(_clean_table_names(_format_rate_cols(sens)), width='stretch')
+
+        st.subheader("Scenario Comparison")
+        st.caption("Compare how options perform under different parameter assumptions (base/conservative/aggressive).")
+        sc = run_all_scenarios(CONFIG_PATH, n_worlds=int(n_worlds), seed=int(seed))
+        st.dataframe(_clean_table_names(_format_rate_cols(_format_money_cols(sc))), width='stretch')
+
+    with tab4:
+        st.subheader("Methodology")
+        st.markdown("""
+        This framework uses Monte Carlo simulation to compare decision options under uncertainty.
+
+        ### How It Works (Plain Language)
+
+        1. **Define uncertainty**: Each parameter (adoption rate, cost, failure rate) is expressed as a range rather than a single number.
+
+        2. **Generate possible futures**: The simulation creates thousands of plausible scenarios by randomly sampling from these ranges.
+
+        3. **Identical conditions**: All options are evaluated under the same scenarios, so differences reflect decision quality, not luck.
+
+        4. **Comparative metrics**: Rather than predicting outcomes, we compare options using multiple lenses (expected value, downside risk, regret, robustness).
+
+        ---
+
+        ### Key Metrics Explained
+
+        **Expected Value (EV)**
+        Average outcome across all simulated futures. Shows what tends to work well on average.
+        Higher is better for value maximizers.
+
+        **P05 / P50 / P95 (Percentiles)**
+        - P05: 5th percentile (downside scenario)
+        - P50: Median (typical scenario)
+        - P95: 95th percentile (upside scenario)
+
+        Higher floor (P05) means less downside risk. Tighter range means more predictability.
+
+        **Win Rate**
+        Percentage of scenarios where this option delivers the highest value.
+        Higher win rate = more robust across different futures.
+
+        **Regret**
+        Missed opportunity cost. How much worse you'd do compared to the best alternative in each scenario.
+        Lower regret means less pain when you're wrong.
+
+        **Sensitivity (Correlation)**
+        Which input parameters most strongly affect outcomes.
+        Identifies which uncertainties matter most for the decision.
+
+        ---
+
+        ### Technical Details
+
+        **Sampling Method**
+        Triangular distributions for each parameter (low, mode, high). Assumes independence between parameters.
+
+        **Simulation Size**
+        20,000 scenarios by default. Large enough for stable percentile estimates.
+
+        **Common Random Numbers**
+        All options use the same random seed per scenario. This ensures fair comparison by eliminating sampling noise.
+
+        **Regret Calculation**
+        For each scenario *i*:
+        `Regret(option, i) = max(all options in scenario i) - value(option, i)`
+
+        **Sensitivity Analysis**
+        Spearman rank correlation between each input parameter and the outcome.
+        Measures monotonic relationship strength (−1 to +1).
+
+        **Win Rate Calculation**
+        `Win Rate(option) = count(scenarios where option has max value) / total scenarios`
+
+        ---
+
+        ### Limitations
+
+        - Assumes parameter independence (no correlation modeling)
+        - Single time horizon (not multi-period decisions)
+        - Triangular distributions (simplifying assumption)
+        - Does not account for real option value or learning opportunities
+
+        ---
+
+        ### References
+
+        - Howard, R. A. (1988). Decision analysis: Practice and promise. *Management Science*.
+        - Savage, S. L. (2009). *The Flaw of Averages*.
+        - Raiffa, H., & Schlaifer, R. (1961). *Applied Statistical Decision Theory*.
+        """)
+
+    with tab5:
+        st.subheader("Export Results")
+        st.caption("Download simulation data for further analysis or archival.")
+
+        col_export1, col_export2, col_export3 = st.columns(3)
+
+        with col_export1:
+            # Export raw simulation data
+            csv_raw = df.to_csv(index=False)
+            st.download_button(
+                label="Download raw simulation data (CSV)",
+                data=csv_raw,
+                file_name=f"simulation_raw_{scenario}_{seed}.csv",
+                mime="text/csv",
+            )
+
+        with col_export2:
+            # Export summary
+            csv_summary = summary_df.to_csv(index=False)
+            st.download_button(
+                label="Download summary (CSV)",
+                data=csv_summary,
+                file_name=f"simulation_summary_{scenario}_{seed}.csv",
+                mime="text/csv",
+            )
+
+        with col_export3:
+            # Export diagnostics
+            csv_diag = diag.to_csv(index=False)
+            st.download_button(
+                label="Download diagnostics (CSV)",
+                data=csv_diag,
+                file_name=f"simulation_diagnostics_{scenario}_{seed}.csv",
+                mime="text/csv",
+            )
 
 else:
     st.write("Use the sidebar to run the simulation.")

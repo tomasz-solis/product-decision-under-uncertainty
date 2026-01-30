@@ -17,6 +17,15 @@ from simulator.config import (
 
 
 def _sample_param(spec, rng: np.random.Generator) -> float:
+    """Sample a single value from a parameter specification.
+
+    Args:
+        spec: ParamSpec with distribution type and parameters
+        rng: NumPy random generator for reproducibility
+
+    Returns:
+        float: Sampled parameter value
+    """
     if spec.dist == "tri":
         return float(rng.triangular(spec.low, spec.mode, spec.high))
     if spec.dist == "uniform":
@@ -31,6 +40,14 @@ def sample_params(n: int, param_specs, seed: int) -> pd.DataFrame:
 
 
 def _expected_regression_cost(p: pd.DataFrame) -> np.ndarray:
+    """Calculate expected regression cost across simulated worlds.
+
+    Args:
+        p: DataFrame with regression_prob and regression_cost_eur columns
+
+    Returns:
+        np.ndarray: Expected cost (probability × cost) for each world
+    """
     return p["regression_prob"].to_numpy() * p["regression_cost_eur"].to_numpy()
 
 
