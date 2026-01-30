@@ -94,9 +94,9 @@ Regret highlights decisions that are painful when wrong, even if they look reaso
 
 How often an option performs best across plausible futures.
 
-This helps distinguish robust choices from those that rely on optimistic assumptions.
+This helps distinguish reliable choices from those that rely on optimistic assumptions.
 
-No single metric is sufficient on its own. The framework is designed to be read holistically.
+No single metric is sufficient on its own. Look at all of them together.
 
 ---
 
@@ -220,6 +220,17 @@ Running it locally keeps:
 - ownership clear.
 
 If the tool ever needs to be deployed, that will be a separate decision—made with its own trade-offs.
+
+---
+
+## Documentation
+
+- [METHODOLOGY.md](METHODOLOGY.md) - Step-by-step process for applying the framework
+- [CASE_STUDY.md](CASE_STUDY.md) - Illustrative example (€2M platform decision)
+- [EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md) - One-page overview for non-technical stakeholders
+- [STATUS.md](STATUS.md) - Current state and next steps
+- [simulator/assumptions.md](simulator/assumptions.md) - Parameter definitions
+- [simulator/model_spec.md](simulator/model_spec.md) - Technical specification
 
 ---
 
