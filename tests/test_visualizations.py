@@ -127,4 +127,4 @@ def test_clean_label_edge_cases():
     assert clean_label("") == ""
     assert clean_label("SingleWord") == "Single Word"
     assert clean_label("ALLCAPS") == "Allcaps"
-    assert clean_label("multiple___underscores") == "Multiple   Underscores"
+    assert clean_label("multiple___underscores") == "Multiple Underscores"

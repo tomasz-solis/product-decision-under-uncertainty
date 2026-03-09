@@ -14,8 +14,14 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app import (_bootstrap_ci, _calculate_quality_score, _analyze_data_quality,
-                 _test_normality, _calculate_correlation_matrix, _clamp_triplet)
+from simulator.data_quality import (
+    bootstrap_ci as _bootstrap_ci,
+    calculate_quality_score as _calculate_quality_score,
+    analyze_data_quality as _analyze_data_quality,
+    test_normality as _test_normality,
+    calculate_correlation_matrix as _calculate_correlation_matrix,
+)
+from app import _clamp_triplet
 
 
 # Property 1: Bootstrap CIs should have lower <= upper
@@ -75,12 +81,11 @@ def test_clamp_triplet_ordering(low, mode, high):
 @settings(max_examples=20)
 def test_correlation_matrix_symmetric(n_rows):
     """Correlation matrix should be symmetric."""
-    # Create simple test DataFrame
-    np.random.seed(42)
+    rng = np.random.default_rng(n_rows)
     df = pd.DataFrame({
-        'col1': np.random.randn(n_rows),
-        'col2': np.random.randn(n_rows),
-        'col3': np.random.randn(n_rows),
+        'col1': rng.standard_normal(n_rows),
+        'col2': rng.standard_normal(n_rows),
+        'col3': rng.standard_normal(n_rows),
     })
 
     corr_matrix, _ = _calculate_correlation_matrix(df)

@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from typing import Any, Dict, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from scipy import stats
-from statsmodels.tsa.seasonal import seasonal_decompose
 import streamlit as st
 
 # Setup logging
@@ -33,11 +32,19 @@ from simulator.visualizations import (
     create_decision_dashboard,
     create_risk_profile_chart,
     create_regret_comparison,
-    create_scenario_comparison,
     create_trade_off_matrix,
     create_executive_summary_table,
     clean_label,
     OPTION_LABELS,
+)
+from simulator.data_quality import (
+    bootstrap_ci as _bootstrap_ci,
+    test_normality as _test_normality,
+    detect_time_series_pattern as _detect_time_series_pattern,
+    calculate_correlation_matrix as _calculate_correlation_matrix,
+    calculate_quality_score as _calculate_quality_score,
+    analyze_data_quality as _analyze_data_quality,
+    get_quality_color as _get_quality_color,
 )
 
 CONFIG_PATH = "simulator/config.yaml"
@@ -81,7 +88,6 @@ def _is_number(x: Any) -> bool:
 
 def _check_rate_limit() -> bool:
     """Check if user hit rate limit. Returns True if ok to proceed."""
-    import time
     now = time.time()
 
     if 'simulation_timestamps' not in st.session_state:
@@ -107,196 +113,6 @@ def _check_csv_size(uploaded_file) -> bool:
 
     size_mb = uploaded_file.size / (1024 * 1024)
     return size_mb <= MAX_CSV_SIZE_MB
-
-
-def _bootstrap_ci(data: np.ndarray, percentile: float, n_bootstrap: int = 1000, confidence: float = 0.95) -> Tuple[float, float]:
-    """Bootstrap CI for a percentile. Returns (lower, upper)."""
-    np.random.seed(42)
-    bootstrap_stats = []
-    for _ in range(n_bootstrap):
-        sample = np.random.choice(data, size=len(data), replace=True)
-        bootstrap_stats.append(np.percentile(sample, percentile))
-
-    alpha = 1 - confidence
-    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
-    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
-    return float(lower), float(upper)
-
-
-def _test_normality(data: pd.Series) -> Dict[str, Any]:
-    """Test if data is normal. Uses Shapiro-Wilk or Anderson-Darling."""
-    clean = data.dropna()
-    if len(clean) < 3:
-        return {"error": "Insufficient data"}
-
-    if len(clean) > 5000:
-        result = stats.anderson(clean, dist='norm')
-        is_normal = result.statistic < result.critical_values[2]
-        return {"test": "anderson", "is_normal": is_normal, "statistic": float(result.statistic)}
-    else:
-        statistic, p_value = stats.shapiro(clean)
-        is_normal = p_value > 0.05
-        return {"test": "shapiro", "is_normal": is_normal, "p_value": float(p_value)}
-
-
-def _detect_time_series_pattern(data: pd.Series, dates: Optional[pd.Series] = None) -> Optional[Dict[str, Any]]:
-    """Detect seasonality and trend using STL decomposition."""
-    clean = data.dropna()
-    if len(clean) < 14:
-        return None
-
-    try:
-        if dates is not None:
-            ts = pd.Series(clean.values, index=pd.to_datetime(dates.dropna()))
-        else:
-            ts = pd.Series(clean.values)
-
-        result = seasonal_decompose(ts, model='additive', period=min(7, len(ts) // 2), extrapolate_trend='freq')
-
-        seasonal_strength = float(np.var(result.seasonal)) / float(np.var(result.seasonal + result.resid))
-        trend_strength = float(np.var(result.trend.dropna())) / float(np.var(result.observed.dropna()))
-
-        return {
-            "has_seasonality": seasonal_strength > 0.1,
-            "has_trend": trend_strength > 0.1,
-            "seasonal_strength": seasonal_strength,
-            "trend_strength": trend_strength,
-        }
-    except Exception:
-        return None
-
-
-def _calculate_correlation_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Tuple[str, str, float]]]:
-    """Calculate correlation matrix and find strong correlations (|r| > 0.7)."""
-    numeric_df = df.select_dtypes(include=[np.number])
-    if numeric_df.shape[1] < 2:
-        return pd.DataFrame(), []
-
-    corr_matrix = numeric_df.corr()
-
-    strong_corr = []
-    for i in range(len(corr_matrix.columns)):
-        for j in range(i + 1, len(corr_matrix.columns)):
-            corr_val = corr_matrix.iloc[i, j]
-            if abs(corr_val) > 0.7:
-                strong_corr.append((
-                    corr_matrix.columns[i],
-                    corr_matrix.columns[j],
-                    float(corr_val)
-                ))
-
-    return corr_matrix, strong_corr
-
-
-def _calculate_quality_score(quality_metrics: Dict[str, Any]) -> int:
-    """Score data quality 0-100 based on sample size, variance, outliers, skewness."""
-    score = 100
-    n = quality_metrics.get('n', 0)
-    cv = quality_metrics.get('cv', 0)
-    outlier_pct = quality_metrics.get('outlier_pct', 0)
-    skewness = abs(quality_metrics.get('skewness', 0))
-
-    if n < 10:
-        score -= 40
-    elif n < 30:
-        score -= 30
-    elif n < 50:
-        score -= 15
-    elif n < 100:
-        score -= 5
-
-    if cv > 1.0:
-        score -= 20
-    elif cv > 0.5:
-        score -= 10
-
-    if outlier_pct > 10:
-        score -= 15
-    elif outlier_pct > 5:
-        score -= 7
-
-    if skewness > 2:
-        score -= 15
-    elif skewness > 1:
-        score -= 7
-
-    if quality_metrics.get('normality', {}).get('is_normal', False):
-        score += 5
-
-    return max(0, min(100, score))
-
-
-def _analyze_data_quality(data: pd.Series, col_name: str) -> Dict[str, Any]:
-    """Run stats on a column and return metrics, warnings, insights."""
-    clean = data.dropna()
-    n = len(clean)
-
-    if n == 0:
-        return {"error": "No valid data"}
-
-    mean = float(clean.mean())
-    std = float(clean.std())
-    median = float(clean.median())
-    cv = abs(std / mean) if mean != 0 else float('inf')
-
-    skewness = float(clean.skew())
-    kurtosis = float(clean.kurtosis())
-
-    q1 = float(clean.quantile(0.25))
-    q3 = float(clean.quantile(0.75))
-    iqr = q3 - q1
-    lower_bound = q1 - 1.5 * iqr
-    upper_bound = q3 + 1.5 * iqr
-    outliers = ((clean < lower_bound) | (clean > upper_bound)).sum()
-    outlier_pct = 100 * outliers / n
-
-    normality = _test_normality(clean)
-
-    ci_low, ci_mid, ci_high = (None, None), (None, None), (None, None)
-    if n >= 30:
-        ci_low = _bootstrap_ci(clean.values, 5, n_bootstrap=500)
-        ci_mid = _bootstrap_ci(clean.values, 50, n_bootstrap=500)
-        ci_high = _bootstrap_ci(clean.values, 95, n_bootstrap=500)
-
-    warnings = []
-    insights = []
-
-    if n < 30:
-        warnings.append(f"⚠️ Only {n} samples - might be noisy")
-    else:
-        insights.append(f"✓ Good size (n={n})")
-
-    if cv > 0.5:
-        warnings.append(f"⚠️ High variance (CV={cv:.2f})")
-    elif cv < 0.1:
-        insights.append(f"✓ Stable (CV={cv:.2f})")
-
-    if outlier_pct > 5:
-        warnings.append(f"⚠️ {outliers} outliers ({outlier_pct:.1f}%)")
-
-    if abs(skewness) > 1:
-        warnings.append(f"⚠️ Skewed (skew={skewness:.2f})")
-
-    if not normality.get("is_normal", True):
-        insights.append(f"ℹ️ Non-normal. Percentile ranges ok.")
-
-    return {
-        "n": n,
-        "mean": mean,
-        "median": median,
-        "std": std,
-        "cv": cv,
-        "skewness": skewness,
-        "kurtosis": kurtosis,
-        "outliers": outliers,
-        "outlier_pct": outlier_pct,
-        "normality": normality,
-        "ci_p05": ci_low,
-        "ci_p50": ci_mid,
-        "ci_p95": ci_high,
-        "warnings": warnings,
-        "insights": insights
-    }
 
 
 def _create_distribution_plot(data: pd.Series, col_name: str, p05: float, p50: float, p95: float) -> go.Figure:
@@ -378,16 +194,6 @@ def _create_correlation_heatmap(corr_matrix: pd.DataFrame) -> go.Figure:
     )
 
     return fig
-
-
-def _get_quality_color(score: int) -> str:
-    """Return emoji based on quality score."""
-    if score >= 80:
-        return "🟢"
-    elif score >= 60:
-        return "🟡"
-    else:
-        return "🔴"
 
 
 def _clamp_triplet(low: float, mode: float, high: float) -> Tuple[float, float, float]:
@@ -563,7 +369,7 @@ with st.sidebar:
     with st.expander("Upload data to suggest ranges", expanded=False):
         st.write("Upload a CSV with historical data. The app will suggest parameter ranges based on your data.")
 
-        with st.expander("📋 What format do I need?", expanded=False):
+        with st.expander("What format do I need?", expanded=False):
             st.markdown("""
             **Required format:**
             - CSV file with column headers
@@ -611,7 +417,7 @@ with st.sidebar:
         if uploaded_file is not None:
             # Check CSV size limit
             if not _check_csv_size(uploaded_file):
-                st.error(f"❌ File too large (max {MAX_CSV_SIZE_MB}MB)")
+                st.error(f"File too large (max {MAX_CSV_SIZE_MB}MB)")
                 st.stop()
 
             try:
@@ -636,7 +442,7 @@ with st.sidebar:
 
                     # Correlation Analysis
                     if len(numeric_cols) >= 2:
-                        with st.expander("🔗 Correlation Analysis", expanded=False):
+                        with st.expander("Correlation Analysis", expanded=False):
                             corr_matrix, strong_corr = _calculate_correlation_matrix(df_upload[numeric_cols])
 
                             if not corr_matrix.empty:
@@ -647,14 +453,14 @@ with st.sidebar:
                                     st.warning(f"**Found {len(strong_corr)} strong correlations (|r| > 0.7):**")
                                     for col1, col2, corr_val in strong_corr:
                                         st.write(f"• **{col1}** ↔ **{col2}**: r = {corr_val:.3f}")
-                                    st.caption("⚠️ These params move together - might affect ranges")
+                                    st.caption("These parameters move together - may affect ranges")
                                 else:
-                                    st.success("✓ No strong correlations. Params look independent.")
+                                    st.success("No strong correlations. Parameters look independent.")
 
                     # Time Series Detection (if date column exists)
                     date_cols = [col for col in df_upload.columns if 'date' in col.lower()]
                     if date_cols:
-                        with st.expander("📅 Time Series Patterns", expanded=False):
+                        with st.expander("Time Series Patterns", expanded=False):
                             date_col = date_cols[0]
                             st.write(f"Detected date column: **{date_col}**")
 
@@ -663,15 +469,15 @@ with st.sidebar:
                                 if ts_pattern:
                                     st.write(f"**{csv_col}:**")
                                     if ts_pattern.get('has_seasonality'):
-                                        st.warning(f"⚠️ Seasonality detected (strength: {ts_pattern['seasonal_strength']:.2f})")
+                                        st.warning(f"Seasonality detected (strength: {ts_pattern['seasonal_strength']:.2f})")
                                     if ts_pattern.get('has_trend'):
-                                        st.warning(f"⚠️ Trend detected (strength: {ts_pattern['trend_strength']:.2f})")
+                                        st.warning(f"Trend detected (strength: {ts_pattern['trend_strength']:.2f})")
                                     if ts_pattern.get('has_seasonality') or ts_pattern.get('has_trend'):
                                         st.caption("Check if historical ranges still make sense")
 
                     # Quality Score Dashboard
                     st.divider()
-                    st.subheader("📊 Data Quality Dashboard")
+                    st.subheader("Data Quality Dashboard")
 
                     # First pass: analyze all columns to show quality dashboard
                     quality_scores_all = {}
@@ -771,7 +577,7 @@ with st.sidebar:
                                     st.caption(insight)
 
                             # Show distribution plot
-                            with st.expander(f"📊 View distribution: {csv_col}", expanded=False):
+                            with st.expander(f"View distribution: {csv_col}", expanded=False):
                                 # Distribution histogram
                                 fig = _create_distribution_plot(col_data, csv_col, p05, p50, p95)
                                 st.plotly_chart(fig, width='stretch')
@@ -809,7 +615,7 @@ with st.sidebar:
 
                     # Show overall data quality summary if there are issues
                     if quality_issues:
-                        with st.expander("⚠️ Data Quality Summary", expanded=False):
+                        with st.expander("Data Quality Summary", expanded=False):
                             for col, warnings in quality_issues:
                                 st.write(f"**{col}:**")
                                 for w in warnings:
@@ -819,7 +625,7 @@ with st.sidebar:
                         st.divider()
 
                         # Bulk Comparison View
-                        with st.expander("📋 Bulk Comparison: All Parameters", expanded=False):
+                        with st.expander("Bulk Comparison: All Parameters", expanded=False):
                             comparison_data = []
                             for csv_col, param_name in mappings.items():
                                 ranges = suggested_ranges[csv_col]
@@ -934,7 +740,7 @@ with st.sidebar:
 
 if run_btn:
     if not _check_rate_limit():
-        st.error(f"❌ Rate limit hit ({MAX_SIMULATIONS_PER_HOUR}/hour). Try again later.")
+        st.error(f"Rate limit reached ({MAX_SIMULATIONS_PER_HOUR}/hour). Try again later.")
         st.stop()
 
     overrides = _build_overrides_from_state(cfg)

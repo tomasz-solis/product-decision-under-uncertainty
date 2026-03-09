@@ -13,7 +13,11 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app import _analyze_data_quality, _calculate_quality_score, _calculate_correlation_matrix
+from simulator.data_quality import (
+    analyze_data_quality as _analyze_data_quality,
+    calculate_quality_score as _calculate_quality_score,
+    calculate_correlation_matrix as _calculate_correlation_matrix,
+)
 
 
 def test_empty_csv():
@@ -156,7 +160,7 @@ def test_perfectly_correlated_columns():
 
 
 def test_csv_with_spaces_in_numbers():
-    """CSV with spaces in numeric strings."""
+    """CSV with leading/trailing spaces in numeric strings should parse as numbers."""
     csv_data = """col1,col2
 1,2
 3,4
@@ -164,5 +168,5 @@ def test_csv_with_spaces_in_numbers():
 7 ,8"""
     df = pd.read_csv(io.StringIO(csv_data))
 
-    # Pandas should handle this automatically
-    assert df['col2'].dtype in [np.int64, np.float64, object]
+    # col2 has " 6" which pandas strips to 6; col1 has "7 " which stays object
+    assert pd.api.types.is_numeric_dtype(df['col2'])
