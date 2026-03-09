@@ -17,15 +17,6 @@ from simulator.config import (
 
 
 def _sample_param(spec, rng: np.random.Generator) -> float:
-    """Sample a single value from a parameter specification.
-
-    Args:
-        spec: ParamSpec with distribution type and parameters
-        rng: NumPy random generator for reproducibility
-
-    Returns:
-        float: Sampled parameter value
-    """
     if spec.dist == "tri":
         return float(rng.triangular(spec.low, spec.mode, spec.high))
     if spec.dist == "uniform":
@@ -33,29 +24,25 @@ def _sample_param(spec, rng: np.random.Generator) -> float:
     raise ValueError(f"Unknown dist: {spec.dist}")
 
 
+def _sample_param_vectorized(spec, n: int, rng: np.random.Generator) -> np.ndarray:
+    if spec.dist == "tri":
+        return rng.triangular(spec.low, spec.mode, spec.high, size=n)
+    if spec.dist == "uniform":
+        return rng.uniform(spec.low, spec.high, size=n)
+    raise ValueError(f"Unknown dist: {spec.dist}")
+
+
 def sample_params(n: int, param_specs, seed: int) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
-    data = {k: np.array([_sample_param(v, rng) for _ in range(n)], dtype=float) for k, v in param_specs.items()}
+    data = {k: _sample_param_vectorized(v, n, rng) for k, v in param_specs.items()}
     return pd.DataFrame(data)
 
 
 def _expected_regression_cost(p: pd.DataFrame) -> np.ndarray:
-    """Calculate expected regression cost across simulated worlds.
-
-    Args:
-        p: DataFrame with regression_prob and regression_cost_eur columns
-
-    Returns:
-        np.ndarray: Expected cost (probability × cost) for each world
-    """
     return p["regression_prob"].to_numpy() * p["regression_cost_eur"].to_numpy()
 
 
 def simulate_option_do_nothing(p: pd.DataFrame, volume: int) -> np.ndarray:
-    """
-    Status quo option: no deliberate change.
-    We still pay the ongoing cost of failures and churn, plus a drift cost proxy.
-    """
     failure = p["baseline_failure_rate"].to_numpy()
 
     successes = volume * (1.0 - failure)
@@ -143,13 +130,7 @@ def run_simulation(
     scenario: str | None = None,
     param_overrides: dict[str, dict[str, float]] | None = None,
 ) -> pd.DataFrame:
-    """
-    Run one comparative simulation.
-
-    - Scenario overrides come from config.yaml (cfg["scenarios"])
-    - UI overrides are applied in-memory (param_overrides)
-    - Returns one row per simulated world (params + option values + scenario)
-    """
+    """Run one comparative simulation. Returns one row per world."""
     cfg = load_config(config_path)
     sim = get_simulation_settings(cfg)
 
@@ -217,12 +198,12 @@ def run_all_scenarios(
 
     rows = []
     for scenario_name in scenarios.keys():
-        cfg = load_config(config_path)
+        cfg = copy.deepcopy(base_cfg)
         cfg.setdefault("simulation", {})
         cfg["simulation"]["scenario"] = scenario_name
 
         sim = get_simulation_settings(cfg)
-        sim["n_worlds"] = int(n_worlds)  # override
+        sim["n_worlds"] = int(n_worlds)
         cfg = apply_scenario(cfg, sim["scenario"])
 
         param_specs = parse_param_specs(cfg)
@@ -283,7 +264,7 @@ def decision_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
     for i, opt in enumerate(options):
         v = values[:, i]
         regret = best - v
-        win_rate = float(np.mean(v == best))  # ties count as wins
+        win_rate = float(np.mean(np.isclose(v, best, rtol=1e-12)))
         rows.append({
             "option": opt,
             "win_rate": win_rate,
@@ -299,15 +280,16 @@ def decision_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def sensitivity_analysis(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Spearman rank correlation between parameters and the advantage of
-    Feature Extension over Stabilize Core.
-    """
-    options = ["do_nothing", "stabilize_core", "feature_extension", "new_capability", "scenario"]
-    params = [c for c in df.columns if c not in options]
+def sensitivity_analysis(
+    df: pd.DataFrame,
+    option_a: str = "feature_extension",
+    option_b: str = "stabilize_core",
+) -> pd.DataFrame:
+    """Spearman correlation between parameters and (option_a - option_b)."""
+    non_params = {"do_nothing", "stabilize_core", "feature_extension", "new_capability", "scenario"}
+    params = [c for c in df.columns if c not in non_params]
 
-    delta = df["feature_extension"] - df["stabilize_core"]
+    delta = df[option_a] - df[option_b]
 
     rows = []
     for p in params:

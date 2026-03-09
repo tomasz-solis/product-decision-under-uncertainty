@@ -1,8 +1,15 @@
+import numpy as np
 import pandas as pd
 import pytest
 from pathlib import Path
 
-from simulator.mvp_simulator import run_simulation, summarize_results, decision_diagnostics
+from simulator.mvp_simulator import (
+    run_simulation,
+    summarize_results,
+    decision_diagnostics,
+    sensitivity_analysis,
+    run_all_scenarios,
+)
 from simulator.config import load_config
 
 
@@ -123,3 +130,51 @@ def test_parameter_override_validation():
 
     with pytest.raises(ValueError, match="unknown param"):
         run_simulation(CONFIG_PATH, n_worlds=100, seed=42, param_overrides=overrides)
+
+
+def test_sensitivity_analysis_format():
+    """Test sensitivity analysis returns valid correlations."""
+    df = run_simulation(CONFIG_PATH, n_worlds=500, seed=42)
+    sens = sensitivity_analysis(df)
+
+    assert isinstance(sens, pd.DataFrame)
+    assert "parameter" in sens.columns
+    assert "spearman_corr" in sens.columns
+    assert len(sens) > 0
+    assert sens["spearman_corr"].between(-1, 1).all()
+
+
+def test_sensitivity_analysis_custom_options():
+    """Test sensitivity analysis with different option pairs."""
+    df = run_simulation(CONFIG_PATH, n_worlds=500, seed=42)
+    sens = sensitivity_analysis(df, option_a="new_capability", option_b="do_nothing")
+
+    assert isinstance(sens, pd.DataFrame)
+    assert len(sens) > 0
+    assert sens["spearman_corr"].between(-1, 1).all()
+
+
+def test_run_all_scenarios_format():
+    """Test scenario comparison returns results for all scenarios."""
+    sc = run_all_scenarios(CONFIG_PATH, n_worlds=200, seed=42)
+
+    assert isinstance(sc, pd.DataFrame)
+    assert "scenario" in sc.columns
+    assert "option" in sc.columns
+    assert "win_rate" in sc.columns
+    assert "mean_value_eur" in sc.columns
+
+    scenarios = sc["scenario"].unique()
+    assert len(scenarios) >= 2
+
+    for _, row in sc.iterrows():
+        assert 0 <= row["win_rate"] <= 1
+        assert np.isfinite(row["mean_value_eur"])
+
+
+def test_win_rates_sum_roughly_to_one():
+    """Win rates across options within a scenario should sum to ~1."""
+    df = run_simulation(CONFIG_PATH, n_worlds=1000, seed=42)
+    diag = decision_diagnostics(df)
+    total = diag["win_rate"].sum()
+    assert 0.95 <= total <= 1.05, f"Win rates sum to {total}, expected ~1.0"

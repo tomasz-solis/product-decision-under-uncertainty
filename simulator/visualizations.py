@@ -1,8 +1,6 @@
-"""
-Visualization functions for decision analysis outputs.
-Provides executive-level charts with consistent styling.
-"""
+"""Visualization functions for decision analysis outputs."""
 
+import re
 from typing import Dict, List, Optional
 import pandas as pd
 import numpy as np
@@ -30,23 +28,10 @@ OPTION_LABELS = {
 
 
 def clean_label(text: str) -> str:
-    """
-    Convert snake_case, camelCase, PascalCase, or kebab-case to Title Case.
-    Examples:
-        feature_extension -> Feature Extension
-        featureExtension -> Feature Extension
-        FeatureExtension -> Feature Extension
-        feature-extension -> Feature Extension
-    """
-    import re
-
-    # Replace underscores and hyphens with spaces
+    """Convert snake_case, camelCase, or kebab-case to Title Case."""
     text = text.replace('_', ' ').replace('-', ' ')
-
-    # Insert space before capital letters (for camelCase/PascalCase)
     text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
-
-    # Title case
+    text = re.sub(r' +', ' ', text)
     return text.title()
 
 
@@ -55,9 +40,7 @@ def create_decision_dashboard(
     diagnostics: pd.DataFrame,
     sensitivity: Optional[pd.DataFrame] = None,
 ) -> go.Figure:
-    """
-    Create comprehensive executive dashboard with all key metrics.
-    """
+    """Four-panel dashboard: EV, win rates, regret, sensitivity drivers."""
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=(
@@ -185,10 +168,7 @@ def create_decision_dashboard(
 
 
 def create_risk_profile_chart(summary: pd.DataFrame) -> go.Figure:
-    """
-    Create detailed risk profile showing P05/P50/P95 for each option.
-    Higher floor (P05) = less downside risk. Tighter range = more predictable.
-    """
+    """Grouped bar chart of P05/P50/P95 per option."""
     fig = go.Figure()
 
     options = summary['option'].tolist()
@@ -259,10 +239,7 @@ def create_risk_profile_chart(summary: pd.DataFrame) -> go.Figure:
 
 
 def create_regret_comparison(diagnostics: pd.DataFrame) -> go.Figure:
-    """
-    Create regret comparison showing mean and P95 regret for each option.
-    Regret = missed opportunity cost. Lower is better.
-    """
+    """Mean and P95 regret bars per option."""
     if diagnostics.empty:
         return go.Figure()
 
@@ -322,15 +299,7 @@ def create_regret_comparison(diagnostics: pd.DataFrame) -> go.Figure:
 
 
 def create_scenario_comparison(scenario_results: Dict[str, pd.DataFrame]) -> go.Figure:
-    """
-    Create scenario comparison showing EV across base/conservative/aggressive.
-
-    Args:
-        scenario_results: Dict mapping scenario name to summary DataFrame
-
-    Returns:
-        Plotly figure with scenario comparison
-    """
+    """EV comparison across scenarios (base/conservative/aggressive)."""
     fig = go.Figure()
 
     scenarios = list(scenario_results.keys())
@@ -341,7 +310,7 @@ def create_scenario_comparison(scenario_results: Dict[str, pd.DataFrame]) -> go.
         evs = []
         for scenario in scenarios:
             summary = scenario_results[scenario]
-            ev = summary[summary['option'] == option]['mean'].iloc[0]
+            ev = summary[summary['option'] == option]['mean_value_eur'].iloc[0]
             evs.append(ev)
 
         fig.add_trace(go.Bar(
@@ -377,24 +346,14 @@ def create_scenario_comparison(scenario_results: Dict[str, pd.DataFrame]) -> go.
 
 
 def create_sensitivity_waterfall(sensitivity: pd.DataFrame, option: str = "feature_extension") -> go.Figure:
-    """
-    Create waterfall chart showing how key parameters affect outcome.
-
-    Args:
-        sensitivity: DataFrame with parameter correlations
-        option: Which option to analyze
-
-    Returns:
-        Plotly figure with sensitivity waterfall
-    """
-    # Get top 10 parameters by absolute correlation
-    top_sens = sensitivity.nlargest(10, 'correlation', keep='first')
+    """Waterfall chart of top parameter drivers by Spearman correlation."""
+    top_sens = sensitivity.nlargest(10, 'spearman_corr', keep='first')
 
     fig = go.Figure(go.Waterfall(
         name="Parameter Impact",
         orientation="h",
         y=top_sens['parameter'],
-        x=top_sens['correlation'],
+        x=top_sens['spearman_corr'],
         connector={"line": {"color": "lightgray"}},
         decreasing={"marker": {"color": COLOR_SCHEME["danger"]}},
         increasing={"marker": {"color": COLOR_SCHEME["success"]}},
@@ -418,16 +377,7 @@ def create_sensitivity_waterfall(sensitivity: pd.DataFrame, option: str = "featu
 
 
 def create_distribution_comparison(results: pd.DataFrame, options: List[str]) -> go.Figure:
-    """
-    Create overlaid distribution plots for multiple options.
-
-    Args:
-        results: DataFrame with simulation results (each row = one world)
-        options: List of option column names to compare
-
-    Returns:
-        Plotly figure with overlaid histograms
-    """
+    """Overlaid histograms of outcome distributions for each option."""
     fig = go.Figure()
 
     colors = [COLOR_SCHEME["options"][i] for i in range(len(options))]
@@ -465,16 +415,7 @@ def create_distribution_comparison(results: pd.DataFrame, options: List[str]) ->
 
 
 def create_executive_summary_table(summary: pd.DataFrame, diagnostics: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create formatted table for executive summary.
-
-    Args:
-        summary: DataFrame with summary statistics (from summarize_results)
-        diagnostics: DataFrame with diagnostics (from decision_diagnostics)
-
-    Returns:
-        Formatted DataFrame ready for display
-    """
+    """Formatted comparison table with EV, percentiles, win rate, regret."""
     export_df = pd.DataFrame()
 
     export_df['Option'] = [OPTION_LABELS.get(opt, opt) for opt in summary['option']]
@@ -493,10 +434,7 @@ def create_executive_summary_table(summary: pd.DataFrame, diagnostics: pd.DataFr
 
 
 def create_trade_off_matrix(summary: pd.DataFrame, diagnostics: pd.DataFrame) -> go.Figure:
-    """
-    Create scatter plot showing EV vs Regret trade-off.
-    Upper-left quadrant = ideal (high value, low regret).
-    """
+    """EV vs Regret scatter with quadrant shading."""
     if diagnostics.empty:
         return go.Figure()
 

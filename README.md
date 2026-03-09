@@ -205,7 +205,7 @@ To run the test suite:
 
 ```bash
 pip install -r requirements.txt
-pytest test_simulator.py -v
+pytest tests/ -v
 ```
 
 The tests cover core simulation logic, parameter sampling, and edge cases.
@@ -225,11 +225,8 @@ If the tool ever needs to be deployed, that will be a separate decision—made w
 
 ## Documentation
 
-- [METHODOLOGY.md](METHODOLOGY.md) - Step-by-step process for applying the framework
-- [CASE_STUDY.md](CASE_STUDY.md) - Illustrative example (€2M platform decision)
-- [EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md) - One-page overview for non-technical stakeholders
-- [STATUS.md](STATUS.md) - Current state and next steps
-- [simulator/assumptions.md](simulator/assumptions.md) - Parameter definitions
+- [CASE_STUDY.md](CASE_STUDY.md) - Illustrative example (platform investment decision)
+- [simulator/assumptions.md](simulator/assumptions.md) - Parameter definitions and rationale
 - [simulator/model_spec.md](simulator/model_spec.md) - Technical specification
 
 ---

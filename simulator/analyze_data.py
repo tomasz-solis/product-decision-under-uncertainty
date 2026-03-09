@@ -20,17 +20,7 @@ import yaml
 
 
 def analyze_column(series: pd.Series, column_name: str) -> Dict[str, Any]:
-    """
-    Analyze a single column and suggest parameter ranges.
-
-    Returns dict with:
-    - low: 5th percentile
-    - mode: 50th percentile (median)
-    - high: 95th percentile
-    - mean: arithmetic mean
-    - std: standard deviation
-    - dist: suggested distribution type
-    """
+    """Analyze a column and return p05/p50/p95 ranges for config.yaml."""
     clean = series.dropna()
 
     if len(clean) == 0:
@@ -45,21 +35,13 @@ def analyze_column(series: pd.Series, column_name: str) -> Dict[str, Any]:
     mean = float(clean.mean())
     std = float(clean.std())
 
-    # Suggest distribution type based on shape
-    skewness = (mean - p50) / (std + 1e-9)
-
-    if abs(skewness) < 0.3:
-        dist = "tri"  # Relatively symmetric, triangular is reasonable
-    else:
-        dist = "tri"  # Default to triangular for interpretability
-
     return {
         "low": p05,
         "mode": p50,
         "high": p95,
         "mean": mean,
         "std": std,
-        "dist": dist,
+        "dist": "tri",
         "n_samples": len(clean),
     }
 
@@ -176,12 +158,9 @@ def main():
             analysis[col] = analyze_column(df[col], col)
         else:
             # Try to convert to numeric
-            try:
-                numeric_col = pd.to_numeric(df[col], errors='coerce')
-                if numeric_col.notna().sum() > 0:
-                    analysis[col] = analyze_column(numeric_col, col)
-            except:
-                pass
+            numeric_col = pd.to_numeric(df[col], errors='coerce')
+            if numeric_col.notna().sum() > 0:
+                analysis[col] = analyze_column(numeric_col, col)
 
     if not analysis:
         print("Error: No numeric columns found in CSV", file=sys.stderr)
