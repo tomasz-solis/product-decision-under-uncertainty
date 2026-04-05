@@ -1,46 +1,194 @@
 # simulator/config.yaml
 project:
-  seed: 7
+  seed: 42
+  model_version: "4.0.0"
 
 simulation:
   n_worlds: 20000
-  volume: 100000
-  scenario: base  # base | conservative | aggressive
+  annual_volume: 250000
+  time_horizon_years: 2
+  discount_rate_annual: 0.08
+  scenario: mid_range_pressure
 
-# Scenario overrides: only the listed params are overridden for that scenario.
-# Everything else stays as defined in `params`.
+decision_policy:
+  name: guardrailed_expected_value
+  minimum_p05_value_eur: -300000.0
+  maximum_mean_regret_eur: 450000.0
+  ev_tolerance_eur: 100000.0
+
+analysis:
+  sensitivity_materiality_threshold_abs_spearman: 0.10
+  sensitivity_max_rows_per_option: 3
+  decision_boundary_top_parameters: 3
+
+dependencies:
+  method: gaussian_copula
+  rank_correlations:
+    baseline_failure_rate:
+      cost_per_failure_eur: 0.55
+      failure_to_churn_rel: 0.60
+    extension_uptake:
+      extension_value_per_uptake_eur: 0.40
+    regression_event_prob:
+      regression_event_cost_eur: 0.45
+
 scenarios:
-  base: {}
+  mid_range_pressure:
+    label: Mid-range pressure
+    description: Reliability pressure is meaningful, but the business is not yet in a crisis state.
+    parameter_overrides: {}
+    simulation_overrides: {}
 
-  conservative:
-    stabilize_failure_reduction:
-      low: 0.25
-      mode: 0.45
-      high: 0.70
-    extension_uptake:
-      low: 0.08
-      mode: 0.15
-      high: 0.25
-    extension_exposure_reduction:
-      low: 0.05
-      mode: 0.15
-      high: 0.30
+  reliability_crisis:
+    label: Reliability crisis
+    description: Reliability pain intensifies, drift gets costlier, and delivery gets harder.
+    parameter_overrides:
+      baseline_failure_rate:
+        low: 0.04
+        mode: 0.08
+        high: 0.13
+      failure_to_churn_rel:
+        low: 0.12
+        mode: 0.18
+        high: 0.28
+      cost_per_failure_eur:
+        low: 25.0
+        mode: 40.0
+        high: 65.0
+      value_per_success_eur:
+        low: 24.0
+        mode: 32.0
+        high: 40.0
+      stabilize_failure_reduction:
+        low: 0.35
+        mode: 0.50
+        high: 0.65
+      extension_uptake:
+        low: 0.08
+        mode: 0.18
+        high: 0.30
+      extension_exposure_reduction:
+        low: 0.50
+        mode: 0.60
+        high: 0.75
+      new_capability_uplift:
+        low: 0.03
+        mode: 0.06
+        high: 0.10
+      regression_event_prob:
+        low: 0.10
+        mode: 0.18
+        high: 0.28
+      regression_event_cost_eur:
+        dist: lognormal
+        median: 200000.0
+        p95: 450000.0
+      do_nothing_drift_cost_eur:
+        low: 50000.0
+        mode: 80000.0
+        high: 120000.0
+      stabilize_core_launch_delay_months:
+        low: 4.0
+        mode: 7.0
+        high: 10.0
+      stabilize_core_cost_overrun_multiplier:
+        low: 1.10
+        mode: 1.25
+        high: 1.50
+      feature_extension_launch_delay_months:
+        low: 2.0
+        mode: 3.0
+        high: 5.0
+      feature_extension_cost_overrun_multiplier:
+        low: 1.05
+        mode: 1.15
+        high: 1.35
+      new_capability_launch_delay_months:
+        low: 5.0
+        mode: 8.0
+        high: 12.0
+      new_capability_cost_overrun_multiplier:
+        low: 1.15
+        mode: 1.35
+        high: 1.70
+    simulation_overrides:
+      annual_volume: 220000
 
-  aggressive:
-    stabilize_failure_reduction:
-      low: 0.05
-      mode: 0.20
-      high: 0.40
-    extension_uptake:
-      low: 0.20
-      mode: 0.35
-      high: 0.55
-    extension_exposure_reduction:
-      low: 0.30
-      mode: 0.50
-      high: 0.70
+  growth_friendly_recovery:
+    label: Growth-friendly recovery
+    description: Economics strengthen, reliability pressure eases, and delivery conditions improve.
+    parameter_overrides:
+      baseline_failure_rate:
+        low: 0.01
+        mode: 0.04
+        high: 0.08
+      failure_to_churn_rel:
+        low: 0.08
+        mode: 0.12
+        high: 0.22
+      cost_per_failure_eur:
+        low: 18.0
+        mode: 30.0
+        high: 45.0
+      value_per_success_eur:
+        low: 32.0
+        mode: 40.0
+        high: 50.0
+      stabilize_failure_reduction:
+        low: 0.55
+        mode: 0.70
+        high: 0.85
+      extension_uptake:
+        low: 0.25
+        mode: 0.35
+        high: 0.55
+      extension_exposure_reduction:
+        low: 0.70
+        mode: 0.80
+        high: 0.92
+      new_capability_uplift:
+        low: 0.08
+        mode: 0.12
+        high: 0.18
+      regression_event_prob:
+        low: 0.03
+        mode: 0.08
+        high: 0.15
+      regression_event_cost_eur:
+        dist: lognormal
+        median: 100000.0
+        p95: 220000.0
+      do_nothing_drift_cost_eur:
+        low: 20000.0
+        mode: 40000.0
+        high: 70000.0
+      stabilize_core_launch_delay_months:
+        low: 2.0
+        mode: 4.0
+        high: 6.0
+      stabilize_core_cost_overrun_multiplier:
+        low: 0.95
+        mode: 1.05
+        high: 1.20
+      feature_extension_launch_delay_months:
+        low: 1.0
+        mode: 2.0
+        high: 3.0
+      feature_extension_cost_overrun_multiplier:
+        low: 0.95
+        mode: 1.05
+        high: 1.15
+      new_capability_launch_delay_months:
+        low: 3.0
+        mode: 5.0
+        high: 8.0
+      new_capability_cost_overrun_multiplier:
+        low: 1.00
+        mode: 1.10
+        high: 1.35
+    simulation_overrides:
+      annual_volume: 300000
 
-# Supported dists: tri (low, mode, high), uniform (low, high)
 params:
   baseline_failure_rate:
     dist: tri
@@ -50,86 +198,161 @@ params:
 
   failure_to_churn_rel:
     dist: tri
-    low: 0.05
+    low: 0.10
     mode: 0.15
-    high: 0.30
+    high: 0.25
 
   cost_per_failure_eur:
     dist: tri
-    low: 3.0
-    mode: 8.0
-    high: 15.0
+    low: 20.0
+    mode: 35.0
+    high: 55.0
+
+  value_per_success_eur:
+    dist: tri
+    low: 28.0
+    mode: 35.0
+    high: 45.0
+
+  stabilize_failure_reduction:
+    dist: tri
+    low: 0.40
+    mode: 0.60
+    high: 0.80
 
   extension_uptake:
     dist: tri
     low: 0.10
-    mode: 0.20
-    high: 0.35
-
-  extension_loss_rate:
-    dist: tri
-    low: 0.01
-    mode: 0.03
-    high: 0.06
-
-  rev_per_success_eur:
-    dist: tri
-    low: 0.50
-    mode: 1.00
-    high: 2.00
-
-  base_churn:
-    dist: tri
-    low: 0.01
-    mode: 0.03
-    high: 0.08
-
-  regression_prob:
-    dist: tri
-    low: 0.01
-    mode: 0.03
-    high: 0.08
-
-  regression_cost_eur:
-    dist: tri
-    low: 2000.0
-    mode: 10000.0
-    high: 50000.0
-
-  stabilize_failure_reduction:
-    dist: tri
-    low: 0.10
     mode: 0.30
-    high: 0.60
+    high: 0.50
 
   extension_exposure_reduction:
     dist: tri
+    low: 0.55
+    mode: 0.70
+    high: 0.85
+
+  extension_value_per_uptake_eur:
+    dist: tri
+    low: 2.0
+    mode: 4.0
+    high: 7.0
+
+  extension_loss_rate:
+    dist: tri
     low: 0.05
-    mode: 0.20
-    high: 0.50
+    mode: 0.08
+    high: 0.12
 
   new_capability_uplift:
     dist: tri
-    low: 0.02
+    low: 0.05
     mode: 0.08
-    high: 0.20
+    high: 0.15
 
-  extension_rev_per_uptake_eur:
+  regression_event_prob:
     dist: tri
-    low: 0.20
-    mode: 0.50
-    high: 1.00
+    low: 0.05
+    mode: 0.15
+    high: 0.25
 
-  new_capability_regression_multiplier:
-    dist: tri
-    low: 1.2
-    mode: 1.5
-    high: 2.0
+  regression_event_cost_eur:
+    dist: lognormal
+    median: 150000.0
+    p95: 300000.0
 
-  # "Do nothing" is rarely free. This is a simple proxy for drift:
-  # ongoing maintenance, incident response, or trust erosion that keeps happening.
+  stabilize_core_regression_prob_multiplier:
+    dist: constant
+    value: 1.0
+
+  feature_extension_regression_prob_multiplier:
+    dist: constant
+    value: 0.8
+
+  new_capability_regression_prob_multiplier:
+    dist: constant
+    value: 2.5
+
+  stabilize_core_upfront_cost_eur:
+    dist: constant
+    value: 800000.0
+
+  stabilize_core_annual_maintenance_cost_eur:
+    dist: constant
+    value: 30000.0
+
+  feature_extension_upfront_cost_eur:
+    dist: constant
+    value: 600000.0
+
+  feature_extension_annual_maintenance_cost_eur:
+    dist: constant
+    value: 60000.0
+
+  new_capability_upfront_cost_eur:
+    dist: constant
+    value: 1200000.0
+
+  new_capability_annual_maintenance_cost_eur:
+    dist: constant
+    value: 100000.0
+
   do_nothing_drift_cost_eur:
     dist: tri
-    low: 0.0
-    mode: 2000.0
-    high: 12000.0
+    low: 30000.0
+    mode: 50000.0
+    high: 90000.0
+
+  stabilize_core_launch_delay_months:
+    dist: tri
+    low: 3.0
+    mode: 5.0
+    high: 8.0
+
+  stabilize_core_benefit_ramp_months:
+    dist: tri
+    low: 3.0
+    mode: 6.0
+    high: 9.0
+
+  stabilize_core_cost_overrun_multiplier:
+    dist: tri
+    low: 1.0
+    mode: 1.15
+    high: 1.35
+
+  feature_extension_launch_delay_months:
+    dist: tri
+    low: 1.0
+    mode: 2.0
+    high: 4.0
+
+  feature_extension_benefit_ramp_months:
+    dist: tri
+    low: 2.0
+    mode: 4.0
+    high: 6.0
+
+  feature_extension_cost_overrun_multiplier:
+    dist: tri
+    low: 1.0
+    mode: 1.10
+    high: 1.25
+
+  new_capability_launch_delay_months:
+    dist: tri
+    low: 4.0
+    mode: 7.0
+    high: 10.0
+
+  new_capability_benefit_ramp_months:
+    dist: tri
+    low: 4.0
+    mode: 7.0
+    high: 10.0
+
+  new_capability_cost_overrun_multiplier:
+    dist: tri
+    low: 1.0
+    mode: 1.20
+    high: 1.50

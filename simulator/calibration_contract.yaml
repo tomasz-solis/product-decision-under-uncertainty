@@ -1,0 +1,70 @@
+evidence_backed_targets:
+  - target_name: baseline_failure_rate
+    assumption_family: baseline_failure_rate
+    expected_raw_grain: daily_platform_slice
+    required_columns:
+      - failure_rate
+      - date
+    derived_metric_name: mean_failure_rate
+    transformation_rule: profile_mean(failure_rate)
+    unit_after_transform: share_of_volume
+    aggregation_window: trailing_90_days
+    minimum_quality_checks:
+      - no_missing_failure_rate
+      - no_duplicate_rows
+      - date_column_is_monotonic
+    expected_output_artifact: artifacts/evidence/parameter_candidates.json
+  - target_name: extension_loss_rate
+    assumption_family: extension_loss_rate
+    expected_raw_grain: weekly_extension_cohort
+    required_columns:
+      - disable_rate
+      - week_start
+    derived_metric_name: mean_extension_disable_rate
+    transformation_rule: profile_mean(disable_rate)
+    unit_after_transform: leakage_share
+    aggregation_window: trailing_12_weeks
+    minimum_quality_checks:
+      - no_missing_disable_rate
+      - no_duplicate_rows
+      - date_column_is_monotonic
+    expected_output_artifact: artifacts/evidence/parameter_candidates.json
+  - target_name: do_nothing_drift_cost_eur
+    assumption_family: do_nothing_drift_cost_eur
+    expected_raw_grain: monthly_operational_rollup
+    required_columns:
+      - monthly_drift_cost_eur
+      - month
+    derived_metric_name: mean_monthly_drift_cost
+    transformation_rule: profile_mean(monthly_drift_cost_eur)
+    unit_after_transform: eur_per_year
+    aggregation_window: trailing_12_months
+    minimum_quality_checks:
+      - no_missing_monthly_drift_cost_eur
+      - no_duplicate_rows
+      - date_column_is_monotonic
+    expected_output_artifact: artifacts/evidence/parameter_candidates.json
+  - target_name: regression_event_prob
+    assumption_family: regression_event_prob
+    expected_raw_grain: release_event_log
+    required_columns:
+      - regression_event_rate
+      - release_date
+    derived_metric_name: mean_regression_event_rate
+    transformation_rule: profile_mean(regression_event_rate)
+    unit_after_transform: probability
+    aggregation_window: trailing_8_releases
+    minimum_quality_checks:
+      - no_missing_regression_event_rate
+      - no_duplicate_rows
+      - date_column_is_monotonic
+    expected_output_artifact: artifacts/evidence/parameter_candidates.json
+elicited_only_targets:
+  - failure_to_churn_rel
+  - extension_value_per_uptake_eur
+  - new_capability_uplift
+  - stabilize_failure_reduction
+governance_only_targets:
+  - decision_policy.minimum_p05_value_eur
+  - decision_policy.maximum_mean_regret_eur
+  - decision_policy.ev_tolerance_eur

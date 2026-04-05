@@ -1,0 +1,346 @@
+simulation:
+  annual_volume:
+    unit: units_per_year
+    business_meaning: Annual transaction volume used to scale the case-study economics.
+    value: 250000
+    source_type: synthetic_case_assumption
+    source_reference: Portfolio case volume anchor for a mid-market checkout flow.
+    reason_for_choice: Keeps the example large enough for platform economics to matter without implying enterprise scale.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  time_horizon_years:
+    unit: years
+    business_meaning: Evaluation horizon for the investment decision.
+    value: 2
+    source_type: portfolio_governance_assumption
+    source_reference: Planning horizon for a medium-term platform investment choice.
+    reason_for_choice: Long enough for one major investment to show its economics without pretending to forecast indefinitely.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  discount_rate_annual:
+    unit: annual_rate
+    business_meaning: Annual discount rate used once cashflows are modeled over time.
+    value: 0.08
+    source_type: analytical_threshold
+    source_reference: Synthetic hurdle-rate anchor for comparing near-term and delayed value.
+    reason_for_choice: Modest enough to keep timing relevant without dominating the recommendation.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+
+decision_policy:
+  minimum_p05_value_eur:
+    unit: eur
+    business_meaning: Lowest acceptable P05 outcome before an option fails the downside guardrail.
+    value: -300000.0
+    source_type: portfolio_governance_assumption
+    source_reference: Synthetic downside tolerance for a two-year platform investment.
+    reason_for_choice: Allows downside but rejects options that are too likely to destroy value.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  maximum_mean_regret_eur:
+    unit: eur
+    business_meaning: Highest acceptable mean regret before an option fails the regret guardrail.
+    value: 450000.0
+    source_type: portfolio_governance_assumption
+    source_reference: Synthetic regret tolerance for a single major product-platform bet.
+    reason_for_choice: Keeps the selected option from being attractive only in expectation while being broadly dominated across worlds.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  ev_tolerance_eur:
+    unit: eur
+    business_meaning: Expected-value band inside which lower-regret options can override the EV leader.
+    value: 100000.0
+    source_type: analytical_threshold
+    source_reference: Portfolio judgment for when EV differences stop being decision-relevant.
+    reason_for_choice: Treats small EV gaps as noise-sized when the lower-regret option is meaningfully safer.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+
+analysis:
+  sensitivity_materiality_threshold_abs_spearman:
+    unit: abs_spearman
+    business_meaning: Minimum absolute Spearman value needed before a sensitivity row is published.
+    value: 0.10
+    source_type: analytical_threshold
+    source_reference: Reporting threshold for suppressing weak monotonic associations.
+    reason_for_choice: Keeps the outputs from elevating effectively zero-signal rows into fake insight.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  sensitivity_max_rows_per_option:
+    unit: count
+    business_meaning: Maximum number of material sensitivity rows shown per option.
+    value: 3
+    source_type: analytical_threshold
+    source_reference: Reporting design choice for concise public artifacts.
+    reason_for_choice: Shows the main drivers without turning the case study into a parameter dump.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  decision_boundary_top_parameters:
+    unit: count
+    business_meaning: Maximum number of delta-driver rows shown in the selected-vs-runner-up payoff diagnostic.
+    value: 3
+    source_type: analytical_threshold
+    source_reference: Reporting design choice for the payoff-diagnostic section.
+    reason_for_choice: Limits the payoff-diagnostic view to the strongest descriptive delta drivers.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+
+dependencies:
+  reliability_failure_cost:
+    left_parameter: baseline_failure_rate
+    right_parameter: cost_per_failure_eur
+    rank_correlation: 0.55
+    business_meaning: Worse reliability worlds also tend to carry more expensive failure handling.
+    source_type: elicited_relationship
+    source_reference: Synthetic joint-world assumption for reliability pressure and direct failure cost.
+    reason_for_choice: Prevents the model from treating worse failure worlds as operationally cheap.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  reliability_churn_penalty:
+    left_parameter: baseline_failure_rate
+    right_parameter: failure_to_churn_rel
+    rank_correlation: 0.60
+    business_meaning: Reliability pain and downstream value loss tend to rise together.
+    source_type: elicited_relationship
+    source_reference: Synthetic joint-world assumption for reliability pressure and trust damage.
+    reason_for_choice: Prevents high-failure worlds from unrealistically keeping downstream penalties flat.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  extension_uptake_value:
+    left_parameter: extension_uptake
+    right_parameter: extension_value_per_uptake_eur
+    rank_correlation: 0.40
+    business_meaning: Stronger uptake worlds often coincide with higher value per adopter.
+    source_type: elicited_relationship
+    source_reference: Synthetic joint-world assumption for convenience-feature resonance.
+    reason_for_choice: Avoids treating strong uptake and strong per-adopter value as unrelated.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+  release_probability_severity:
+    left_parameter: regression_event_prob
+    right_parameter: regression_event_cost_eur
+    rank_correlation: 0.45
+    business_meaning: Riskier release worlds often coincide with more severe incidents when they happen.
+    source_type: elicited_relationship
+    source_reference: Synthetic joint-world assumption for release fragility and incident severity.
+    reason_for_choice: Stops the tails from being too soft by construction.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+
+scenarios:
+  mid_range_pressure:
+    label: Mid-range pressure
+    description: Reliability pressure is meaningful, but the business is not yet in a crisis state.
+    rationale: Default worldview for the published case.
+    source_type: scenario_worldview
+    source_reference: Portfolio baseline for a platform team facing real reliability pain and limited capacity.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+    parameter_overrides: {}
+    simulation_overrides: {}
+  reliability_crisis:
+    label: Reliability crisis
+    description: Reliability pain intensifies, drift gets costlier, and delivery gets harder.
+    rationale: Stress worldview where the status quo worsens and complex delivery work slips more often.
+    source_type: scenario_worldview
+    source_reference: Portfolio stress case for a revenue-critical platform under sustained operational strain.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+    parameter_overrides:
+      baseline_failure_rate:
+        distribution_type: tri
+        low: 0.04
+        mode: 0.08
+        high: 0.13
+      failure_to_churn_rel:
+        distribution_type: tri
+        low: 0.12
+        mode: 0.18
+        high: 0.28
+      cost_per_failure_eur:
+        distribution_type: tri
+        low: 25.0
+        mode: 40.0
+        high: 65.0
+      value_per_success_eur:
+        distribution_type: tri
+        low: 24.0
+        mode: 32.0
+        high: 40.0
+      stabilize_failure_reduction:
+        distribution_type: tri
+        low: 0.35
+        mode: 0.50
+        high: 0.65
+      extension_uptake:
+        distribution_type: tri
+        low: 0.08
+        mode: 0.18
+        high: 0.30
+      extension_exposure_reduction:
+        distribution_type: tri
+        low: 0.50
+        mode: 0.60
+        high: 0.75
+      new_capability_uplift:
+        distribution_type: tri
+        low: 0.03
+        mode: 0.06
+        high: 0.10
+      regression_event_prob:
+        distribution_type: tri
+        low: 0.10
+        mode: 0.18
+        high: 0.28
+      regression_event_cost_eur:
+        distribution_type: lognormal
+        median: 200000.0
+        p95: 450000.0
+      do_nothing_drift_cost_eur:
+        distribution_type: tri
+        low: 50000.0
+        mode: 80000.0
+        high: 120000.0
+      stabilize_core_launch_delay_months:
+        distribution_type: tri
+        low: 4.0
+        mode: 7.0
+        high: 10.0
+      stabilize_core_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 1.10
+        mode: 1.25
+        high: 1.50
+      feature_extension_launch_delay_months:
+        distribution_type: tri
+        low: 2.0
+        mode: 3.0
+        high: 5.0
+      feature_extension_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 1.05
+        mode: 1.15
+        high: 1.35
+      new_capability_launch_delay_months:
+        distribution_type: tri
+        low: 5.0
+        mode: 8.0
+        high: 12.0
+      new_capability_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 1.15
+        mode: 1.35
+        high: 1.70
+    simulation_overrides:
+      annual_volume:
+        unit: units_per_year
+        business_meaning: Annual transaction volume under the crisis worldview.
+        value: 220000
+        source_type: scenario_worldview
+        source_reference: Stress scenario assumption that sustained reliability pain suppresses throughput.
+        reason_for_choice: Makes the crisis scenario move an exogenous business scalar, not just the intervention parameters.
+        owner: Tomasz Solis
+        last_updated: 2026-04-05
+  growth_friendly_recovery:
+    label: Growth-friendly recovery
+    description: Economics strengthen, reliability pressure eases, and delivery conditions improve.
+    rationale: Upside worldview where the business environment gets friendlier and delivery friction falls.
+    source_type: scenario_worldview
+    source_reference: Portfolio upside case for a recovering platform with healthier operating conditions.
+    owner: Tomasz Solis
+    last_updated: 2026-04-05
+    parameter_overrides:
+      baseline_failure_rate:
+        distribution_type: tri
+        low: 0.01
+        mode: 0.04
+        high: 0.08
+      failure_to_churn_rel:
+        distribution_type: tri
+        low: 0.08
+        mode: 0.12
+        high: 0.22
+      cost_per_failure_eur:
+        distribution_type: tri
+        low: 18.0
+        mode: 30.0
+        high: 45.0
+      value_per_success_eur:
+        distribution_type: tri
+        low: 32.0
+        mode: 40.0
+        high: 50.0
+      stabilize_failure_reduction:
+        distribution_type: tri
+        low: 0.55
+        mode: 0.70
+        high: 0.85
+      extension_uptake:
+        distribution_type: tri
+        low: 0.25
+        mode: 0.35
+        high: 0.55
+      extension_exposure_reduction:
+        distribution_type: tri
+        low: 0.70
+        mode: 0.80
+        high: 0.92
+      new_capability_uplift:
+        distribution_type: tri
+        low: 0.08
+        mode: 0.12
+        high: 0.18
+      regression_event_prob:
+        distribution_type: tri
+        low: 0.03
+        mode: 0.08
+        high: 0.15
+      regression_event_cost_eur:
+        distribution_type: lognormal
+        median: 100000.0
+        p95: 220000.0
+      do_nothing_drift_cost_eur:
+        distribution_type: tri
+        low: 20000.0
+        mode: 40000.0
+        high: 70000.0
+      stabilize_core_launch_delay_months:
+        distribution_type: tri
+        low: 2.0
+        mode: 4.0
+        high: 6.0
+      stabilize_core_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 0.95
+        mode: 1.05
+        high: 1.20
+      feature_extension_launch_delay_months:
+        distribution_type: tri
+        low: 1.0
+        mode: 2.0
+        high: 3.0
+      feature_extension_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 0.95
+        mode: 1.05
+        high: 1.15
+      new_capability_launch_delay_months:
+        distribution_type: tri
+        low: 3.0
+        mode: 5.0
+        high: 8.0
+      new_capability_cost_overrun_multiplier:
+        distribution_type: tri
+        low: 1.00
+        mode: 1.10
+        high: 1.35
+    simulation_overrides:
+      annual_volume:
+        unit: units_per_year
+        business_meaning: Annual transaction volume under the recovery worldview.
+        value: 300000
+        source_type: scenario_worldview
+        source_reference: Upside scenario assumption that healthier operating conditions lift throughput.
+        reason_for_choice: Proves the scenario contract can move exogenous business conditions as well as parameter ranges.
+        owner: Tomasz Solis
+        last_updated: 2026-04-05

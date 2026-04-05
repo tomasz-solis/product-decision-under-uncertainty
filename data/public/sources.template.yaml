@@ -1,0 +1,14 @@
+# Replace the placeholder values below when the first public source is added.
+sources:
+  - source_id: example_public_source
+    file_name: example.csv
+    source_url: https://example.com/replace-me
+    publication: Replace with the publication or dataset name
+    license: Replace with the dataset license
+    extraction_date: 2026-04-05
+    grain: daily
+    expected_schema:
+      date: date
+      failure_rate: float
+    assumption_families:
+      - baseline_failure_rate

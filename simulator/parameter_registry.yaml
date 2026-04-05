@@ -1,0 +1,353 @@
+baseline_failure_rate:
+  unit: share_of_volume
+  business_meaning: Share of annual volume that fails on the legacy path before any intervention.
+  distribution_type: tri
+  low: 0.02
+  mode: 0.05
+  high: 0.10
+  source_type: illustrative_benchmark
+  source_reference: Synthetic case anchor based on generic checkout reliability ranges.
+  reason_for_range: Wide enough to make reliability pressure matter without baking in a crisis narrative.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+failure_to_churn_rel:
+  unit: revenue_penalty_share
+  business_meaning: Relative downstream value loss that follows when one failure damages trust, retention, or future conversion for the affected unit.
+  distribution_type: tri
+  low: 0.10
+  mode: 0.15
+  high: 0.25
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio case judgment for how often an exposed failure causes customer-side value loss beyond the direct failure cost.
+  reason_for_range: Keeps customer-harm effects visible without forcing every failure to become full churn.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+cost_per_failure_eur:
+  unit: eur_per_failure
+  business_meaning: Direct operational cost created by one failed unit.
+  distribution_type: tri
+  low: 20.0
+  mode: 35.0
+  high: 55.0
+  source_type: illustrative_benchmark
+  source_reference: Synthetic support-and-recovery cost range for a commerce platform.
+  reason_for_range: Captures the difference between cheap retries and expensive manual recovery.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+value_per_success_eur:
+  unit: eur_per_success
+  business_meaning: Total economic value created when one unit succeeds.
+  distribution_type: tri
+  low: 28.0
+  mode: 35.0
+  high: 45.0
+  source_type: illustrative_benchmark
+  source_reference: Synthetic unit-value range for a mid-market commerce flow.
+  reason_for_range: Keeps the same success-value term available to both recovery and uplift economics.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_failure_reduction:
+  unit: share_of_failure_removed
+  business_meaning: Share of baseline failure exposure removed by the core-stability option.
+  distribution_type: tri
+  low: 0.40
+  mode: 0.60
+  high: 0.80
+  source_type: elicited_range
+  source_reference: Synthetic engineering judgment for the scope of a checkout hardening program.
+  reason_for_range: Broad enough to reflect uncertainty in refactor effectiveness across legacy paths.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+extension_uptake:
+  unit: adopter_share
+  business_meaning: Share of users who adopt the optional express path.
+  distribution_type: tri
+  low: 0.10
+  mode: 0.30
+  high: 0.50
+  source_type: elicited_range
+  source_reference: Synthetic feature-adoption range for an optional convenience flow.
+  reason_for_range: Keeps the extension economically sensitive to adoption rather than assuming it.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+extension_exposure_reduction:
+  unit: share_of_failure_exposure_removed_for_adopters
+  business_meaning: Failure-exposure reduction for users who adopt the express path.
+  distribution_type: tri
+  low: 0.55
+  mode: 0.70
+  high: 0.85
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption about how much of the legacy flow the extension bypasses.
+  reason_for_range: Assumes the extension avoids a meaningful but not total share of the problematic path.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+extension_value_per_uptake_eur:
+  unit: eur_per_adopting_unit
+  business_meaning: Additional value created by one adopting unit before decay or disablement.
+  distribution_type: tri
+  low: 2.0
+  mode: 4.0
+  high: 7.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for how much convenience value the extension creates per adopter.
+  reason_for_range: Keeps the extension additive without letting convenience dominate reliability economics.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+extension_loss_rate:
+  unit: leakage_share
+  business_meaning: Share of extension value that leaks away through disablement or decay.
+  distribution_type: tri
+  low: 0.05
+  mode: 0.08
+  high: 0.12
+  source_type: placeholder_for_real_telemetry
+  source_reference: Placeholder for observed disablement or value-decay telemetry in a real product.
+  reason_for_range: Prevents the extension case from assuming perfect value retention.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_uplift:
+  unit: relative_value_uplift
+  business_meaning: Incremental value uplift created by the new capability on successful volume.
+  distribution_type: tri
+  low: 0.05
+  mode: 0.08
+  high: 0.15
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for fraud-prevention upside in a high-variance build.
+  reason_for_range: Allows upside while still forcing the option to earn back delivery complexity.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+regression_event_prob:
+  unit: event_probability
+  business_meaning: Baseline probability that a shipped option triggers a regression event in one simulated world.
+  distribution_type: tri
+  low: 0.05
+  mode: 0.15
+  high: 0.25
+  source_type: elicited_range
+  source_reference: Synthetic release-risk range for product changes touching critical flows.
+  reason_for_range: Wide enough to keep downside tails visible without making every option catastrophically unsafe.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+regression_event_cost_eur:
+  unit: eur_per_event
+  business_meaning: Severity of one regression event when it happens.
+  distribution_type: lognormal
+  median: 150000.0
+  p95: 300000.0
+  source_type: illustrative_benchmark
+  source_reference: Synthetic heavy-tail incident-cost assumption for a revenue-critical product flow.
+  reason_for_range: Gives the release-risk model a visible tail instead of collapsing it into expected cost.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_regression_prob_multiplier:
+  unit: probability_multiplier
+  business_meaning: Relative release-risk multiplier for the stabilize-core option.
+  distribution_type: constant
+  value: 1.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio baseline for a high-touch refactor.
+  reason_for_range: Treats the core refactor as the release-risk baseline.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_regression_prob_multiplier:
+  unit: probability_multiplier
+  business_meaning: Relative release-risk multiplier for the feature-extension option.
+  distribution_type: constant
+  value: 0.8
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption that the extension is easier to contain than a core refactor.
+  reason_for_range: Lets the extension carry risk, but slightly less than the baseline refactor.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_regression_prob_multiplier:
+  unit: probability_multiplier
+  business_meaning: Relative release-risk multiplier for the new-capability option.
+  distribution_type: constant
+  value: 2.5
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption that the new capability adds the most operational complexity.
+  reason_for_range: Keeps the new capability from looking like free upside.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_upfront_cost_eur:
+  unit: eur
+  business_meaning: One-time investment required to stabilize the core flow.
+  distribution_type: constant
+  value: 800000.0
+  source_type: synthetic_case_assumption
+  source_reference: Synthetic budget line for a major checkout refactor.
+  reason_for_range: Chosen as a large but plausible spend for a two-year platform program.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_annual_maintenance_cost_eur:
+  unit: eur_per_year
+  business_meaning: Ongoing annual cost of supporting the stabilized core.
+  distribution_type: constant
+  value: 30000.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for follow-on maintenance after the main refactor.
+  reason_for_range: Keeps the option from looking like a one-off cost with no carry.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_upfront_cost_eur:
+  unit: eur
+  business_meaning: One-time investment required to ship the express path.
+  distribution_type: constant
+  value: 600000.0
+  source_type: synthetic_case_assumption
+  source_reference: Synthetic budget line for an optional express-flow build.
+  reason_for_range: Keeps the extension cheaper than the refactor but still material.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_annual_maintenance_cost_eur:
+  unit: eur_per_year
+  business_meaning: Ongoing annual cost of operating the express path.
+  distribution_type: constant
+  value: 60000.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for supporting an additional production path.
+  reason_for_range: Reflects extra ongoing complexity from keeping the extension alive.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_upfront_cost_eur:
+  unit: eur
+  business_meaning: One-time investment required to build the new capability.
+  distribution_type: constant
+  value: 1200000.0
+  source_type: synthetic_case_assumption
+  source_reference: Synthetic budget line for a new capability with model and integration work.
+  reason_for_range: Makes the option clearly more ambitious and harder to justify.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_annual_maintenance_cost_eur:
+  unit: eur_per_year
+  business_meaning: Ongoing annual cost of supporting the new capability.
+  distribution_type: constant
+  value: 100000.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for operating a more complex capability over time.
+  reason_for_range: Makes the capability carry visible ownership cost after launch.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+do_nothing_drift_cost_eur:
+  unit: eur_per_year
+  business_meaning: Annual internal operating drag of staying on the current path, including firefighting, coordination overhead, and workaround cost but excluding customer-side revenue loss.
+  distribution_type: tri
+  low: 30000.0
+  mode: 50000.0
+  high: 90000.0
+  source_type: placeholder_for_real_telemetry
+  source_reference: Placeholder for observed internal drift cost in a live product, such as manual recovery, incident handling, and engineering overhead.
+  reason_for_range: Keeps status quo deterioration visible without blending the same customer harm already captured through failure-linked value loss.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_launch_delay_months:
+  unit: months
+  business_meaning: Time before the stabilize-core investment begins producing production benefits.
+  distribution_type: tri
+  low: 3.0
+  mode: 5.0
+  high: 8.0
+  source_type: elicited_range
+  source_reference: Synthetic delivery estimate for a multi-quarter checkout hardening program.
+  reason_for_range: Captures schedule risk without assuming the refactor slips indefinitely.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_benefit_ramp_months:
+  unit: months
+  business_meaning: Time needed for the stabilize-core option to reach full operational effect after launch.
+  distribution_type: tri
+  low: 3.0
+  mode: 6.0
+  high: 9.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio rollout assumption for progressive remediation and validation.
+  reason_for_range: Avoids granting full reliability recovery from the first month after release.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+stabilize_core_cost_overrun_multiplier:
+  unit: multiplier
+  business_meaning: Delivery-cost multiplier applied to the stabilize-core upfront cost.
+  distribution_type: tri
+  low: 1.0
+  mode: 1.15
+  high: 1.35
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for refactor delivery risk in a critical platform surface.
+  reason_for_range: Lets the stability program pay for schedule and coordination complexity when it slips.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_launch_delay_months:
+  unit: months
+  business_meaning: Time before the express-path investment begins producing production benefits.
+  distribution_type: tri
+  low: 1.0
+  mode: 2.0
+  high: 4.0
+  source_type: elicited_range
+  source_reference: Synthetic delivery estimate for a bounded optional-flow launch.
+  reason_for_range: Keeps the extension faster than a core refactor, but not instant.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_benefit_ramp_months:
+  unit: months
+  business_meaning: Time needed for extension adoption and operational impact to reach full effect.
+  distribution_type: tri
+  low: 2.0
+  mode: 4.0
+  high: 6.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for adoption ramp after shipping an optional convenience flow.
+  reason_for_range: Prevents the model from assuming full uptake on the day the extension launches.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+feature_extension_cost_overrun_multiplier:
+  unit: multiplier
+  business_meaning: Delivery-cost multiplier applied to the feature-extension upfront cost.
+  distribution_type: tri
+  low: 1.0
+  mode: 1.10
+  high: 1.25
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for moderate delivery variance on a contained product build.
+  reason_for_range: Keeps the extension from appearing cheaper than its coordination burden in every world.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_launch_delay_months:
+  unit: months
+  business_meaning: Time before the new capability begins producing production benefits.
+  distribution_type: tri
+  low: 4.0
+  mode: 7.0
+  high: 10.0
+  source_type: elicited_range
+  source_reference: Synthetic delivery estimate for a new fraud-prevention capability with integration work.
+  reason_for_range: Reflects the longer path from build to trusted production value for a new capability.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_benefit_ramp_months:
+  unit: months
+  business_meaning: Time needed for the new capability to ramp from launch to full effect.
+  distribution_type: tri
+  low: 4.0
+  mode: 7.0
+  high: 10.0
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for controlled rollout, tuning, and trust-building after launch.
+  reason_for_range: Avoids treating a new capability as instantly mature once it ships.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
+new_capability_cost_overrun_multiplier:
+  unit: multiplier
+  business_meaning: Delivery-cost multiplier applied to the new-capability upfront cost.
+  distribution_type: tri
+  low: 1.0
+  mode: 1.20
+  high: 1.50
+  source_type: synthetic_case_assumption
+  source_reference: Portfolio assumption for higher delivery variance on a new operational capability.
+  reason_for_range: Makes the new capability pay for the extra complexity it introduces.
+  owner: Tomasz Solis
+  last_updated: 2026-04-05
