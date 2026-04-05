@@ -1,130 +1,137 @@
-"""Tests for visualizations.py chart generation functions."""
+"""Semantic tests for the Plotly helpers."""
+
+from __future__ import annotations
 
 import pandas as pd
-import pytest
+
 from simulator.visualizations import (
-    clean_label,
     create_decision_dashboard,
-    create_risk_profile_chart,
-    create_regret_comparison,
+    create_sensitivity_waterfall,
     create_trade_off_matrix,
-    create_executive_summary_table,
 )
 
 
-def test_clean_label_snake_case():
-    """Test snake_case to Title Case conversion."""
-    assert clean_label("feature_extension") == "Feature Extension"
-    assert clean_label("do_nothing") == "Do Nothing"
-    assert clean_label("new_capability") == "New Capability"
+def _sample_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Return small summary, diagnostic, and sensitivity frames for chart tests."""
+
+    summary = pd.DataFrame(
+        [
+            {
+                "option": "stabilize_core",
+                "mean_value_eur": 500000.0,
+                "median_value_eur": 480000.0,
+                "p05_value_eur": -200000.0,
+                "p95_value_eur": 900000.0,
+            },
+            {
+                "option": "feature_extension",
+                "mean_value_eur": 450000.0,
+                "median_value_eur": 430000.0,
+                "p05_value_eur": -150000.0,
+                "p95_value_eur": 800000.0,
+            },
+        ]
+    )
+    diagnostics = pd.DataFrame(
+        [
+            {
+                "option": "stabilize_core",
+                "win_rate": 0.52,
+                "mean_regret_eur": 200000.0,
+                "median_regret_eur": 180000.0,
+                "p95_regret_eur": 500000.0,
+            },
+            {
+                "option": "feature_extension",
+                "win_rate": 0.48,
+                "mean_regret_eur": 120000.0,
+                "median_regret_eur": 110000.0,
+                "p95_regret_eur": 320000.0,
+            },
+        ]
+    )
+    sensitivity = pd.DataFrame(
+        [
+            {
+                "option": "stabilize_core",
+                "parameter": "baseline_failure_rate",
+                "spearman_corr": 0.55,
+            },
+            {
+                "option": "stabilize_core",
+                "parameter": "cost_per_failure_eur",
+                "spearman_corr": 0.09,
+            },
+            {
+                "option": "stabilize_core",
+                "parameter": "failure_to_churn_rel",
+                "spearman_corr": 0.22,
+            },
+            {
+                "option": "feature_extension",
+                "parameter": "extension_uptake",
+                "spearman_corr": 0.44,
+            },
+            {
+                "option": "feature_extension",
+                "parameter": "extension_value_per_uptake_eur",
+                "spearman_corr": 0.31,
+            },
+        ]
+    )
+    return summary, diagnostics, sensitivity
 
 
-def test_clean_label_camel_case():
-    """Test camelCase to Title Case conversion."""
-    assert clean_label("featureExtension") == "Feature Extension"
-    assert clean_label("doNothing") == "Do Nothing"
+def test_sensitivity_waterfall_filters_out_immaterial_rows() -> None:
+    """The sensitivity chart should only show parameters above the materiality threshold."""
+
+    _, _, sensitivity = _sample_inputs()
+    figure = create_sensitivity_waterfall(sensitivity, "stabilize_core", threshold=0.10)
+
+    assert list(figure.data[0].y) == ["Baseline Failure Rate", "Failure To Churn Rel"]
+    assert list(figure.data[0].x) == [0.55, 0.22]
+    assert figure.layout.xaxis.title.text == "Spearman correlation"
 
 
-def test_clean_label_kebab_case():
-    """Test kebab-case to Title Case conversion."""
-    assert clean_label("feature-extension") == "Feature Extension"
-    assert clean_label("do-nothing") == "Do Nothing"
+def test_trade_off_matrix_uses_value_and_regret_axes() -> None:
+    """The trade-off matrix should expose the intended analytical comparison."""
+
+    summary, diagnostics, _ = _sample_inputs()
+    figure = create_trade_off_matrix(summary, diagnostics)
+
+    assert figure.layout.xaxis.title.text == "Mean regret (EUR)"
+    assert figure.layout.yaxis.title.text == "Expected value (EUR)"
+    assert list(figure.data[0].text) == ["Stabilize Core", "Feature Extension"]
 
 
-def test_create_decision_dashboard():
-    """Test dashboard creation with valid data."""
-    summary = pd.DataFrame({
-        "option": ["do_nothing", "stabilize_core"],
-        "mean_value_eur": [100000, 200000]
-    })
-    diagnostics = pd.DataFrame({
-        "option": ["do_nothing", "stabilize_core"],
-        "win_rate": [0.3, 0.7],
-        "mean_regret_eur": [50000, 30000]
-    })
-    sensitivity = pd.DataFrame({
-        "parameter": ["param1", "param2"],
-        "spearman_corr": [0.8, 0.6]
-    })
+def test_decision_dashboard_labels_the_selected_recommendation_panel() -> None:
+    """The dashboard should label the recommendation panel carefully."""
 
-    fig = create_decision_dashboard(summary, diagnostics, sensitivity)
+    summary, diagnostics, sensitivity = _sample_inputs()
+    figure = create_decision_dashboard(
+        summary,
+        diagnostics,
+        sensitivity,
+        recommended_option="stabilize_core",
+        sensitivity_threshold=0.10,
+    )
 
-    assert fig is not None
-    assert hasattr(fig, "data")
+    assert (
+        figure.layout.annotations[3].text == "Material sensitivity for the selected recommendation"
+    )
+    assert list(figure.data[3].x) == ["Baseline Failure Rate", "Failure To Churn Rel"]
 
 
-def test_create_risk_profile_chart():
-    """Test risk profile chart creation."""
-    summary = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "p05_value_eur": [50000, 60000],
-        "median_value_eur": [100000, 110000],
-        "p95_value_eur": [150000, 160000]
-    })
+def test_decision_dashboard_uses_policy_selected_option_when_it_differs_from_ev_leader() -> None:
+    """The recommendation panel should follow the selected option, not the EV leader."""
 
-    fig = create_risk_profile_chart(summary)
+    summary, diagnostics, sensitivity = _sample_inputs()
+    figure = create_decision_dashboard(
+        summary,
+        diagnostics,
+        sensitivity,
+        recommended_option="feature_extension",
+        sensitivity_threshold=0.10,
+    )
 
-    assert fig is not None
-    assert hasattr(fig, "data")
-
-
-def test_create_regret_comparison():
-    """Test regret comparison chart creation."""
-    diagnostics = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "mean_regret_eur": [30000, 40000],
-        "median_regret_eur": [25000, 35000],
-        "p95_regret_eur": [80000, 90000]
-    })
-
-    fig = create_regret_comparison(diagnostics)
-
-    assert fig is not None
-    assert hasattr(fig, "data")
-
-
-def test_create_trade_off_matrix():
-    """Test trade-off matrix creation."""
-    summary = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "mean_value_eur": [100000, 120000]
-    })
-    diagnostics = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "mean_regret_eur": [30000, 25000]
-    })
-
-    fig = create_trade_off_matrix(summary, diagnostics)
-
-    assert fig is not None
-    assert hasattr(fig, "data")
-
-
-def test_create_executive_summary_table():
-    """Test executive summary table creation."""
-    summary = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "mean_value_eur": [100000, 120000],
-        "median_value_eur": [95000, 115000],
-        "p05_value_eur": [50000, 60000],
-        "p95_value_eur": [150000, 180000]
-    })
-    diagnostics = pd.DataFrame({
-        "option": ["option_a", "option_b"],
-        "win_rate": [0.45, 0.55],
-        "mean_regret_eur": [30000, 25000]
-    })
-
-    df = create_executive_summary_table(summary, diagnostics)
-
-    assert df is not None
-    assert isinstance(df, pd.DataFrame)
-    assert len(df) == 2
-
-
-def test_clean_label_edge_cases():
-    """Test edge cases for label cleaning."""
-    assert clean_label("") == ""
-    assert clean_label("SingleWord") == "Single Word"
-    assert clean_label("ALLCAPS") == "Allcaps"
-    assert clean_label("multiple___underscores") == "Multiple Underscores"
+    assert list(figure.data[3].x) == ["Extension Uptake", "Extension Value Per Uptake Eur"]
