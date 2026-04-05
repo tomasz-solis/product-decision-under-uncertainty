@@ -1,30 +1,30 @@
 {
   "delta_rows": [
     {
-      "delta_spearman_corr": -0.818536,
+      "delta_spearman_corr": -0.822926,
       "interpretation_note": "Descriptive rank association with the selected-minus-runner-up payoff delta inside the sampled worlds.",
       "parameter": "extension_uptake",
-      "sampled_max_value": 0.498552,
-      "sampled_min_value": 0.100768
+      "sampled_max_value": 0.499426,
+      "sampled_min_value": 0.100785
     },
     {
-      "delta_spearman_corr": -0.609231,
+      "delta_spearman_corr": -0.606081,
       "interpretation_note": "Descriptive rank association with the selected-minus-runner-up payoff delta inside the sampled worlds.",
       "parameter": "extension_value_per_uptake_eur",
-      "sampled_max_value": 6.978981,
-      "sampled_min_value": 2.00958
+      "sampled_max_value": 6.9667,
+      "sampled_min_value": 2.031737
     },
     {
-      "delta_spearman_corr": -0.356527,
+      "delta_spearman_corr": -0.359696,
       "interpretation_note": "Descriptive rank association with the selected-minus-runner-up payoff delta inside the sampled worlds.",
       "parameter": "baseline_failure_rate",
-      "sampled_max_value": 0.099436,
-      "sampled_min_value": 0.02022
+      "sampled_max_value": 0.099858,
+      "sampled_min_value": 0.020558
     }
   ],
-  "mean_delta_eur": -39771.344267,
-  "p05_delta_eur": -641332.739735,
+  "mean_delta_eur": -44651.325059,
+  "p05_delta_eur": -635229.985856,
   "runner_up": "feature_extension",
   "selected_option": "do_nothing",
-  "win_rate_vs_runner_up": 0.49485
+  "win_rate_vs_runner_up": 0.48335
 }

@@ -1,6 +1,6 @@
 - Stability runs: `15` published-case reruns across multiple seeds and world counts.
 - Selected-option P05 range: €2,554.
-- Runner-up P05 range: €14,585.
+- Runner-up P05 range: €23,946.
 
 Recommendation frequency:
 

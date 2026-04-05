@@ -3,7 +3,7 @@
 
 | Option | Expected Value | P05 | Downside Slack | Mean Regret | Regret Slack | Eligible | Failure Reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Feature Extension | €-64,899 | €-544,675 | €-244,675 | €157,845 | €292,155 | no | fails the downside floor |
-| Do Nothing | €-104,671 | €-145,374 | €154,626 | €197,616 | €252,384 | yes | passes both guardrails |
-| Stabilize Core | €-218,673 | €-691,700 | €-391,700 | €311,619 | €138,381 | no | fails the downside floor |
-| New Capability | €-954,763 | €-1,376,447 | €-1,076,447 | €1,047,708 | €-597,708 | no | fails both guardrails |
+| Feature Extension | €-60,019 | €-547,304 | €-247,304 | €159,584 | €290,416 | no | fails the downside floor |
+| Do Nothing | €-104,671 | €-145,374 | €154,626 | €204,236 | €245,764 | yes | passes both guardrails |
+| Stabilize Core | €-207,577 | €-693,811 | €-393,811 | €307,142 | €142,858 | no | fails the downside floor |
+| New Capability | €-956,398 | €-1,382,691 | €-1,082,691 | €1,055,963 | €-605,963 | no | fails both guardrails |

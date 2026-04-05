@@ -39,18 +39,7 @@
     "runner_up": "do_nothing",
     "selected_option": "feature_extension",
     "switch_from_baseline": true,
-    "tested_value": 147615.844783,
-    "threshold_label": "Regret cap",
-    "threshold_name": "maximum_mean_regret_eur"
-  },
-  {
-    "baseline_selected_option": "do_nothing",
-    "binding_constraint": "guardrails_relaxed",
-    "eligible_option_count": 0,
-    "runner_up": "do_nothing",
-    "selected_option": "feature_extension",
-    "switch_from_baseline": true,
-    "tested_value": 197615.844783,
+    "tested_value": 154235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -61,7 +50,7 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 247615.844783,
+    "tested_value": 204235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -72,7 +61,7 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 297615.844783,
+    "tested_value": 254235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -83,7 +72,7 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 347615.844783,
+    "tested_value": 304235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -94,7 +83,7 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 397615.844783,
+    "tested_value": 354235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -105,7 +94,7 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 447615.844783,
+    "tested_value": 404235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },
@@ -127,7 +116,18 @@
     "runner_up": "feature_extension",
     "selected_option": "do_nothing",
     "switch_from_baseline": false,
-    "tested_value": 497615.844783,
+    "tested_value": 454235.668014,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 504235.668014,
     "threshold_label": "Regret cap",
     "threshold_name": "maximum_mean_regret_eur"
   },

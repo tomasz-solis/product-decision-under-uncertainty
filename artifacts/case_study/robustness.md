@@ -14,7 +14,7 @@ Frontier stability across the published seed/world-count grid:
 | Threshold | Switching option(s) | Min boundary | Max boundary | Observed switch type(s) |
 | --- | --- | --- | --- | --- |
 | EV tolerance | none | nan | nan | no_switch_observed |
-| Regret cap | Feature Extension | 195734.910254 | 204280.897869 | grid_bracket |
+| Regret cap | Feature Extension | 197242.437604 | 204235.668014 | grid_bracket |
 | Downside floor | Feature Extension | -147133.728698 | -144580.119938 | grid_bracket |
 
 Directional stress tests on the strongest material drivers:

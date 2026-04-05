@@ -557,7 +557,10 @@ def _sample_dependent_uniforms(
     dependencies: dict[str, dict[str, float]],
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Sample dependent uniforms from a Gaussian copula."""
+    """Sample dependent uniforms from a Gaussian copula.
+
+    An explicit Cholesky transform keeps the seeded draws stable across platforms.
+    """
 
     requested_matrix = np.eye(len(parameter_names), dtype=float)
     index_by_name = {name: index for index, name in enumerate(parameter_names)}
@@ -581,7 +584,9 @@ def _sample_dependent_uniforms(
             stacklevel=2,
         )
 
-    normals = rng.multivariate_normal(mean=np.zeros(len(parameter_names)), cov=matrix, size=n)
+    cholesky = np.linalg.cholesky(matrix)
+    independent_normals = rng.standard_normal(size=(n, len(parameter_names)))
+    normals = independent_normals @ cholesky.T
     standard_normal = NormalDist()
     flattened = normals.reshape(-1)
     uniforms = np.array(

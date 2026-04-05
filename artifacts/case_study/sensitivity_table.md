@@ -8,7 +8,7 @@ Only `do_nothing_drift_cost_eur` cleared the materiality threshold of |rho| >= 0
 | Parameter | Spearman |
 | --- | --- |
 | extension_uptake | +0.82 |
-| extension_value_per_uptake_eur | +0.61 |
+| extension_value_per_uptake_eur | +0.60 |
 | baseline_failure_rate | +0.36 |
 
 ### New Capability
@@ -22,5 +22,5 @@ Only `do_nothing_drift_cost_eur` cleared the materiality threshold of |rho| >= 0
 | Parameter | Spearman |
 | --- | --- |
 | baseline_failure_rate | +0.85 |
-| cost_per_failure_eur | +0.60 |
+| cost_per_failure_eur | +0.61 |
 | failure_to_churn_rel | +0.46 |

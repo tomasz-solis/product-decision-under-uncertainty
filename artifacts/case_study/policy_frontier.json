@@ -17,10 +17,10 @@
       "all_options_considered": true,
       "current_value": 450000.0,
       "first_switching_option": "feature_extension",
-      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 197,615.84 EUR.",
+      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 204,235.67 EUR.",
       "switch_direction": "more_restrictive",
       "switch_type": "grid_bracket",
-      "switching_value": 197615.844783,
+      "switching_value": 204235.668014,
       "threshold_label": "Regret cap",
       "threshold_name": "maximum_mean_regret_eur",
       "unit": "eur"
@@ -42,9 +42,9 @@
   "runner_up_comparison_rows": [
     {
       "current_value": -300000.0,
-      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -544,674.89 EUR.",
+      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -547,304.01 EUR.",
       "status": "switch_observed",
-      "switching_value": -544674.888371,
+      "switching_value": -547304.009578,
       "threshold_label": "Downside floor",
       "threshold_name": "minimum_p05_value_eur",
       "unit": "eur"

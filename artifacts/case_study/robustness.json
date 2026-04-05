@@ -34,8 +34,8 @@
     {
       "switch_type_modes": "grid_bracket",
       "switching_options_observed": "Feature Extension",
-      "switching_value_max": 204280.897869,
-      "switching_value_min": 195734.910254,
+      "switching_value_max": 204235.668014,
+      "switching_value_min": 197242.437604,
       "threshold_label": "Regret cap",
       "threshold_name": "maximum_mean_regret_eur"
     },

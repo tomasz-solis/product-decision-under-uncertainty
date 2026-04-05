@@ -4,17 +4,17 @@
 | Threshold | Current value | Raw switching value | Display switching value | First switching option | Switch type | Direction | Interpretation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Downside floor | €-300,000 | -145,373.6 | €-145,373.6 | Feature Extension | grid bracket | more restrictive | Full-option sweep: Do Nothing switches to Feature Extension once the downside floor moves up past -145,373.57 EUR. |
-| Regret cap | €450,000 | 197,615.8 | €197,615.8 | Feature Extension | grid bracket | more restrictive | Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 197,615.84 EUR. |
+| Regret cap | €450,000 | 204,235.7 | €204,235.7 | Feature Extension | grid bracket | more restrictive | Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 204,235.67 EUR. |
 | EV tolerance | €100,000 | not observed | not observed | not observed | no switch observed | not observed | Re-evaluating the full option set across the tested threshold domain did not change the selected option. |
 
 | Threshold | Current value | Runner-up threshold | Status | Interpretation |
 | --- | --- | --- | --- | --- |
-| Downside floor | €-300,000 | €-544,674.9 | runner-up threshold reached | Feature Extension becomes eligible on downside once the floor is relaxed to -544,674.89 EUR. |
+| Downside floor | €-300,000 | €-547,304.0 | runner-up threshold reached | Feature Extension becomes eligible on downside once the floor is relaxed to -547,304.01 EUR. |
 | Regret cap | €450,000 | not needed | already non-binding | Feature Extension already passes the regret cap. |
 | EV tolerance | €100,000 | not needed | not binding | EV tolerance is not the binding threshold because both options are not yet eligible. |
 
 | Threshold | Tested range | Selection switched? | Switching option(s) |
 | --- | --- | --- | --- |
 | EV tolerance | €75,000 to €125,000 | no | none |
-| Regret cap | €147,615.8 to €497,615.8 | yes | Feature Extension |
+| Regret cap | €154,235.7 to €504,235.7 | yes | Feature Extension |
 | Downside floor | €-350,000 to €-100,000 | yes | Feature Extension |

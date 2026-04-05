@@ -26,18 +26,13 @@
   },
   {
     "option": "do_nothing",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": -0.009384
+  },
+  {
+    "option": "do_nothing",
     "parameter": "feature_extension_launch_delay_months",
     "spearman_corr": -0.007724
-  },
-  {
-    "option": "do_nothing",
-    "parameter": "extension_uptake",
-    "spearman_corr": 0.006256
-  },
-  {
-    "option": "do_nothing",
-    "parameter": "failure_to_churn_rel",
-    "spearman_corr": -0.006225
   },
   {
     "option": "do_nothing",
@@ -46,18 +41,18 @@
   },
   {
     "option": "do_nothing",
-    "parameter": "cost_per_failure_eur",
-    "spearman_corr": 0.00403
+    "parameter": "extension_uptake",
+    "spearman_corr": -0.004622
   },
   {
     "option": "do_nothing",
     "parameter": "regression_event_prob",
-    "spearman_corr": -0.00363
+    "spearman_corr": 0.00386
   },
   {
     "option": "do_nothing",
-    "parameter": "regression_event_cost_eur",
-    "spearman_corr": -0.00332
+    "parameter": "cost_per_failure_eur",
+    "spearman_corr": 0.003338
   },
   {
     "option": "do_nothing",
@@ -71,6 +66,11 @@
   },
   {
     "option": "do_nothing",
+    "parameter": "regression_event_cost_eur",
+    "spearman_corr": -0.002616
+  },
+  {
+    "option": "do_nothing",
     "parameter": "stabilize_core_cost_overrun_multiplier",
     "spearman_corr": 0.002588
   },
@@ -81,8 +81,8 @@
   },
   {
     "option": "do_nothing",
-    "parameter": "extension_value_per_uptake_eur",
-    "spearman_corr": 0.002298
+    "parameter": "failure_to_churn_rel",
+    "spearman_corr": 0.002418
   },
   {
     "option": "do_nothing",
@@ -101,16 +101,16 @@
   },
   {
     "option": "do_nothing",
-    "parameter": "baseline_failure_rate",
-    "spearman_corr": 0.000616
-  },
-  {
-    "option": "do_nothing",
     "parameter": "feature_extension_cost_overrun_multiplier",
     "spearman_corr": 0.000584
   },
   {
     "option": "do_nothing",
+    "parameter": "baseline_failure_rate",
+    "spearman_corr": 1.2e-05
+  },
+  {
+    "option": "do_nothing",
     "parameter": "stabilize_core_regression_prob_multiplier",
     "spearman_corr": 0.0
   },
@@ -157,112 +157,112 @@
   {
     "option": "feature_extension",
     "parameter": "extension_uptake",
-    "spearman_corr": 0.816259
+    "spearman_corr": 0.820686
   },
   {
     "option": "feature_extension",
     "parameter": "extension_value_per_uptake_eur",
-    "spearman_corr": 0.607161
+    "spearman_corr": 0.604123
   },
   {
     "option": "feature_extension",
     "parameter": "baseline_failure_rate",
-    "spearman_corr": 0.3557
+    "spearman_corr": 0.35881
   },
   {
     "option": "feature_extension",
     "parameter": "cost_per_failure_eur",
-    "spearman_corr": 0.261998
+    "spearman_corr": 0.267352
   },
   {
     "option": "feature_extension",
     "parameter": "failure_to_churn_rel",
-    "spearman_corr": 0.192072
+    "spearman_corr": 0.196308
   },
   {
     "option": "feature_extension",
     "parameter": "feature_extension_cost_overrun_multiplier",
-    "spearman_corr": -0.091942
+    "spearman_corr": -0.092907
   },
   {
     "option": "feature_extension",
     "parameter": "extension_exposure_reduction",
-    "spearman_corr": 0.087821
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "do_nothing_drift_cost_eur",
-    "spearman_corr": -0.075595
+    "spearman_corr": 0.085596
   },
   {
     "option": "feature_extension",
     "parameter": "feature_extension_launch_delay_months",
-    "spearman_corr": -0.065399
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "feature_extension_benefit_ramp_months",
-    "spearman_corr": -0.054052
+    "spearman_corr": -0.070309
   },
   {
     "option": "feature_extension",
     "parameter": "value_per_success_eur",
-    "spearman_corr": 0.035681
+    "spearman_corr": 0.066083
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "do_nothing_drift_cost_eur",
+    "spearman_corr": -0.064967
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": -0.043165
   },
   {
     "option": "feature_extension",
     "parameter": "regression_event_cost_eur",
-    "spearman_corr": -0.034696
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "extension_loss_rate",
-    "spearman_corr": -0.031525
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "new_capability_uplift",
-    "spearman_corr": 0.018786
+    "spearman_corr": -0.040806
   },
   {
     "option": "feature_extension",
     "parameter": "regression_event_prob",
-    "spearman_corr": -0.01861
+    "spearman_corr": -0.027946
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": -0.021574
   },
   {
     "option": "feature_extension",
     "parameter": "stabilize_core_launch_delay_months",
-    "spearman_corr": -0.01607
+    "spearman_corr": 0.01284
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": -0.012623
   },
   {
     "option": "feature_extension",
     "parameter": "stabilize_core_benefit_ramp_months",
-    "spearman_corr": 0.005888
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "stabilize_core_cost_overrun_multiplier",
-    "spearman_corr": 0.005214
+    "spearman_corr": -0.008089
   },
   {
     "option": "feature_extension",
     "parameter": "new_capability_launch_delay_months",
-    "spearman_corr": 0.004475
-  },
-  {
-    "option": "feature_extension",
-    "parameter": "new_capability_cost_overrun_multiplier",
-    "spearman_corr": 0.003918
+    "spearman_corr": -0.005069
   },
   {
     "option": "feature_extension",
     "parameter": "stabilize_failure_reduction",
-    "spearman_corr": -0.003563
+    "spearman_corr": 0.003332
   },
   {
     "option": "feature_extension",
     "parameter": "new_capability_benefit_ramp_months",
-    "spearman_corr": 0.001018
+    "spearman_corr": -0.003222
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_cost_overrun_multiplier",
+    "spearman_corr": -0.000962
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": 0.000287
   },
   {
     "option": "feature_extension",
@@ -312,112 +312,112 @@
   {
     "option": "new_capability",
     "parameter": "new_capability_uplift",
-    "spearman_corr": 0.683473
+    "spearman_corr": 0.681842
   },
   {
     "option": "new_capability",
     "parameter": "new_capability_cost_overrun_multiplier",
-    "spearman_corr": -0.459375
+    "spearman_corr": -0.460474
   },
   {
     "option": "new_capability",
     "parameter": "value_per_success_eur",
-    "spearman_corr": 0.288751
+    "spearman_corr": 0.289096
   },
   {
     "option": "new_capability",
     "parameter": "new_capability_launch_delay_months",
-    "spearman_corr": -0.237692
+    "spearman_corr": -0.238797
   },
   {
     "option": "new_capability",
     "parameter": "new_capability_benefit_ramp_months",
-    "spearman_corr": -0.127922
+    "spearman_corr": -0.131132
   },
   {
     "option": "new_capability",
     "parameter": "regression_event_cost_eur",
-    "spearman_corr": -0.124719
+    "spearman_corr": -0.126708
   },
   {
     "option": "new_capability",
     "parameter": "regression_event_prob",
-    "spearman_corr": -0.118741
+    "spearman_corr": -0.099378
   },
   {
     "option": "new_capability",
     "parameter": "do_nothing_drift_cost_eur",
-    "spearman_corr": -0.08982
+    "spearman_corr": -0.090716
   },
   {
     "option": "new_capability",
     "parameter": "baseline_failure_rate",
-    "spearman_corr": -0.045478
+    "spearman_corr": -0.054263
   },
   {
     "option": "new_capability",
     "parameter": "failure_to_churn_rel",
-    "spearman_corr": -0.031714
+    "spearman_corr": -0.051801
   },
   {
     "option": "new_capability",
     "parameter": "cost_per_failure_eur",
-    "spearman_corr": -0.023369
-  },
-  {
-    "option": "new_capability",
-    "parameter": "extension_value_per_uptake_eur",
-    "spearman_corr": 0.013813
-  },
-  {
-    "option": "new_capability",
-    "parameter": "stabilize_failure_reduction",
-    "spearman_corr": 0.009129
+    "spearman_corr": -0.017732
   },
   {
     "option": "new_capability",
     "parameter": "stabilize_core_launch_delay_months",
-    "spearman_corr": -0.008458
+    "spearman_corr": -0.010339
   },
   {
     "option": "new_capability",
     "parameter": "feature_extension_launch_delay_months",
-    "spearman_corr": -0.005753
+    "spearman_corr": -0.01016
   },
   {
     "option": "new_capability",
-    "parameter": "feature_extension_benefit_ramp_months",
-    "spearman_corr": -0.004748
+    "parameter": "stabilize_failure_reduction",
+    "spearman_corr": 0.008519
   },
   {
     "option": "new_capability",
-    "parameter": "extension_uptake",
-    "spearman_corr": -0.004099
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": -0.006802
   },
   {
     "option": "new_capability",
     "parameter": "extension_exposure_reduction",
-    "spearman_corr": 0.003899
+    "spearman_corr": 0.005042
   },
   {
     "option": "new_capability",
-    "parameter": "extension_loss_rate",
-    "spearman_corr": 0.001854
-  },
-  {
-    "option": "new_capability",
-    "parameter": "stabilize_core_benefit_ramp_months",
-    "spearman_corr": 0.001564
+    "parameter": "extension_uptake",
+    "spearman_corr": -0.002458
   },
   {
     "option": "new_capability",
     "parameter": "stabilize_core_cost_overrun_multiplier",
-    "spearman_corr": 0.001138
+    "spearman_corr": 0.002323
+  },
+  {
+    "option": "new_capability",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": 0.001684
   },
   {
     "option": "new_capability",
     "parameter": "feature_extension_cost_overrun_multiplier",
-    "spearman_corr": -0.001136
+    "spearman_corr": 0.001317
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": -0.001272
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_benefit_ramp_months",
+    "spearman_corr": -0.000446
   },
   {
     "option": "new_capability",
@@ -467,112 +467,112 @@
   {
     "option": "stabilize_core",
     "parameter": "baseline_failure_rate",
-    "spearman_corr": 0.85086
+    "spearman_corr": 0.85232
   },
   {
     "option": "stabilize_core",
     "parameter": "cost_per_failure_eur",
-    "spearman_corr": 0.601484
+    "spearman_corr": 0.610597
   },
   {
     "option": "stabilize_core",
     "parameter": "failure_to_churn_rel",
-    "spearman_corr": 0.456453
+    "spearman_corr": 0.459324
   },
   {
     "option": "stabilize_core",
     "parameter": "stabilize_failure_reduction",
-    "spearman_corr": 0.307144
+    "spearman_corr": 0.318116
   },
   {
     "option": "stabilize_core",
     "parameter": "stabilize_core_cost_overrun_multiplier",
-    "spearman_corr": -0.16025
+    "spearman_corr": -0.182472
   },
   {
     "option": "stabilize_core",
     "parameter": "stabilize_core_launch_delay_months",
-    "spearman_corr": -0.159918
+    "spearman_corr": -0.160345
   },
   {
     "option": "stabilize_core",
     "parameter": "value_per_success_eur",
-    "spearman_corr": 0.105726
+    "spearman_corr": 0.12038
   },
   {
     "option": "stabilize_core",
     "parameter": "stabilize_core_benefit_ramp_months",
-    "spearman_corr": -0.095892
+    "spearman_corr": -0.094158
   },
   {
     "option": "stabilize_core",
     "parameter": "regression_event_cost_eur",
-    "spearman_corr": -0.032592
+    "spearman_corr": -0.048269
   },
   {
     "option": "stabilize_core",
     "parameter": "regression_event_prob",
-    "spearman_corr": -0.027397
+    "spearman_corr": -0.041117
   },
   {
     "option": "stabilize_core",
     "parameter": "do_nothing_drift_cost_eur",
-    "spearman_corr": -0.027092
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "new_capability_uplift",
-    "spearman_corr": 0.019716
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "feature_extension_cost_overrun_multiplier",
-    "spearman_corr": 0.012282
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "extension_loss_rate",
-    "spearman_corr": -0.009584
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "extension_uptake",
-    "spearman_corr": -0.00834
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "new_capability_launch_delay_months",
-    "spearman_corr": 0.004358
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "new_capability_cost_overrun_multiplier",
-    "spearman_corr": -0.003218
+    "spearman_corr": -0.027699
   },
   {
     "option": "stabilize_core",
     "parameter": "extension_exposure_reduction",
-    "spearman_corr": 0.002721
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "feature_extension_benefit_ramp_months",
-    "spearman_corr": 0.002692
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "new_capability_benefit_ramp_months",
-    "spearman_corr": 0.002254
-  },
-  {
-    "option": "stabilize_core",
-    "parameter": "extension_value_per_uptake_eur",
-    "spearman_corr": 0.000776
+    "spearman_corr": 0.007019
   },
   {
     "option": "stabilize_core",
     "parameter": "feature_extension_launch_delay_months",
-    "spearman_corr": 0.00011
+    "spearman_corr": 0.006781
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": -0.006764
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": 0.005858
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": 0.005651
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_benefit_ramp_months",
+    "spearman_corr": 0.004132
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_launch_delay_months",
+    "spearman_corr": -0.002331
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": 0.002057
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_cost_overrun_multiplier",
+    "spearman_corr": -0.001751
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": 0.00123
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_uptake",
+    "spearman_corr": -0.000464
   },
   {
     "option": "stabilize_core",
