@@ -15,6 +15,31 @@ DEFAULT_STABILITY_SEEDS = (11, 17, 23, 31, 42)
 DEFAULT_STABILITY_WORLD_COUNTS = (5000, 10000, 20000)
 
 
+def spearman_rank_correlation(left: pd.Series, right: pd.Series) -> float:
+    """Return a Spearman rank correlation without requiring SciPy."""
+
+    paired = pd.concat(
+        [
+            pd.Series(left, copy=False, name="left"),
+            pd.Series(right, copy=False, name="right"),
+        ],
+        axis=1,
+    ).dropna()
+    if paired.empty:
+        return 0.0
+
+    left_values = paired["left"]
+    right_values = paired["right"]
+    if left_values.nunique(dropna=False) <= 1 or right_values.nunique(dropna=False) <= 1:
+        return 0.0
+
+    ranked = paired.rank(method="average")
+    correlation = ranked["left"].corr(ranked["right"], method="pearson")
+    if pd.isna(correlation):
+        return 0.0
+    return float(correlation)
+
+
 def summarize_results(df: pd.DataFrame) -> pd.DataFrame:
     """Return summary metrics for each option."""
 
@@ -71,7 +96,7 @@ def sensitivity_analysis(df: pd.DataFrame) -> pd.DataFrame:
             ):
                 corr = 0.0
             else:
-                corr = parameter_values.corr(option_values, method="spearman")
+                corr = spearman_rank_correlation(parameter_values, option_values)
             rows.append(
                 {
                     "option": option,
@@ -104,7 +129,7 @@ def decision_delta_sensitivity(
         if parameter_values.nunique(dropna=False) <= 1 or delta.nunique(dropna=False) <= 1:
             corr = 0.0
         else:
-            corr = parameter_values.corr(delta, method="spearman")
+            corr = spearman_rank_correlation(parameter_values, delta)
         rows.append(
             {
                 "parameter": parameter,
@@ -213,6 +238,7 @@ __all__ = [
     "decision_delta_sensitivity",
     "decision_diagnostics",
     "sensitivity_analysis",
+    "spearman_rank_correlation",
     "stability_analysis",
     "stability_summary",
     "summarize_results",

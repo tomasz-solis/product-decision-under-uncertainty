@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -11,16 +11,18 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 
 
 def bootstrap_ci(
-    data: np.ndarray,
+    data: pd.Series | np.ndarray[Any, Any],
     percentile: float,
     n_bootstrap: int = 1000,
     confidence: float = 0.95,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Bootstrap CI for a percentile. Returns (lower, upper)."""
+
+    values = np.asarray(data, dtype=float)
     rng = np.random.default_rng(42)
     bootstrap_stats = np.empty(n_bootstrap)
     for i in range(n_bootstrap):
-        sample = rng.choice(data, size=len(data), replace=True)
+        sample = rng.choice(values, size=len(values), replace=True)
         bootstrap_stats[i] = np.percentile(sample, percentile)
 
     alpha = 1 - confidence
@@ -29,7 +31,7 @@ def bootstrap_ci(
     return float(lower), float(upper)
 
 
-def test_normality(data: pd.Series) -> Dict[str, Any]:
+def test_normality(data: pd.Series) -> dict[str, Any]:
     """Shapiro-Wilk (n < 5000) or Anderson-Darling normality test."""
     clean = data.dropna()
     if len(clean) < 3:
@@ -46,8 +48,9 @@ def test_normality(data: pd.Series) -> Dict[str, Any]:
 
 
 def detect_time_series_pattern(
-    data: pd.Series, dates: Optional[pd.Series] = None
-) -> Optional[Dict[str, Any]]:
+    data: pd.Series,
+    dates: pd.Series | None = None,
+) -> dict[str, Any] | None:
     """Detect seasonality and trend using STL decomposition."""
     clean = data.dropna()
     if len(clean) < 14:
@@ -82,7 +85,7 @@ def detect_time_series_pattern(
 
 def calculate_correlation_matrix(
     df: pd.DataFrame,
-) -> Tuple[pd.DataFrame, List[Tuple[str, str, float]]]:
+) -> tuple[pd.DataFrame, list[tuple[str, str, float]]]:
     """Correlation matrix and list of strong correlations (|r| > 0.7)."""
     numeric_df = df.select_dtypes(include=[np.number])
     if numeric_df.shape[1] < 2:
@@ -101,7 +104,7 @@ def calculate_correlation_matrix(
     return corr_matrix, strong_corr
 
 
-def calculate_quality_score(quality_metrics: Dict[str, Any]) -> int:
+def calculate_quality_score(quality_metrics: dict[str, Any]) -> int:
     """Score data quality 0-100 based on sample size, variance, outliers, skewness."""
     score = 100
     n = quality_metrics.get('n', 0)
@@ -139,37 +142,42 @@ def calculate_quality_score(quality_metrics: Dict[str, Any]) -> int:
     return max(0, min(100, score))
 
 
-def analyze_data_quality(data: pd.Series, col_name: str) -> Dict[str, Any]:
+def analyze_data_quality(data: pd.Series, col_name: str) -> dict[str, Any]:
     """Compute stats, outliers, normality, bootstrap CIs, and quality warnings."""
-    clean = data.dropna()
+
+    clean = pd.to_numeric(data.dropna(), errors="coerce").dropna()
     n = len(clean)
 
     if n == 0:
         return {"error": "No valid data"}
 
-    mean = float(clean.mean())
-    std = float(clean.std())
-    median = float(clean.median())
+    values = np.asarray(clean, dtype=float)
+    mean = float(np.mean(values))
+    std = float(np.std(values, ddof=1))
+    median = float(np.median(values))
     cv = abs(std / mean) if mean != 0 else float('inf')
 
-    skewness = float(clean.skew())
-    kurtosis = float(clean.kurtosis())
+    skewness = float(stats.skew(values, bias=False))
+    kurtosis = float(stats.kurtosis(values, bias=False))
 
-    q1 = float(clean.quantile(0.25))
-    q3 = float(clean.quantile(0.75))
+    q1 = float(np.quantile(values, 0.25))
+    q3 = float(np.quantile(values, 0.75))
     iqr = q3 - q1
     lower_bound = q1 - 1.5 * iqr
     upper_bound = q3 + 1.5 * iqr
-    outliers = ((clean < lower_bound) | (clean > upper_bound)).sum()
+    outliers = int(((values < lower_bound) | (values > upper_bound)).sum())
     outlier_pct = 100 * outliers / n
 
-    normality = test_normality(clean)
+    numeric_series = pd.Series(values)
+    normality = test_normality(numeric_series)
 
-    ci_low, ci_mid, ci_high = (None, None), (None, None), (None, None)
+    ci_low: tuple[float, float] | None = None
+    ci_mid: tuple[float, float] | None = None
+    ci_high: tuple[float, float] | None = None
     if n >= 30:
-        ci_low = bootstrap_ci(clean.values, 5, n_bootstrap=500)
-        ci_mid = bootstrap_ci(clean.values, 50, n_bootstrap=500)
-        ci_high = bootstrap_ci(clean.values, 95, n_bootstrap=500)
+        ci_low = bootstrap_ci(values, 5, n_bootstrap=500)
+        ci_mid = bootstrap_ci(values, 50, n_bootstrap=500)
+        ci_high = bootstrap_ci(values, 95, n_bootstrap=500)
 
     warnings = []
     insights = []
@@ -213,6 +221,8 @@ def analyze_data_quality(data: pd.Series, col_name: str) -> Dict[str, Any]:
 
 
 def get_quality_color(score: int) -> str:
+    """Map a numeric quality score to a compact display label."""
+
     if score >= 80:
         return "[OK]"
     elif score >= 60:

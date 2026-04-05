@@ -139,7 +139,7 @@ def _convergence_rows(stability_runs: pd.DataFrame) -> list[dict[str, Any]]:
     """Summarize recommendation stability and metric noise by world count."""
 
     rows: list[dict[str, Any]] = []
-    for world_count, group in stability_runs.groupby("n_worlds", observed=True):
+    for _world_count, group in stability_runs.groupby("n_worlds", observed=True):
         recommendation_consistency = 0.0
         if not group.empty:
             recommendation_consistency = float(

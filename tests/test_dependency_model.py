@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from simulator.analytics import spearman_rank_correlation
 from simulator.config import get_dependency_settings, load_config, parse_param_specs
 from simulator.simulation import sample_params
 
@@ -21,18 +22,22 @@ def test_dependency_sampling_hits_configured_rank_correlations() -> None:
     sampled = sample_params(12000, specs, seed=42, dependencies=dependencies)
 
     observed = {
-        ("baseline_failure_rate", "cost_per_failure_eur"): sampled["baseline_failure_rate"].corr(
-            sampled["cost_per_failure_eur"], method="spearman"
+        ("baseline_failure_rate", "cost_per_failure_eur"): spearman_rank_correlation(
+            sampled["baseline_failure_rate"],
+            sampled["cost_per_failure_eur"],
         ),
-        ("baseline_failure_rate", "failure_to_churn_rel"): sampled["baseline_failure_rate"].corr(
-            sampled["failure_to_churn_rel"], method="spearman"
+        ("baseline_failure_rate", "failure_to_churn_rel"): spearman_rank_correlation(
+            sampled["baseline_failure_rate"],
+            sampled["failure_to_churn_rel"],
         ),
-        ("extension_uptake", "extension_value_per_uptake_eur"): sampled["extension_uptake"].corr(
-            sampled["extension_value_per_uptake_eur"], method="spearman"
+        ("extension_uptake", "extension_value_per_uptake_eur"): spearman_rank_correlation(
+            sampled["extension_uptake"],
+            sampled["extension_value_per_uptake_eur"],
         ),
-        ("regression_event_prob", "regression_event_cost_eur"): sampled[
-            "regression_event_prob"
-        ].corr(sampled["regression_event_cost_eur"], method="spearman"),
+        ("regression_event_prob", "regression_event_cost_eur"): spearman_rank_correlation(
+            sampled["regression_event_prob"],
+            sampled["regression_event_cost_eur"],
+        ),
     }
 
     targets = {
