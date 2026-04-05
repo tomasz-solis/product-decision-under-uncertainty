@@ -1,0 +1,4 @@
+- Status: `ready_for_data`.
+- Manifest: checked in and validated.
+- Raw files present: `0`.
+- Next step: add the first public source file under `data/public/` and rerun the profiler.

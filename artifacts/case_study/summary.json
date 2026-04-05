@@ -1,0 +1,30 @@
+[
+  {
+    "mean_value_eur": -64899.252665,
+    "median_value_eur": -100729.501891,
+    "option": "feature_extension",
+    "p05_value_eur": -544674.888371,
+    "p95_value_eur": 534888.488916
+  },
+  {
+    "mean_value_eur": -104670.596932,
+    "median_value_eur": -102378.431471,
+    "option": "do_nothing",
+    "p05_value_eur": -145373.574751,
+    "p95_value_eur": -69715.785317
+  },
+  {
+    "mean_value_eur": -218673.316244,
+    "median_value_eur": -261207.941462,
+    "option": "stabilize_core",
+    "p05_value_eur": -691700.334028,
+    "p95_value_eur": 403659.945657
+  },
+  {
+    "mean_value_eur": -954762.906118,
+    "median_value_eur": -965187.581334,
+    "option": "new_capability",
+    "p05_value_eur": -1376446.749787,
+    "p95_value_eur": -490071.866409
+  }
+]

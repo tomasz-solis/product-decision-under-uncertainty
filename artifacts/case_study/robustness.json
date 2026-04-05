@@ -1,0 +1,75 @@
+{
+  "convergence_rows": [
+    {
+      "recommendation_consistency": 1.0,
+      "run_count": 5,
+      "selected_ev_std_eur": 213.13737,
+      "selected_p05_std_eur": 406.082053,
+      "world_count": 5000
+    },
+    {
+      "recommendation_consistency": 1.0,
+      "run_count": 5,
+      "selected_ev_std_eur": 248.798547,
+      "selected_p05_std_eur": 621.840731,
+      "world_count": 10000
+    },
+    {
+      "recommendation_consistency": 1.0,
+      "run_count": 5,
+      "selected_ev_std_eur": 110.399593,
+      "selected_p05_std_eur": 394.520007,
+      "world_count": 20000
+    }
+  ],
+  "frontier_stability_rows": [
+    {
+      "switch_type_modes": "no_switch_observed",
+      "switching_options_observed": "none",
+      "switching_value_max": null,
+      "switching_value_min": null,
+      "threshold_label": "EV tolerance",
+      "threshold_name": "ev_tolerance_eur"
+    },
+    {
+      "switch_type_modes": "grid_bracket",
+      "switching_options_observed": "Feature Extension",
+      "switching_value_max": 204280.897869,
+      "switching_value_min": 195734.910254,
+      "threshold_label": "Regret cap",
+      "threshold_name": "maximum_mean_regret_eur"
+    },
+    {
+      "switch_type_modes": "grid_bracket",
+      "switching_options_observed": "Feature Extension",
+      "switching_value_max": -144580.119938,
+      "switching_value_min": -147133.728698,
+      "threshold_label": "Downside floor",
+      "threshold_name": "minimum_p05_value_eur"
+    }
+  ],
+  "selected_option": "do_nothing",
+  "stress_test_rows": [
+    {
+      "parameter": "do_nothing_drift_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "do_nothing",
+      "stress_level": "low",
+      "tested_value": 30000.0
+    },
+    {
+      "parameter": "do_nothing_drift_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "do_nothing",
+      "stress_level": "base",
+      "tested_value": 50000.0
+    },
+    {
+      "parameter": "do_nothing_drift_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "do_nothing",
+      "stress_level": "high",
+      "tested_value": 90000.0
+    }
+  ]
+}

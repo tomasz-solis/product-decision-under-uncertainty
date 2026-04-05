@@ -1,0 +1,113 @@
+{
+  "candidates": [
+    {
+      "aggregation_window": "trailing_90_days",
+      "assumption_family": "baseline_failure_rate",
+      "candidate_status": "awaiting_source",
+      "candidate_value": null,
+      "derived_metric_name": "mean_failure_rate",
+      "expected_output_artifact": "artifacts/evidence/parameter_candidates.json",
+      "matched_source_ids": [],
+      "minimum_quality_checks": [
+        "no_missing_failure_rate",
+        "no_duplicate_rows",
+        "date_column_is_monotonic"
+      ],
+      "notes": "No profiled source currently targets this assumption family.",
+      "required_columns": [
+        "failure_rate",
+        "date"
+      ],
+      "target_name": "baseline_failure_rate",
+      "transformation_rule": "profile_mean(failure_rate)",
+      "unit_after_transform": "share_of_volume"
+    },
+    {
+      "aggregation_window": "trailing_12_weeks",
+      "assumption_family": "extension_loss_rate",
+      "candidate_status": "awaiting_source",
+      "candidate_value": null,
+      "derived_metric_name": "mean_extension_disable_rate",
+      "expected_output_artifact": "artifacts/evidence/parameter_candidates.json",
+      "matched_source_ids": [],
+      "minimum_quality_checks": [
+        "no_missing_disable_rate",
+        "no_duplicate_rows",
+        "date_column_is_monotonic"
+      ],
+      "notes": "No profiled source currently targets this assumption family.",
+      "required_columns": [
+        "disable_rate",
+        "week_start"
+      ],
+      "target_name": "extension_loss_rate",
+      "transformation_rule": "profile_mean(disable_rate)",
+      "unit_after_transform": "leakage_share"
+    },
+    {
+      "aggregation_window": "trailing_12_months",
+      "assumption_family": "do_nothing_drift_cost_eur",
+      "candidate_status": "awaiting_source",
+      "candidate_value": null,
+      "derived_metric_name": "mean_monthly_drift_cost",
+      "expected_output_artifact": "artifacts/evidence/parameter_candidates.json",
+      "matched_source_ids": [],
+      "minimum_quality_checks": [
+        "no_missing_monthly_drift_cost_eur",
+        "no_duplicate_rows",
+        "date_column_is_monotonic"
+      ],
+      "notes": "No profiled source currently targets this assumption family.",
+      "required_columns": [
+        "monthly_drift_cost_eur",
+        "month"
+      ],
+      "target_name": "do_nothing_drift_cost_eur",
+      "transformation_rule": "profile_mean(monthly_drift_cost_eur)",
+      "unit_after_transform": "eur_per_year"
+    },
+    {
+      "aggregation_window": "trailing_8_releases",
+      "assumption_family": "regression_event_prob",
+      "candidate_status": "awaiting_source",
+      "candidate_value": null,
+      "derived_metric_name": "mean_regression_event_rate",
+      "expected_output_artifact": "artifacts/evidence/parameter_candidates.json",
+      "matched_source_ids": [],
+      "minimum_quality_checks": [
+        "no_missing_regression_event_rate",
+        "no_duplicate_rows",
+        "date_column_is_monotonic"
+      ],
+      "notes": "No profiled source currently targets this assumption family.",
+      "required_columns": [
+        "regression_event_rate",
+        "release_date"
+      ],
+      "target_name": "regression_event_prob",
+      "transformation_rule": "profile_mean(regression_event_rate)",
+      "unit_after_transform": "probability"
+    }
+  ],
+  "elicited_only_targets": [
+    "failure_to_churn_rel",
+    "extension_value_per_uptake_eur",
+    "new_capability_uplift",
+    "stabilize_failure_reduction"
+  ],
+  "evidence_backed_families": [
+    "baseline_failure_rate",
+    "extension_loss_rate",
+    "do_nothing_drift_cost_eur",
+    "regression_event_prob"
+  ],
+  "governance_only_targets": [
+    "decision_policy.minimum_p05_value_eur",
+    "decision_policy.maximum_mean_regret_eur",
+    "decision_policy.ev_tolerance_eur"
+  ],
+  "profile_status": "ready_for_data",
+  "ready_candidate_count": 0,
+  "status": "awaiting_sources",
+  "target_count": 4
+}

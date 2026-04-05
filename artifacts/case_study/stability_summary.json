@@ -1,0 +1,17 @@
+{
+  "ev_leader_frequency": [
+    {
+      "count": 15,
+      "ev_leader": "feature_extension"
+    }
+  ],
+  "recommendation_frequency": [
+    {
+      "count": 15,
+      "selected_option": "do_nothing"
+    }
+  ],
+  "run_count": 15,
+  "runner_up_p05_range_eur": 14585.229652,
+  "selected_p05_range_eur": 2553.60876
+}

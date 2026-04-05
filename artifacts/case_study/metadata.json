@@ -1,0 +1,20 @@
+{
+  "annual_volume": 250000,
+  "assumption_registry_sha256": "a271baa0ed1ed11e91362a5e1ac84d444d8fb16464686ab321fbff4e09ae6fb0",
+  "code_sha256": "7533fcdac380b0c228a59179f18117a218ed9edb899139c1d1194140b0b8023b",
+  "config_sha256": "8f2295a935e37c5b345ff407f49b9f3b939f4fc84c9f7c568bb0de36823f765f",
+  "declared_model_version": "4.0.0",
+  "discount_rate_annual": 0.08,
+  "generator_script_sha256": "adc98751a09219871a21024d1d8bee1fd67faca4dc4708b44b6603b8395ea7ca",
+  "lockfile_sha256": "c9c5e2781f97f24db23d3bf859bc85d2e53ac22c2d8072f8abeee8a435ed3211",
+  "n_worlds": 20000,
+  "parameter_registry_sha256": "078e13ae6b95c784bf0df9376cfb29c079af8c28c710853a0f777337e5a9fb08",
+  "published_scenario": "mid_range_pressure",
+  "scenario_names": [
+    "mid_range_pressure",
+    "reliability_crisis",
+    "growth_friendly_recovery"
+  ],
+  "seed": 42,
+  "time_horizon_years": 2
+}

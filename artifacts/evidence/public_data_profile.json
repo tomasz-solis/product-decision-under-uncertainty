@@ -1,0 +1,9 @@
+{
+  "file_count": 0,
+  "input_dir": "data/public",
+  "manifest_path": "data/public/sources.yaml",
+  "note": "No public sources are registered yet. Add a manifest entry and a supported raw file under data/public/, then rerun the profiler.",
+  "source_count": 0,
+  "sources": [],
+  "status": "ready_for_data"
+}

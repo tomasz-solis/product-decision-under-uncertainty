@@ -1,0 +1,211 @@
+[
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 75000.0,
+    "threshold_label": "EV tolerance",
+    "threshold_name": "ev_tolerance_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 100000.0,
+    "threshold_label": "EV tolerance",
+    "threshold_name": "ev_tolerance_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 125000.0,
+    "threshold_label": "EV tolerance",
+    "threshold_name": "ev_tolerance_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "guardrails_relaxed",
+    "eligible_option_count": 0,
+    "runner_up": "do_nothing",
+    "selected_option": "feature_extension",
+    "switch_from_baseline": true,
+    "tested_value": 147615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "guardrails_relaxed",
+    "eligible_option_count": 0,
+    "runner_up": "do_nothing",
+    "selected_option": "feature_extension",
+    "switch_from_baseline": true,
+    "tested_value": 197615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 247615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 297615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 347615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 397615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 447615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 450000.0,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": 497615.844783,
+    "threshold_label": "Regret cap",
+    "threshold_name": "maximum_mean_regret_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": -350000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": -300000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": -250000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": -200000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "only_option_passing_guardrails",
+    "eligible_option_count": 1,
+    "runner_up": "feature_extension",
+    "selected_option": "do_nothing",
+    "switch_from_baseline": false,
+    "tested_value": -150000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "guardrails_relaxed",
+    "eligible_option_count": 0,
+    "runner_up": "do_nothing",
+    "selected_option": "feature_extension",
+    "switch_from_baseline": true,
+    "tested_value": -145373.574751,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  },
+  {
+    "baseline_selected_option": "do_nothing",
+    "binding_constraint": "guardrails_relaxed",
+    "eligible_option_count": 0,
+    "runner_up": "do_nothing",
+    "selected_option": "feature_extension",
+    "switch_from_baseline": true,
+    "tested_value": -100000.0,
+    "threshold_label": "Downside floor",
+    "threshold_name": "minimum_p05_value_eur"
+  }
+]

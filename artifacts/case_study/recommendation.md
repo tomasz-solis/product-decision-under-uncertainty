@@ -1,0 +1,6 @@
+- Recommendation: **Do Nothing**.
+- Policy: `guardrailed_expected_value`.
+- Why it wins: Do Nothing is the only option that passes both guardrails.
+- Best excluded alternative: **Feature Extension** has the strongest excluded EV case, but it misses the downside floor by about €244,675.
+- Expected-value comparison: the selected option trails **Feature Extension** by €39,771.
+- Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `4.0.0`.

@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v3
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Run tests
+        run: uv run pytest -q
+      - name: Run lint
+        run: uv run ruff check .
+      - name: Run type checks
+        run: uv run mypy app.py simulator tests
+      - name: Regenerate published artifacts
+        run: uv run python scripts/generate_case_study_artifacts.py
+      - name: Fail if generated outputs are stale
+        run: git diff --exit-code -- CASE_STUDY.md EXECUTIVE_SUMMARY.md artifacts/case_study

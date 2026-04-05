@@ -1,0 +1,22 @@
+{
+  "binding_constraint": "only_option_passing_guardrails",
+  "eligible_option_count": 1,
+  "eligible_options": [
+    "do_nothing"
+  ],
+  "policy_name": "guardrailed_expected_value",
+  "runner_up": "feature_extension",
+  "runner_up_downside_slack_eur": -244674.888371,
+  "runner_up_failure_reason": "misses_downside_floor",
+  "runner_up_mean_value_eur": -64899.252665,
+  "runner_up_regret_slack_eur": 292155.499484,
+  "selected_downside_slack_eur": 154626.425249,
+  "selected_mean_regret_eur": 197615.844783,
+  "selected_mean_value_eur": -104670.596932,
+  "selected_option": "do_nothing",
+  "selected_p05_value_eur": -145373.574751,
+  "selected_reason_type": "only_option_passing_guardrails",
+  "selected_regret_slack_eur": 252384.155217,
+  "selection_margin_eur": -39771.344267,
+  "selection_reason": "Do Nothing is the only option that passes both guardrails. Feature Extension has higher expected value, but it misses the downside floor by roughly 244,675 EUR."
+}

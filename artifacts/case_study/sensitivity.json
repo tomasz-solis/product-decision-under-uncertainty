@@ -1,0 +1,622 @@
+[
+  {
+    "option": "do_nothing",
+    "parameter": "do_nothing_drift_cost_eur",
+    "spearman_corr": -1.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_launch_delay_months",
+    "spearman_corr": 0.014726
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": 0.013674
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": 0.012405
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_launch_delay_months",
+    "spearman_corr": -0.010077
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_launch_delay_months",
+    "spearman_corr": -0.007724
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "extension_uptake",
+    "spearman_corr": 0.006256
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "failure_to_churn_rel",
+    "spearman_corr": -0.006225
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_benefit_ramp_months",
+    "spearman_corr": -0.005306
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "cost_per_failure_eur",
+    "spearman_corr": 0.00403
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "regression_event_prob",
+    "spearman_corr": -0.00363
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "regression_event_cost_eur",
+    "spearman_corr": -0.00332
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": -0.003056
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "value_per_success_eur",
+    "spearman_corr": -0.002908
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_cost_overrun_multiplier",
+    "spearman_corr": 0.002588
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "extension_exposure_reduction",
+    "spearman_corr": 0.00242
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": 0.002298
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_benefit_ramp_months",
+    "spearman_corr": 0.00199
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_failure_reduction",
+    "spearman_corr": -0.001298
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": 0.000859
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "baseline_failure_rate",
+    "spearman_corr": 0.000616
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_cost_overrun_multiplier",
+    "spearman_corr": 0.000584
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "stabilize_core_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "feature_extension_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "do_nothing",
+    "parameter": "new_capability_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "extension_uptake",
+    "spearman_corr": 0.816259
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": 0.607161
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "baseline_failure_rate",
+    "spearman_corr": 0.3557
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "cost_per_failure_eur",
+    "spearman_corr": 0.261998
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "failure_to_churn_rel",
+    "spearman_corr": 0.192072
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_cost_overrun_multiplier",
+    "spearman_corr": -0.091942
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "extension_exposure_reduction",
+    "spearman_corr": 0.087821
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "do_nothing_drift_cost_eur",
+    "spearman_corr": -0.075595
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_launch_delay_months",
+    "spearman_corr": -0.065399
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": -0.054052
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "value_per_success_eur",
+    "spearman_corr": 0.035681
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "regression_event_cost_eur",
+    "spearman_corr": -0.034696
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": -0.031525
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": 0.018786
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "regression_event_prob",
+    "spearman_corr": -0.01861
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_launch_delay_months",
+    "spearman_corr": -0.01607
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_benefit_ramp_months",
+    "spearman_corr": 0.005888
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_cost_overrun_multiplier",
+    "spearman_corr": 0.005214
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_launch_delay_months",
+    "spearman_corr": 0.004475
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": 0.003918
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_failure_reduction",
+    "spearman_corr": -0.003563
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_benefit_ramp_months",
+    "spearman_corr": 0.001018
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "stabilize_core_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "feature_extension_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "feature_extension",
+    "parameter": "new_capability_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": 0.683473
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": -0.459375
+  },
+  {
+    "option": "new_capability",
+    "parameter": "value_per_success_eur",
+    "spearman_corr": 0.288751
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_launch_delay_months",
+    "spearman_corr": -0.237692
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_benefit_ramp_months",
+    "spearman_corr": -0.127922
+  },
+  {
+    "option": "new_capability",
+    "parameter": "regression_event_cost_eur",
+    "spearman_corr": -0.124719
+  },
+  {
+    "option": "new_capability",
+    "parameter": "regression_event_prob",
+    "spearman_corr": -0.118741
+  },
+  {
+    "option": "new_capability",
+    "parameter": "do_nothing_drift_cost_eur",
+    "spearman_corr": -0.08982
+  },
+  {
+    "option": "new_capability",
+    "parameter": "baseline_failure_rate",
+    "spearman_corr": -0.045478
+  },
+  {
+    "option": "new_capability",
+    "parameter": "failure_to_churn_rel",
+    "spearman_corr": -0.031714
+  },
+  {
+    "option": "new_capability",
+    "parameter": "cost_per_failure_eur",
+    "spearman_corr": -0.023369
+  },
+  {
+    "option": "new_capability",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": 0.013813
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_failure_reduction",
+    "spearman_corr": 0.009129
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_launch_delay_months",
+    "spearman_corr": -0.008458
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_launch_delay_months",
+    "spearman_corr": -0.005753
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": -0.004748
+  },
+  {
+    "option": "new_capability",
+    "parameter": "extension_uptake",
+    "spearman_corr": -0.004099
+  },
+  {
+    "option": "new_capability",
+    "parameter": "extension_exposure_reduction",
+    "spearman_corr": 0.003899
+  },
+  {
+    "option": "new_capability",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": 0.001854
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_benefit_ramp_months",
+    "spearman_corr": 0.001564
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_cost_overrun_multiplier",
+    "spearman_corr": 0.001138
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_cost_overrun_multiplier",
+    "spearman_corr": -0.001136
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "stabilize_core_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "feature_extension_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "new_capability",
+    "parameter": "new_capability_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "baseline_failure_rate",
+    "spearman_corr": 0.85086
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "cost_per_failure_eur",
+    "spearman_corr": 0.601484
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "failure_to_churn_rel",
+    "spearman_corr": 0.456453
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_failure_reduction",
+    "spearman_corr": 0.307144
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_cost_overrun_multiplier",
+    "spearman_corr": -0.16025
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_launch_delay_months",
+    "spearman_corr": -0.159918
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "value_per_success_eur",
+    "spearman_corr": 0.105726
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_benefit_ramp_months",
+    "spearman_corr": -0.095892
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "regression_event_cost_eur",
+    "spearman_corr": -0.032592
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "regression_event_prob",
+    "spearman_corr": -0.027397
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "do_nothing_drift_cost_eur",
+    "spearman_corr": -0.027092
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_uplift",
+    "spearman_corr": 0.019716
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_cost_overrun_multiplier",
+    "spearman_corr": 0.012282
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_loss_rate",
+    "spearman_corr": -0.009584
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_uptake",
+    "spearman_corr": -0.00834
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_launch_delay_months",
+    "spearman_corr": 0.004358
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_cost_overrun_multiplier",
+    "spearman_corr": -0.003218
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_exposure_reduction",
+    "spearman_corr": 0.002721
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_benefit_ramp_months",
+    "spearman_corr": 0.002692
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_benefit_ramp_months",
+    "spearman_corr": 0.002254
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "extension_value_per_uptake_eur",
+    "spearman_corr": 0.000776
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_launch_delay_months",
+    "spearman_corr": 0.00011
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_regression_prob_multiplier",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "stabilize_core_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "feature_extension_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_upfront_cost_eur",
+    "spearman_corr": 0.0
+  },
+  {
+    "option": "stabilize_core",
+    "parameter": "new_capability_annual_maintenance_cost_eur",
+    "spearman_corr": 0.0
+  }
+]

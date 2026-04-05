@@ -1,0 +1,72 @@
+{
+  "baseline_selected_option": "do_nothing",
+  "frontier_rows": [
+    {
+      "all_options_considered": true,
+      "current_value": -300000.0,
+      "first_switching_option": "feature_extension",
+      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the downside floor moves up past -145,373.57 EUR.",
+      "switch_direction": "more_restrictive",
+      "switch_type": "grid_bracket",
+      "switching_value": -145373.574751,
+      "threshold_label": "Downside floor",
+      "threshold_name": "minimum_p05_value_eur",
+      "unit": "eur"
+    },
+    {
+      "all_options_considered": true,
+      "current_value": 450000.0,
+      "first_switching_option": "feature_extension",
+      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 197,615.84 EUR.",
+      "switch_direction": "more_restrictive",
+      "switch_type": "grid_bracket",
+      "switching_value": 197615.844783,
+      "threshold_label": "Regret cap",
+      "threshold_name": "maximum_mean_regret_eur",
+      "unit": "eur"
+    },
+    {
+      "all_options_considered": true,
+      "current_value": 100000.0,
+      "first_switching_option": null,
+      "interpretation_note": "Re-evaluating the full option set across the tested threshold domain did not change the selected option.",
+      "switch_direction": null,
+      "switch_type": "no_switch_observed",
+      "switching_value": null,
+      "threshold_label": "EV tolerance",
+      "threshold_name": "ev_tolerance_eur",
+      "unit": "eur"
+    }
+  ],
+  "runner_up": "feature_extension",
+  "runner_up_comparison_rows": [
+    {
+      "current_value": -300000.0,
+      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -544,674.89 EUR.",
+      "status": "switch_observed",
+      "switching_value": -544674.888371,
+      "threshold_label": "Downside floor",
+      "threshold_name": "minimum_p05_value_eur",
+      "unit": "eur"
+    },
+    {
+      "current_value": 450000.0,
+      "interpretation_note": "Feature Extension already passes the regret cap.",
+      "status": "already_non_binding",
+      "switching_value": null,
+      "threshold_label": "Regret cap",
+      "threshold_name": "maximum_mean_regret_eur",
+      "unit": "eur"
+    },
+    {
+      "current_value": 100000.0,
+      "interpretation_note": "EV tolerance is not the binding threshold because both options are not yet eligible.",
+      "status": "not_binding",
+      "switching_value": null,
+      "threshold_label": "EV tolerance",
+      "threshold_name": "ev_tolerance_eur",
+      "unit": "eur"
+    }
+  ],
+  "selected_option": "do_nothing"
+}
