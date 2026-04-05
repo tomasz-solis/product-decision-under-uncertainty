@@ -1,85 +1,28 @@
-# Model Specification
+# Model Spec
 
-## Purpose
+This file is the prose companion to the formula appendix in [formulas.md](formulas.md).
 
-The simulator compares three structurally different product decisions:
+## Shared structure
 
-1. Stabilize the core system
-2. Ship a feature extension
-3. Introduce a new capability
+- The simulator samples one joint world of uncertain parameters.
+- That world is evaluated under four mutually exclusive options.
+- Cashflows are modeled on a monthly grid and discounted over a fixed 24-month horizon.
 
-The comparison focuses on robustness under uncertainty rather than point
-estimates of success.
+## Option mechanics
 
-The model is designed to answer:
-- Which decisions perform well across many plausible worlds?
-- Where does downside risk concentrate?
-- Which assumptions most strongly affect the outcome?
+- `Do Nothing`
+  Pays the drift cost across the whole horizon.
+- `Stabilize Core`
+  Carries launch delay, rollout ramp, and cost-overrun risk, then earns recovered value plus avoided failure and churn costs.
+- `Feature Extension`
+  Carries launch delay, adoption ramp, and cost-overrun risk, then earns adopter-only reliability gains plus extension-created value while legacy drift continues.
+- `New Capability`
+  Carries the longest delivery path in the base case, then earns uplift on successful volume while legacy drift continues.
 
----
+## Robustness views
 
-## Modeling approach
-
-- All key inputs are modeled as probability distributions
-- Synthetic data is generated via Monte Carlo simulation
-- Results are interpreted comparatively, not absolutely
-
-Each simulation run represents one plausible state of the world given the
-assumptions and their uncertainty.
-
----
-
-## What the model does
-
-- Estimates expected value distributions for each option
-- Estimates downside outcomes (e.g. worst credible cases)
-- Compares regret across decisions
-- Highlights which assumptions drive results
-
----
-
-## What the model does NOT do
-
-- Predict real-world outcomes
-- Estimate company-specific metrics
-- Recommend a universally optimal strategy
-- Replace judgment or product strategy
-
-This model is a structured way to reason about trade-offs, not a source of truth.
-
----
-
-## Decision options
-
-### Option 1 — Stabilize the Core
-
-Focus capacity on reducing known failure modes in the existing system.
-Improve reliability, predictability, and maintainability.
-New feature development is intentionally slowed during this period.
-
-### Option 2 — Feature Extension
-
-Ship an extension to the current product that augments the existing flow.
-This may change user behavior or reduce exposure to failures without fully
-resolving underlying system issues.
-
-### Option 3 — New Capability
-
-Introduce a new capability that expands functional or market scope.
-This creates new value streams while increasing complexity and long-term
-ownership costs.
-
----
-
-## Core parameters
-
-The model relies on the following high-level parameters:
-
-- Baseline failure rate
-- Failure-to-churn impact
-- Cost per failure
-- Feature uptake rate
-- Credit or extension loss rate
-- Delivery regression risk
-
-Each parameter is explicitly documented in `assumptions.md`.
+- Summary and regret metrics are descriptive outputs of the sampled worlds.
+- Sensitivity uses per-option Spearman rank association.
+- The selected-vs-runner-up payoff diagnostic is descriptive. It shows which sampled parameters move with that payoff gap.
+- The full-option policy frontier is separate. It re-runs the policy across all options and records the first threshold change that flips the recommendation.
+- The runner-up threshold table is secondary context only. It shows when the current runner-up clears its own blocking threshold, not the first full policy switch.

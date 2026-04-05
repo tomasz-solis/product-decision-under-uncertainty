@@ -1,238 +1,80 @@
-# Decision Quality Under Uncertainty
+# Product Decision Under Uncertainty
 
-## What this is
+This repo is a small decision-analysis case study built around one product-platform choice, one synthetic published example, and one reproducible artifact pipeline.
 
-This tool exists to make decision quality visible under uncertainty.
+In the default run, `Feature Extension` has the best expected value, but `Do Nothing` is still the recommendation because it is the only option that clears the downside and regret guardrails.
 
-It is designed to help reason about difficult product and business decisions where:
-- outcomes are uncertain,
-- experiments are not possible,
-- and the cost of being wrong is asymmetric.
+## Scope and evidence
 
-The framework compares alternative decisions side by side, including the option to do nothing, using explicit and traceable assumptions.
+There is no private company telemetry here. What is here is the assumption chain: modeled inputs, policy thresholds, dependencies, scenario overrides, and the evidence contract for future public data.
 
-The goal is not to find the “right” answer, but to understand the trade-offs involved in choosing one option over another.
+- Assumption provenance: [simulator/parameter_provenance.md](simulator/parameter_provenance.md)
+- Parameter registry: [simulator/parameter_registry.yaml](simulator/parameter_registry.yaml)
+- Non-parameter assumption registry: [simulator/assumption_registry.yaml](simulator/assumption_registry.yaml)
 
----
+## What is in the repo
 
-## What this is not
+- A Monte Carlo simulator with explicit costs, event-based release risk, dependency modeling, and time-aware cashflows
+- An encoded decision policy that chooses the recommendation from EV, downside, and regret
+- Generated JSON and markdown artifacts for the published case, including guardrail eligibility, a full-option policy frontier, stability diagnostics, and a separate robustness artifact
+- A small Streamlit app for exploratory reruns of the same model
 
-This project is **not** a forecasting tool.
+## Install and run
 
-It does not try to predict outcomes or assess accuracy.
-
-It is also **not** an optimization or recommendation engine.
-
-The framework does not choose for you, rank decisions automatically, or replace judgment. It exists to support clearer thinking, not to automate decisions.
-
----
-
-## How it works (high level)
-
-The framework is intentionally small and opinionated.
-It follows a simple, consistent flow.
-
-### Decision framing
-
-Each decision is defined explicitly:
-- the decision question,
-- the decision owner,
-- the available options (including “do nothing”),
-- constraints,
-- and reversibility.
-
-If these are not clear, the framework is not applied.
-
-### Uncertainty modeling
-
-Key assumptions are expressed as ranges and distributions rather than single numbers.
-
-All assumptions are:
-- explicit,
-- documented in plain language,
-- and traceable.
-
-Synthetic data is used deliberately to explore uncertainty, not to approximate reality.
-
-### Simulation
-
-The same uncertainty draws are used across all options.
-
-This allows outcomes to be compared under identical beliefs, rather than evaluated in isolation.
-
-The simulation exists to support comparison, not to impress or optimize.
-
-### Comparative evaluation
-
-Each option is evaluated using decision-quality metrics rather than point estimates alone.
-
----
-
-## How to read the outputs
-
-The framework produces several complementary views.
-
-### Expected value
-
-The average outcome across many plausible futures.
-
-This shows what tends to work well, but should never be read alone.
-
-### Downside risk
-
-A view of how bad things can get under unfavorable conditions, when recovery is slow or impossible.
-
-This matters when failures are costly or irreversible.
-
-### Regret
-
-How much worse an option performs compared to the best alternative in the same situation.
-
-Regret highlights decisions that are painful when wrong, even if they look reasonable on average.
-
-### Win rates
-
-How often an option performs best across plausible futures.
-
-This helps distinguish reliable choices from those that rely on optimistic assumptions.
-
-No single metric is sufficient on its own. Look at all of them together.
-
----
-
-## Example decision
-
-V1 of this project includes a single, fully worked decision case.
-
-The case describes a familiar situation in mature products:
-- ongoing issues in part of a product,
-- pressure to keep moving forward,
-- limited capacity,
-- and no safe way to experiment before committing.
-
-The decision involves multiple realistic options, including doing nothing, each with different risks and degrees of irreversibility.
-
-The case is written to be understandable without reading the code.
-
----
-
-## Intended audience
-
-This project is written for:
-- senior product managers,
-- senior data practitioners,
-- and decision-makers responsible for irreversible or high-risk choices.
-
-It assumes comfort with uncertainty and trade-offs, and does not attempt to simplify decisions beyond what clarity allows.
-
----
-
-## Design philosophy
-
-Several principles guide this project.
-
-- **Clarity over scale**  
-  This is a thinking tool, not a general-purpose library.
-
-- **Judgment over automation**  
-  The framework supports thinking; it does not replace it.
-
-- **Transparency over performance**  
-  Clear assumptions matter more than clever techniques.
-
-- **Comparison over conclusions**  
-  Decisions are evaluated relative to alternatives, not in isolation.
-
----
-
-## Final note
-
-If this project starts to feel like a model, a product, or a demo, it has gone too far.
-
-The purpose is to reason about decision quality under uncertainty, not to predict outcomes or recommend actions.
-
----
-
-## How to run
-
-This project currently runs as a local, exploratory tool.
-
-The interface is intentionally minimal. The goal is to make assumptions and trade-offs visible, not to provide a polished application.
-
-### Setup
-```bash
-pip install -r requirements.txt
-```
-
-### Run
-```bash
-streamlit run app.py
-```
-
-The app will open locally in your browser.
-
-From there, you can:
-
-- review the example decision included in the project
-- adjust assumptions and ranges
-- compare decision options under the same uncertainty draws
-
-There is no persistence layer, user management, or production configuration.
-This is deliberate.
-
-### Using historical data to inform ranges
-
-If you have historical data (CSV format), you can upload it directly in the app:
-
-1. Click "Upload data to suggest ranges" in the sidebar
-2. Upload your CSV file (must have numeric columns)
-3. Map CSV columns to parameters (app will auto-match when possible)
-4. Review suggested ranges (5th/50th/95th percentiles)
-5. Click "Apply suggested ranges"
-
-The app calculates ranges from your data but you can still adjust them manually afterward.
-
-**Important**: The app suggests ranges based on historical data. You review, adjust, and own the final ranges. Past patterns may not reflect future uncertainty.
-
-For batch processing, use the CLI tool:
-```bash
-python3 simulator/analyze_data.py your_data.csv --summary --output ranges.yaml
-```
-
-### Running tests
-
-To run the test suite:
+This repo is `uv` first.
 
 ```bash
-pip install -r requirements.txt
-pytest tests/ -v
+uv sync --extra dev
 ```
 
-The tests cover core simulation logic, parameter sampling, and edge cases.
+Generate the published artifacts:
 
-### Why this is not deployed
+```bash
+uv run python scripts/generate_case_study_artifacts.py
+```
 
-The framework is meant to be used close to the decision being discussed.
+Run the app:
 
-Running it locally keeps:
-- assumptions inspectable,
-- iteration cheap,
-- ownership clear.
+```bash
+uv run streamlit run app.py
+```
 
-If the tool ever needs to be deployed, that will be a separate decision—made with its own trade-offs.
+Run the tests:
 
----
+```bash
+uv run pytest -q
+```
 
-## Documentation
+Run the quality checks:
 
-- [CASE_STUDY.md](CASE_STUDY.md) - Illustrative example (platform investment decision)
-- [simulator/assumptions.md](simulator/assumptions.md) - Parameter definitions and rationale
-- [simulator/model_spec.md](simulator/model_spec.md) - Technical specification
+```bash
+uv run --extra dev ruff check .
+uv run --extra dev mypy app.py simulator tests
+```
 
----
+## Main documents
 
-## Contact
+- Case study: [CASE_STUDY.md](CASE_STUDY.md)
+- Executive summary: [EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md)
+- Methodology: [METHODOLOGY.md](METHODOLOGY.md)
+- Model spec: [simulator/model_spec.md](simulator/model_spec.md)
+- Formula appendix: [simulator/formulas.md](simulator/formulas.md)
+- Economic terms: [simulator/economic_terms.md](simulator/economic_terms.md)
+- Generated artifacts: [artifacts/case_study](artifacts/case_study)
 
-Tomasz Solis
-- [LinkedIn](https://linkedin.com/in/tomaszsolis)
-- [GitHub](https://github.com/tomasz-solis)
+## Evidence workflow
+
+The first public calibration dataset is not checked in yet. The repo does already define what happens when it arrives: manifest validation, evidence profiling, a calibration contract, and candidate-metric artifacts.
+
+- Evidence note: [simulator/data_sources.md](simulator/data_sources.md)
+- Public-data staging folder: [data/public/README.md](data/public/README.md)
+- Source manifest: [data/public/sources.yaml](data/public/sources.yaml)
+- Source manifest template: [data/public/sources.template.yaml](data/public/sources.template.yaml)
+- Evidence profiling script: [scripts/profile_public_evidence.py](scripts/profile_public_evidence.py)
+- Candidate-builder script: [scripts/build_parameter_candidates.py](scripts/build_parameter_candidates.py)
+- Calibration contract: [simulator/calibration_contract.yaml](simulator/calibration_contract.yaml)
+- Derived-evidence folder: [artifacts/evidence/README.md](artifacts/evidence/README.md)
+- Current evidence-profile artifact: [artifacts/evidence/public_data_profile.json](artifacts/evidence/public_data_profile.json)
+- Current evidence-profile note: [artifacts/evidence/public_data_profile.md](artifacts/evidence/public_data_profile.md)
+- Current parameter-candidate artifact: [artifacts/evidence/parameter_candidates.json](artifacts/evidence/parameter_candidates.json)
+- Current parameter-candidate note: [artifacts/evidence/parameter_candidates.md](artifacts/evidence/parameter_candidates.md)
