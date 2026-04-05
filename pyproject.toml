@@ -6,21 +6,25 @@ build-backend = "setuptools.build_meta"
 name = "product-decision-under-uncertainty"
 version = "0.1.0"
 description = "Product decision making under uncertainty simulator"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "streamlit>=1.28.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "plotly>=5.17.0",
     "pyyaml>=6.0",
-    "scipy>=1.11.0",
-    "statsmodels>=0.14.0",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest>=7.4.0",
-    "hypothesis>=6.92.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "pandas-stubs>=2.2.2.240807",
+    "types-PyYAML>=6.0.12.20240311",
 ]
 
 [tool.setuptools.packages.find]
@@ -31,3 +35,18 @@ exclude = ["tests*", "archive*", "venv*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["app.py", "simulator", "tests"]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
