@@ -7,12 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from simulator import reporting
 from simulator.artifact_freshness import artifact_code_paths
 from simulator.calibration import (
     build_parameter_candidates,
     load_calibration_contract,
     write_parameter_candidates_outputs,
 )
+from simulator.config import get_declared_model_version, load_config
 from simulator.evidence import profile_public_evidence, write_public_evidence_outputs
 from simulator.reporting import (
     build_case_study_artifacts,
@@ -153,7 +155,7 @@ def test_metadata_includes_code_and_dependency_fingerprints(
 
     metadata = json.loads((generated_artifact_dir / "metadata.json").read_text(encoding="utf-8"))
 
-    assert metadata["declared_model_version"] == "4.0.0"
+    assert metadata["declared_model_version"] == get_declared_model_version(load_config(CONFIG_PATH))
     assert metadata["discount_rate_annual"] == 0.08
     assert len(metadata["config_sha256"]) == 64
     assert len(metadata["parameter_registry_sha256"]) == 64
@@ -179,7 +181,10 @@ def test_stability_cache_invalidates_when_same_config_path_changes(tmp_path: Pat
         encoding="utf-8",
     )
 
-    baseline = build_case_study_artifacts(config_path).stability_summary
+    reporting._cached_stability_runs.cache_clear()
+    initial_cache = reporting._cached_stability_runs.cache_info()
+    build_case_study_artifacts(config_path)
+    first_run_cache = reporting._cached_stability_runs.cache_info()
 
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
@@ -197,9 +202,11 @@ def test_stability_cache_invalidates_when_same_config_path_changes(tmp_path: Pat
         encoding="utf-8",
     )
 
-    refreshed = build_case_study_artifacts(config_path).stability_summary
+    build_case_study_artifacts(config_path)
+    second_run_cache = reporting._cached_stability_runs.cache_info()
 
-    assert baseline != refreshed
+    assert first_run_cache.misses == initial_cache.misses + 1
+    assert second_run_cache.misses == first_run_cache.misses + 1
 
 
 def test_artifact_fingerprint_includes_output_utils() -> None:

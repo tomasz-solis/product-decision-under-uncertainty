@@ -67,9 +67,7 @@ def test_sensitivity_markdown_suppresses_noise_for_do_nothing() -> None:
     do_nothing_section = _section_for_option(markdown, "Do Nothing")
 
     assert "do_nothing_drift_cost_eur" in do_nothing_section
-    assert (
-        "Only `do_nothing_drift_cost_eur` cleared the materiality threshold" in do_nothing_section
-    )
+    assert "Partial rank corr" in do_nothing_section
     assert "baseline_failure_rate" not in do_nothing_section
 
 
@@ -90,7 +88,7 @@ def test_policy_frontier_markdown_reports_actual_switching_thresholds() -> None:
     artifacts = build_case_study_artifacts(CONFIG_PATH, n_worlds=1500, seed=42)
     markdown = build_policy_frontier_markdown(artifacts)
 
-    assert "actual decision question" in markdown
+    assert "full-option frontier" in markdown
     assert "Display switching value" in markdown
     assert "First switching option" in markdown
     assert "Switching option(s)" in markdown
@@ -122,14 +120,14 @@ def test_policy_frontier_markdown_keeps_small_currency_thresholds_visible() -> N
     assert "€0" not in markdown
 
 
-def test_recommendation_markdown_is_honest_when_only_one_option_survives() -> None:
-    """The recommendation copy should say when the winner survives on guardrails."""
+def test_recommendation_markdown_explains_guardrail_fallback_when_none_survive() -> None:
+    """The recommendation copy should say when the policy falls back to expected value."""
 
     artifacts = build_case_study_artifacts(CONFIG_PATH, n_worlds=1500, seed=42)
     markdown = build_recommendation_markdown(artifacts)
 
-    assert "only option that passes both guardrails" in markdown
-    assert "Best excluded alternative" in markdown
+    assert "No option clears both guardrails" in markdown
+    assert "Best remaining excluded alternative" in markdown
     assert "Expected-value comparison" in markdown
 
 

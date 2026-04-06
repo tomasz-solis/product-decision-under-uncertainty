@@ -18,6 +18,7 @@ from simulator.analytics import (
     DEFAULT_STABILITY_SEEDS,
     DEFAULT_STABILITY_WORLD_COUNTS,
     decision_diagnostics,
+    driver_analysis,
     sensitivity_analysis,
     stability_analysis,
     stability_summary,
@@ -41,8 +42,6 @@ from simulator.output_utils import (
     format_pct,
     format_threshold_eur_markdown,
     labeled_option,
-    material_sensitivity_rows,
-    sensitivity_note,
 )
 from simulator.policy import (
     FAILURE_REASON_LABELS,
@@ -72,6 +71,7 @@ from simulator.provenance import (
 )
 from simulator.robustness import build_robustness_markdown, build_robustness_report
 from simulator.simulation import run_all_scenarios, run_simulation
+from simulator.visualizations import create_ranked_payoff_profile
 
 CASE_STUDY_MARKERS = {
     "recommendation": (
@@ -132,6 +132,7 @@ class CaseStudyArtifacts:
     diagnostics: pd.DataFrame
     scenario_results: pd.DataFrame
     sensitivity: pd.DataFrame
+    driver_analysis: pd.DataFrame
     parameter_registry: pd.DataFrame
     assumption_manifest: dict[str, Any]
     recommendation: RecommendationResult
@@ -173,6 +174,7 @@ def build_case_study_artifacts(
     summary = summarize_results(base_results)
     diagnostics = decision_diagnostics(base_results)
     sensitivity = sensitivity_analysis(base_results)
+    driver_rows = driver_analysis(base_results)
     scenario_results = run_all_scenarios(
         config_path,
         n_worlds=simulation["n_worlds"],
@@ -216,7 +218,7 @@ def build_case_study_artifacts(
     robustness = build_robustness_report(
         config_path=config_path,
         stability_runs=stability_runs,
-        sensitivity=sensitivity,
+        driver_analysis=driver_rows,
         selected_option=recommendation.selected_option,
     )
     scenario_metadata = get_scenario_metadata(cfg)
@@ -240,6 +242,7 @@ def build_case_study_artifacts(
         diagnostics=diagnostics,
         scenario_results=scenario_results,
         sensitivity=sensitivity,
+        driver_analysis=driver_rows,
         parameter_registry=parameter_registry,
         assumption_manifest=assumption_manifest,
         recommendation=recommendation,
@@ -270,6 +273,7 @@ def write_case_study_artifacts(
     _write_json_records(out_dir / "diagnostics.json", artifacts.diagnostics)
     _write_json_records(out_dir / "scenario_results.json", artifacts.scenario_results)
     _write_json_records(out_dir / "sensitivity.json", artifacts.sensitivity)
+    _write_json_records(out_dir / "driver_analysis.json", artifacts.driver_analysis)
     _write_json_records(out_dir / "parameter_registry.json", artifacts.parameter_registry)
     _write_json_records(out_dir / "policy_eligibility.json", artifacts.policy_eligibility)
     _write_json_records(out_dir / "policy_frontier_grid.json", artifacts.policy_frontier_grid)
@@ -283,7 +287,13 @@ def write_case_study_artifacts(
     _write_json_object(out_dir / "robustness.json", artifacts.robustness)
     _write_json_object(out_dir / "metadata.json", artifacts.metadata)
     _write_csv(out_dir / "parameter_registry.csv", artifacts.parameter_registry)
+    create_ranked_payoff_profile(
+        artifacts.summary,
+        recommended_option=artifacts.recommendation.selected_option,
+        comparison_option=artifacts.recommendation.comparison_option,
+    ).write_html(out_dir / "decision_summary.html", include_plotlyjs="cdn")
 
+    sensitivity_markdown = build_sensitivity_markdown(artifacts)
     fragments = {
         "recommendation.md": build_recommendation_markdown(artifacts),
         "summary_table.md": build_summary_markdown(artifacts.summary),
@@ -296,7 +306,8 @@ def write_case_study_artifacts(
         "payoff_delta_diagnostic.md": build_payoff_delta_markdown(artifacts),
         "policy_frontier.md": build_policy_frontier_markdown(artifacts),
         "stability.md": build_stability_markdown(artifacts),
-        "sensitivity_table.md": build_sensitivity_markdown(artifacts),
+        "driver_analysis.md": sensitivity_markdown,
+        "sensitivity_table.md": sensitivity_markdown,
         "robustness.md": build_robustness_markdown(artifacts.robustness),
     }
     for filename, content in fragments.items():
@@ -355,7 +366,7 @@ def update_case_study_docs(
     case_study_content = _replace_section(
         case_study_content,
         *CASE_STUDY_MARKERS["sensitivity"],
-        fragments["sensitivity_table.md"],
+        fragments["driver_analysis.md"],
     )
     Path(case_study_path).write_text(case_study_content, encoding="utf-8")
 
@@ -389,9 +400,6 @@ def recommendation_lines(
     """Return stable recommendation bullets for docs and the app."""
 
     selected_label = labeled_option(recommendation.selected_option)
-    runner_label = labeled_option(recommendation.runner_up)
-    ev_leader = labeled_option(str(summary.iloc[0]["option"]))
-    excluded_leader = ev_leader if ev_leader != selected_label else runner_label
     mean_value_line = _selection_margin_line(recommendation)
 
     lines = [
@@ -399,20 +407,31 @@ def recommendation_lines(
         f"- Policy: `{recommendation.policy_name}`.",
         f"- Why it wins: {_selection_reason_line(recommendation)}",
     ]
-    if recommendation.selected_reason_type == "only_option_passing_guardrails":
+    if recommendation.policy_runner_up is not None:
         lines.append(
-            f"- Best excluded alternative: **{excluded_leader}** has the "
-            "strongest excluded EV case, "
-            f"but {_runner_up_failure_detail(recommendation)}."
+            f"- Policy runner-up: **{labeled_option(recommendation.policy_runner_up)}**."
+        )
+        if _should_highlight_best_excluded_alternative(recommendation):
+            lines.append(
+                f"- Best excluded alternative: **{labeled_option(str(recommendation.best_excluded_option))}** "
+                f"stays out of policy scope because {_best_excluded_failure_detail(recommendation)}."
+            )
+    elif recommendation.selected_reason_type == "only_option_passing_guardrails":
+        lines.append(
+            f"- Best excluded alternative: **{labeled_option(str(recommendation.best_excluded_option))}** "
+            f"has the strongest excluded EV case, but {_best_excluded_failure_detail(recommendation)}."
         )
     elif recommendation.selected_reason_type == "guardrails_relaxed_highest_ev":
         lines.append(
             "- Guardrail reality: no option passes both guardrails, "
             f"so **{selected_label}** wins on expected value."
         )
-    else:
-        lines.append(f"- Runner-up under this policy: **{runner_label}**.")
-    lines.append(f"- Expected-value comparison: {mean_value_line}")
+        if recommendation.best_excluded_option is not None:
+            lines.append(
+                f"- Best remaining excluded alternative: **{labeled_option(recommendation.best_excluded_option)}**."
+            )
+    if mean_value_line:
+        lines.append(f"- Expected-value comparison: {mean_value_line}")
     lines.append(
         f"- Published run: `{metadata['n_worlds']:,}` worlds, seed `{metadata['seed']}`, "
         f"annual volume `{metadata['annual_volume']:,}`, horizon "
@@ -528,19 +547,23 @@ def build_payoff_delta_markdown(artifacts: CaseStudyArtifacts) -> str:
     unit_lookup = artifacts.parameter_registry.set_index("parameter_name")["unit"].to_dict()
     delta_mean = float(diagnostic["mean_delta_eur"])
     delta_line = (
-        "selected option leads the runner-up"
+        "selected option leads the comparison option"
         if delta_mean >= 0.0
-        else "selected option trails the runner-up"
+        else "selected option trails the comparison option"
     )
+    comparison_label = labeled_option(str(diagnostic["comparison_option"]))
     lines = [
         f"- Selected option: **{labeled_option(diagnostic['selected_option'])}**.",
-        f"- Runner-up: **{labeled_option(diagnostic['runner_up'])}**.",
+        (
+            f"- {_comparison_role_heading(str(diagnostic['comparison_option_role']))}: "
+            f"**{comparison_label}**."
+        ),
         f"- Mean payoff delta: {format_eur_markdown(delta_mean)} ({delta_line}).",
         f"- P05 payoff delta: {format_eur_markdown(float(diagnostic['p05_delta_eur']))}.",
-        f"- Win rate vs runner-up: {format_pct(float(diagnostic['win_rate_vs_runner_up']))}.",
+        f"- Win rate vs comparison: {format_pct(float(diagnostic['win_rate_vs_comparison']))}.",
         (
             "- This section is descriptive. It ranks parameters by association "
-            "with the selected-minus-runner-up payoff delta inside the sampled worlds."
+            "with the selected-minus-comparison payoff delta inside the sampled worlds."
         ),
     ]
     rows = diagnostic["delta_rows"]
@@ -593,20 +616,20 @@ def build_policy_frontier_markdown(artifacts: CaseStudyArtifacts) -> str:
     )
     export["Interpretation"] = export["interpretation_note"]
 
-    runner_up_export = pd.DataFrame(frontier["runner_up_comparison_rows"]).copy()
-    runner_up_export["Threshold"] = runner_up_export["threshold_label"]
-    runner_up_export["Current value"] = runner_up_export["current_value"].map(
+    comparison_export = pd.DataFrame(frontier["secondary_comparison_rows"]).copy()
+    comparison_export["Threshold"] = comparison_export["threshold_label"]
+    comparison_export["Current value"] = comparison_export["current_value"].map(
         format_threshold_eur_markdown
     )
-    runner_up_export["Runner-up threshold"] = runner_up_export["switching_value"].map(
+    comparison_export["Comparison threshold"] = comparison_export["switching_value"].map(
         lambda value: "not needed"
         if pd.isna(value)
         else format_threshold_eur_markdown(float(value))
     )
-    runner_up_export["Status"] = runner_up_export["status"].map(
+    comparison_export["Status"] = comparison_export["status"].map(
         lambda value: RUNNER_UP_FRONTIER_STATUS_LABELS.get(str(value), str(value))
     )
-    runner_up_export["Interpretation"] = runner_up_export["interpretation_note"]
+    comparison_export["Interpretation"] = comparison_export["interpretation_note"]
 
     sweep_summary = (
         sweep.groupby(["threshold_name", "threshold_label"], observed=True)
@@ -645,12 +668,7 @@ def build_policy_frontier_markdown(artifacts: CaseStudyArtifacts) -> str:
     lines = [
         (
             "- The first table is the full-option frontier. It re-runs the whole policy and "
-            "records the first threshold change that flips the recommendation. "
-            "That is the actual decision question."
-        ),
-        (
-            "- The second table is secondary. It shows when the current runner-up clears its own "
-            "blocking threshold, which is useful context but not the same as the first switch."
+            "records the first threshold change that flips the recommendation."
         ),
         "",
         _markdown_table(
@@ -667,25 +685,39 @@ def build_policy_frontier_markdown(artifacts: CaseStudyArtifacts) -> str:
                 ]
             ]
         ),
-        "",
-        _markdown_table(
-            runner_up_export[
-                [
-                    "Threshold",
-                    "Current value",
-                    "Runner-up threshold",
-                    "Status",
-                    "Interpretation",
-                ]
-            ]
-        ),
-        "",
-        _markdown_table(
-            sweep_summary[
-                ["Threshold", "Tested range", "Selection switched?", "Switching option(s)"]
-            ]
-        ),
     ]
+    if not comparison_export.empty:
+        lines.extend(
+            [
+                (
+                    "- The second table is secondary context. It follows the main comparison "
+                    "option, which can be the policy runner-up or the best excluded alternative "
+                    "depending on the branch."
+                ),
+                "",
+                _markdown_table(
+                    comparison_export[
+                        [
+                            "Threshold",
+                            "Current value",
+                            "Comparison threshold",
+                            "Status",
+                            "Interpretation",
+                        ]
+                    ]
+                ),
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            _markdown_table(
+                sweep_summary[
+                    ["Threshold", "Tested range", "Selection switched?", "Switching option(s)"]
+                ]
+            ),
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -702,8 +734,12 @@ def build_stability_markdown(artifacts: CaseStudyArtifacts) -> str:
             "- Selected-option P05 range: "
             f"{format_eur_markdown(float(summary['selected_p05_range_eur']))}."
         ),
-        f"- Runner-up P05 range: {format_eur_markdown(float(summary['runner_up_p05_range_eur']))}.",
     ]
+    if summary["comparison_p05_range_eur"] is not None:
+        lines.append(
+            "- Comparison-option P05 range: "
+            f"{format_eur_markdown(float(summary['comparison_p05_range_eur']))}."
+        )
     recommendation_frequency = pd.DataFrame(summary["recommendation_frequency"])
     ev_leader_frequency = pd.DataFrame(summary["ev_leader_frequency"])
 
@@ -740,27 +776,42 @@ def build_stability_markdown(artifacts: CaseStudyArtifacts) -> str:
 
 
 def build_sensitivity_markdown(artifacts: CaseStudyArtifacts) -> str:
-    """Render the material sensitivity rows and suppress noise."""
+    """Render the decision-support driver view and keep Spearman secondary."""
 
     threshold = artifacts.analysis.sensitivity_materiality_threshold_abs_spearman
     limit = artifacts.analysis.sensitivity_max_rows_per_option
-    sections: list[str] = []
-    for option in sorted(artifacts.sensitivity["option"].unique()):
-        rows = material_sensitivity_rows(artifacts.sensitivity, option, threshold, limit)
+    sections: list[str] = [
+        (
+            "This section is the decision-support view. It uses partial rank correlation "
+            "with bootstrap intervals. The descriptive Spearman output still exists in "
+            "`artifacts/case_study/sensitivity.json` for quick inspection."
+        ),
+        "",
+    ]
+    for option in sorted(artifacts.driver_analysis["option"].unique()):
+        rows = (
+            artifacts.driver_analysis.loc[artifacts.driver_analysis["option"] == option]
+            .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
+            .sort_values("abs_partial_rank_corr", ascending=False)
+            .loc[lambda frame: frame["abs_partial_rank_corr"] >= threshold]
+            .head(limit)
+            .copy()
+        )
         sections.append(f"### {labeled_option(str(option))}")
         if rows.empty:
             sections.append(
-                f"No parameter cleared the materiality threshold of |rho| >= {threshold:.2f}."
+                "No decision-support driver cleared the current materiality threshold of "
+                f"|partial rho| >= {threshold:.2f}."
             )
             sections.append("")
             continue
-        rows = rows.copy()
         rows["Parameter"] = rows["parameter"]
-        rows["Spearman"] = rows["spearman_corr"].map(lambda value: f"{value:+.2f}")
-        sections.append(_markdown_table(rows[["Parameter", "Spearman"]]))
-        note = sensitivity_note(artifacts.sensitivity, str(option), threshold)
-        if note:
-            sections.append(note)
+        rows["Partial rank corr"] = rows["partial_rank_corr"].map(lambda value: f"{value:+.2f}")
+        rows["95% CI"] = rows.apply(
+            lambda row: f"{float(row['ci_low']):+.2f} to {float(row['ci_high']):+.2f}",
+            axis=1,
+        )
+        sections.append(_markdown_table(rows[["Parameter", "Partial rank corr", "95% CI"]]))
         sections.append("")
     return "\n".join(sections).strip()
 
@@ -770,48 +821,73 @@ def _selection_reason_line(recommendation: RecommendationResult) -> str:
 
     selected = labeled_option(recommendation.selected_option)
     if recommendation.selected_reason_type == "only_option_passing_guardrails":
-        return f"{selected} is the only option that passes both guardrails."
+        return f"{selected} is the only option that clears both guardrails."
     if recommendation.selected_reason_type == "guardrails_relaxed_highest_ev":
         return "No option clears both guardrails, so the policy falls back to expected value."
     if recommendation.selected_reason_type == "ev_tolerance_override":
-        return f"{selected} clears the guardrails and wins the tolerance-band tie-break on regret."
+        return f"{selected} stays inside the EV tolerance band and wins the regret tie-break."
     return f"{selected} clears the guardrails and leads expected value inside the eligible set."
 
 
-def _runner_up_failure_detail(recommendation: RecommendationResult) -> str:
-    """Describe why the runner-up did not survive the policy."""
+def _best_excluded_failure_detail(recommendation: RecommendationResult) -> str:
+    """Describe why the best excluded alternative did not survive the policy."""
 
-    reason = recommendation.runner_up_failure_reason
+    reason = recommendation.best_excluded_failure_reason
     if reason == "misses_downside_floor":
         return (
             "it misses the downside floor by about "
-            f"{format_eur_markdown(abs(recommendation.runner_up_downside_slack_eur))}"
+            f"{format_eur_markdown(abs(float(recommendation.best_excluded_downside_slack_eur or 0.0)))}"
         )
     if reason == "misses_regret_cap":
         return (
             "it misses the regret cap by about "
-            f"{format_eur_markdown(abs(recommendation.runner_up_regret_slack_eur))}"
+            f"{format_eur_markdown(abs(float(recommendation.best_excluded_regret_slack_eur or 0.0)))}"
         )
     if reason == "misses_downside_floor_and_regret_cap":
         return (
             "it misses the downside floor by about "
-            f"{format_eur_markdown(abs(recommendation.runner_up_downside_slack_eur))} "
+            f"{format_eur_markdown(abs(float(recommendation.best_excluded_downside_slack_eur or 0.0)))} "
             "and the regret cap by about "
-            f"{format_eur_markdown(abs(recommendation.runner_up_regret_slack_eur))}"
+            f"{format_eur_markdown(abs(float(recommendation.best_excluded_regret_slack_eur or 0.0)))}"
         )
     return "it stays behind after the policy tie-break"
 
 
-def _selection_margin_line(recommendation: RecommendationResult) -> str:
+def _selection_margin_line(recommendation: RecommendationResult) -> str | None:
     """Describe whether the selected option leads or trails on expected value."""
 
-    amount = format_eur_markdown(abs(recommendation.selection_margin_eur))
-    runner = labeled_option(recommendation.runner_up)
-    if recommendation.selection_margin_eur < 0.0:
-        return f"the selected option trails **{runner}** by {amount}."
-    if recommendation.selection_margin_eur > 0.0:
-        return f"the selected option leads **{runner}** by {amount}."
-    return f"the selected option is tied with **{runner}** on expected value."
+    margin = recommendation.comparison_margin_eur
+    comparison_option = recommendation.comparison_option
+    if margin is None or comparison_option is None:
+        return None
+    amount = format_eur_markdown(abs(margin))
+    comparison = labeled_option(comparison_option)
+    if margin < 0.0:
+        return f"the selected option trails **{comparison}** by {amount}."
+    if margin > 0.0:
+        return f"the selected option leads **{comparison}** by {amount}."
+    return f"the selected option is tied with **{comparison}** on expected value."
+
+
+def _should_highlight_best_excluded_alternative(recommendation: RecommendationResult) -> bool:
+    """Return whether the best excluded alternative adds useful policy context."""
+
+    if (
+        recommendation.best_excluded_option is None
+        or recommendation.best_excluded_mean_value_eur is None
+    ):
+        return False
+    return recommendation.best_excluded_mean_value_eur >= recommendation.selected_mean_value_eur
+
+
+def _comparison_role_heading(role: str) -> str:
+    """Return a readable heading for the comparison option."""
+
+    if role == "policy_runner_up":
+        return "Policy runner-up"
+    if role == "best_excluded_option":
+        return "Best excluded alternative"
+    return "Comparison option"
 
 
 def _failure_reason_label(value: object) -> str:

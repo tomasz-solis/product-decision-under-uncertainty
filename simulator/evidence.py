@@ -23,13 +23,18 @@ from simulator.yaml_utils import load_yaml_mapping
 SUPPORTED_SUFFIXES = {".csv", ".jsonl", ".parquet"}
 MANIFEST_TOP_LEVEL_KEYS = {"sources"}
 MANIFEST_SOURCE_KEYS = {
+    "allowed_values",
     "assumption_families",
+    "coded_category_columns",
     "expected_schema",
     "extraction_date",
     "file_name",
     "grain",
     "license",
+    "minimum_row_count",
+    "primary_key_columns",
     "publication",
+    "required_non_null_columns",
     "source_id",
     "source_url",
 }
@@ -79,6 +84,10 @@ def load_source_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
             raise ValueError(f"Duplicate file_name in evidence manifest: {file_name}")
         seen_source_ids.add(source_id)
         seen_files.add(file_name)
+        expected_schema = _normalize_expected_schema(
+            entry["expected_schema"],
+            context,
+        )
 
         normalized.append(
             {
@@ -89,9 +98,26 @@ def load_source_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
                 "license": str(entry["license"]).strip(),
                 "extraction_date": _normalize_iso_date(entry["extraction_date"], context),
                 "grain": str(entry["grain"]).strip(),
-                "expected_schema": _normalize_expected_schema(
-                    entry["expected_schema"],
-                    context,
+                "expected_schema": expected_schema,
+                "allowed_values": _normalize_allowed_values(
+                    entry.get("allowed_values", {}),
+                    f"{context}.allowed_values",
+                ),
+                "coded_category_columns": _normalize_optional_string_list(
+                    entry.get("coded_category_columns", []),
+                    f"{context}.coded_category_columns",
+                ),
+                "minimum_row_count": _normalize_optional_row_count(
+                    entry.get("minimum_row_count"),
+                    f"{context}.minimum_row_count",
+                ),
+                "primary_key_columns": _normalize_optional_string_list(
+                    entry.get("primary_key_columns", []),
+                    f"{context}.primary_key_columns",
+                ),
+                "required_non_null_columns": _normalize_optional_string_list(
+                    entry.get("required_non_null_columns", []),
+                    f"{context}.required_non_null_columns",
                 ),
                 "assumption_families": _normalize_string_list(
                     entry["assumption_families"],
@@ -99,6 +125,7 @@ def load_source_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
                 ),
             }
         )
+        _validate_declared_constraint_columns(normalized[-1], context)
     return normalized
 
 
@@ -381,14 +408,55 @@ def _validate_frame_against_manifest(
             f"Source '{path.name}' does not match expected schema: {', '.join(details)}."
         )
 
+    minimum_row_count = entry.get("minimum_row_count")
+    if minimum_row_count is not None and len(frame) < int(minimum_row_count):
+        raise ValueError(
+            f"Source '{path.name}' expected at least {int(minimum_row_count)} rows "
+            f"but found {len(frame)}."
+        )
+
+    required_non_null_columns = set(entry.get("required_non_null_columns", []))
+    for column_name in required_non_null_columns:
+        if frame[column_name].isna().any():
+            raise ValueError(
+                f"Source '{path.name}' column '{column_name}' contains nulls but the "
+                "manifest marks it as required non-null."
+            )
+
+    primary_key_columns = list(entry.get("primary_key_columns", []))
+    if primary_key_columns and frame.duplicated(subset=primary_key_columns).any():
+        raise ValueError(
+            f"Source '{path.name}' has duplicate business keys for {primary_key_columns}."
+        )
+
+    allowed_values = entry.get("allowed_values", {})
+    coded_category_columns = set(entry.get("coded_category_columns", []))
     for column_name, expected_type in expected_schema.items():
         series = frame[column_name]
-        if not _series_matches_schema(series, expected_type):
+        if not _series_matches_schema(
+            series,
+            expected_type,
+            allow_coded_category=column_name in coded_category_columns,
+        ):
             actual_type = _describe_series_type(series)
             raise ValueError(
                 f"Source '{path.name}' column '{column_name}' expected '{expected_type}' "
                 f"but observed '{actual_type}'."
             )
+        expected_values = allowed_values.get(column_name, [])
+        if expected_values:
+            unexpected = sorted(
+                {
+                    _normalize_allowed_scalar(value)
+                    for value in series.dropna().tolist()
+                    if _normalize_allowed_scalar(value) not in expected_values
+                }
+            )
+            if unexpected:
+                raise ValueError(
+                    f"Source '{path.name}' column '{column_name}' contains unexpected values: "
+                    f"{unexpected}."
+                )
 
 
 def _normalize_expected_schema(value: Any, context: str) -> dict[str, str]:
@@ -415,6 +483,24 @@ def _normalize_expected_schema(value: Any, context: str) -> dict[str, str]:
     return normalized
 
 
+def _normalize_allowed_values(value: Any, context: str) -> dict[str, list[Any]]:
+    """Normalize manifest-declared categorical value constraints."""
+
+    if value in (None, ""):
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"Field '{context}' must be a mapping from column to allowed values.")
+    normalized: dict[str, list[Any]] = {}
+    for column_name, allowed_values in value.items():
+        column = str(column_name).strip()
+        if not column:
+            raise ValueError(f"Field '{context}' has an empty column name.")
+        if not isinstance(allowed_values, list) or not allowed_values:
+            raise ValueError(f"Field '{context}.{column}' must be a non-empty list.")
+        normalized[column] = [_normalize_allowed_scalar(item) for item in allowed_values]
+    return normalized
+
+
 def _normalize_string_list(value: Any, context: str) -> list[str]:
     """Return a non-empty list of stripped strings."""
 
@@ -424,6 +510,32 @@ def _normalize_string_list(value: Any, context: str) -> list[str]:
     if any(not item for item in normalized):
         raise ValueError(f"Field '{context}' must not contain empty values.")
     return normalized
+
+
+def _normalize_optional_string_list(value: Any, context: str) -> list[str]:
+    """Return an optional list of stripped strings."""
+
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"Field '{context}' must be a list.")
+    normalized = [str(item).strip() for item in value]
+    if any(not item for item in normalized):
+        raise ValueError(f"Field '{context}' must not contain empty values.")
+    return normalized
+
+
+def _normalize_optional_row_count(value: Any, context: str) -> int | None:
+    """Return an optional minimum row count declared in the manifest."""
+
+    if value in (None, ""):
+        return None
+    if not isinstance(value, Integral):
+        raise ValueError(f"Field '{context}' must be an integer when provided.")
+    row_count = int(value)
+    if row_count < 1:
+        raise ValueError(f"Field '{context}' must be at least 1 when provided.")
+    return row_count
 
 
 def _normalize_optional_text(value: Any) -> str | None:
@@ -450,7 +562,12 @@ def _normalize_iso_date(value: Any, context: str) -> str:
         raise ValueError(f"Field '{context}.extraction_date' must be an ISO date string.") from exc
 
 
-def _series_matches_schema(series: pd.Series, expected_type: str) -> bool:
+def _series_matches_schema(
+    series: pd.Series,
+    expected_type: str,
+    *,
+    allow_coded_category: bool = False,
+) -> bool:
     """Return whether a pandas series satisfies one manifest schema type."""
 
     if expected_type == "boolean":
@@ -464,15 +581,14 @@ def _series_matches_schema(series: pd.Series, expected_type: str) -> bool:
     if expected_type == "number":
         return bool(is_numeric_dtype(series) and not is_bool_dtype(series))
     if expected_type == "category":
-        non_null = series.dropna()
-        return (
-            non_null.nunique(dropna=True) <= LOW_CARDINALITY_LIMIT if not non_null.empty else True
+        return _series_matches_category_schema(
+            series,
+            allow_coded_category=allow_coded_category,
         )
-    if expected_type in {"date", "datetime"}:
-        if is_datetime64_any_dtype(series):
-            return True
-        parsed = pd.to_datetime(series.dropna(), errors="coerce")
-        return bool(parsed.notna().all()) if not parsed.empty else True
+    if expected_type == "date":
+        return _series_matches_date_schema(series)
+    if expected_type == "datetime":
+        return _series_matches_datetime_schema(series)
     return not is_numeric_dtype(series) and not is_datetime64_any_dtype(series)
 
 
@@ -486,8 +602,12 @@ def _describe_series_type(series: pd.Series) -> str:
     if is_numeric_dtype(series):
         return "number"
     if is_datetime64_any_dtype(series):
-        return "datetime"
+        parsed = pd.to_datetime(series.dropna(), errors="coerce")
+        return "date" if _timestamps_are_dates(parsed) else "datetime"
     non_null = series.dropna()
+    temporal_kind = _temporal_string_kind(non_null)
+    if temporal_kind is not None:
+        return temporal_kind
     if not non_null.empty and non_null.nunique(dropna=True) <= LOW_CARDINALITY_LIMIT:
         return "category"
     return "string"
@@ -513,7 +633,7 @@ def _date_ranges(
     for column_name, schema_type in expected_schema.items():
         if schema_type not in {"date", "datetime"}:
             continue
-        parsed = pd.to_datetime(frame[column_name].dropna(), errors="coerce")
+        parsed = _parse_datetime_values(frame[column_name].dropna())
         if parsed.empty or parsed.isna().all():
             ranges[column_name] = {"min": None, "max": None}
             continue
@@ -569,6 +689,143 @@ def _stable_json_value(value: Any) -> Any:
     if isinstance(value, list):
         return [_stable_json_value(item) for item in value]
     return value
+
+
+def _validate_declared_constraint_columns(entry: dict[str, Any], context: str) -> None:
+    """Reject manifest constraints that reference columns outside the schema."""
+
+    expected_columns = set(entry["expected_schema"])
+    constrained_columns = set(entry["allowed_values"])
+    constrained_columns.update(entry["coded_category_columns"])
+    constrained_columns.update(entry["primary_key_columns"])
+    constrained_columns.update(entry["required_non_null_columns"])
+    unknown = sorted(constrained_columns - expected_columns)
+    if unknown:
+        raise ValueError(
+            f"Evidence manifest entry '{context}' references unknown schema columns: {unknown}."
+        )
+
+
+def _normalize_allowed_scalar(value: Any) -> Any:
+    """Normalize one allowed-value item for comparisons."""
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, Integral):
+        return int(value)
+    if isinstance(value, Real) and not isinstance(value, bool):
+        return float(value)
+    return str(value)
+
+
+def _series_matches_category_schema(
+    series: pd.Series,
+    *,
+    allow_coded_category: bool,
+) -> bool:
+    """Return whether a series behaves like an explicit category field."""
+
+    non_null = series.dropna()
+    if non_null.empty:
+        return True
+    if non_null.nunique(dropna=True) > LOW_CARDINALITY_LIMIT:
+        return False
+    if is_datetime64_any_dtype(series):
+        return False
+    if is_numeric_dtype(series):
+        return allow_coded_category
+    return _temporal_string_kind(non_null) is None
+
+
+def _series_matches_date_schema(series: pd.Series) -> bool:
+    """Return whether a series matches a date-only field."""
+
+    non_null = series.dropna()
+    if non_null.empty:
+        return True
+    if is_numeric_dtype(series) or is_bool_dtype(series):
+        return False
+    parsed = _parse_datetime_values(non_null)
+    if not parsed.notna().all():
+        return False
+    if is_datetime64_any_dtype(series):
+        return _timestamps_are_dates(parsed)
+    return _strings_look_like_dates(non_null) and _timestamps_are_dates(parsed)
+
+
+def _series_matches_datetime_schema(series: pd.Series) -> bool:
+    """Return whether a series matches a datetime field with time information."""
+
+    non_null = series.dropna()
+    if non_null.empty:
+        return True
+    if is_numeric_dtype(series) or is_bool_dtype(series):
+        return False
+    parsed = _parse_datetime_values(non_null)
+    if not parsed.notna().all():
+        return False
+    if is_datetime64_any_dtype(series):
+        return True
+    return _strings_look_like_datetimes(non_null)
+
+
+def _temporal_string_kind(values: pd.Series) -> str | None:
+    """Return whether object-like values behave like dates or datetimes."""
+
+    if values.empty:
+        return None
+    normalized_values = [str(value).strip() for value in values.tolist()]
+    parsed = _parse_datetime_values(pd.Series(normalized_values))
+    if not parsed.notna().all():
+        return None
+    if _strings_look_like_datetimes(pd.Series(normalized_values)):
+        return "datetime"
+    if _strings_look_like_dates(pd.Series(normalized_values)) and _timestamps_are_dates(parsed):
+        return "date"
+    return None
+
+
+def _strings_look_like_dates(values: pd.Series) -> bool:
+    """Return whether string values look like date-only records."""
+
+    for value in values.tolist():
+        text = str(value).strip()
+        if not text:
+            continue
+        if "T" in text or ":" in text:
+            return False
+    return True
+
+
+def _strings_look_like_datetimes(values: pd.Series) -> bool:
+    """Return whether string values include explicit time information."""
+
+    return any(("T" in str(value)) or (":" in str(value)) for value in values.tolist())
+
+
+def _timestamps_are_dates(values: pd.Series) -> bool:
+    """Return whether parsed timestamps all resolve to whole dates."""
+
+    if values.empty:
+        return True
+    normalized = pd.Series(values, copy=False).dropna()
+    return bool(
+        (
+            (normalized.dt.hour == 0)
+            & (normalized.dt.minute == 0)
+            & (normalized.dt.second == 0)
+            & (normalized.dt.microsecond == 0)
+            & (normalized.dt.nanosecond == 0)
+        ).all()
+    )
+
+
+def _parse_datetime_values(values: pd.Series) -> pd.Series:
+    """Parse mixed date-like values without falling back to noisy warnings."""
+
+    return pd.to_datetime(values, errors="coerce", format="mixed")
 
 
 def _markdown_table(frame: pd.DataFrame) -> str:

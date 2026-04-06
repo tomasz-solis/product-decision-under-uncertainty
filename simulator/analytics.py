@@ -11,8 +11,10 @@ from simulator.config import get_decision_policy, get_simulation_settings, load_
 from simulator.policy import select_recommendation
 from simulator.simulation import OPTION_COLUMNS, OPTION_LABELS, run_simulation
 
-DEFAULT_STABILITY_SEEDS = (11, 17, 23, 31, 42)
-DEFAULT_STABILITY_WORLD_COUNTS = (5000, 10000, 20000)
+DEFAULT_STABILITY_SEEDS = (11, 17, 23, 31, 42, 57)
+DEFAULT_STABILITY_WORLD_COUNTS = (5000, 10000, 20000, 40000)
+DEFAULT_DRIVER_BOOTSTRAP_SAMPLES = 40
+DEFAULT_DRIVER_CONFIDENCE_LEVEL = 0.95
 
 
 def spearman_rank_correlation(left: pd.Series, right: pd.Series) -> float:
@@ -114,14 +116,84 @@ def sensitivity_analysis(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def driver_analysis(
+    df: pd.DataFrame,
+    *,
+    bootstrap_samples: int = DEFAULT_DRIVER_BOOTSTRAP_SAMPLES,
+    confidence_level: float = DEFAULT_DRIVER_CONFIDENCE_LEVEL,
+    random_seed: int = 42,
+) -> pd.DataFrame:
+    """Return partial-rank driver estimates with bootstrap intervals."""
+
+    params = [column for column in df.columns if column not in {*OPTION_COLUMNS, "scenario"}]
+    if not params:
+        return pd.DataFrame(
+            columns=[
+                "option",
+                "parameter",
+                "partial_rank_corr",
+                "ci_low",
+                "ci_high",
+                "signal_class",
+                "method",
+                "bootstrap_samples",
+            ]
+        )
+
+    rng = np.random.default_rng(random_seed)
+    rows: list[dict[str, object]] = []
+    for option in OPTION_COLUMNS:
+        analysis_frame = df[params + [option]].dropna().reset_index(drop=True)
+        if analysis_frame.empty:
+            continue
+        point_estimates = _partial_rank_correlations(
+            analysis_frame[params],
+            pd.Series(analysis_frame[option], name=option),
+        )
+        bootstrap_estimates = _bootstrap_partial_rank_correlations(
+            analysis_frame,
+            feature_columns=params,
+            target_column=option,
+            bootstrap_samples=bootstrap_samples,
+            rng=rng,
+        )
+        for parameter in params:
+            estimate = float(point_estimates.get(parameter, 0.0))
+            ci_low, ci_high = _bootstrap_interval(
+                bootstrap_estimates.get(parameter, []),
+                confidence_level=confidence_level,
+                fallback=estimate,
+            )
+            rows.append(
+                {
+                    "option": option,
+                    "parameter": parameter,
+                    "partial_rank_corr": estimate,
+                    "ci_low": ci_low,
+                    "ci_high": ci_high,
+                    "signal_class": "decision_support",
+                    "method": "partial_rank_correlation",
+                    "bootstrap_samples": int(bootstrap_samples),
+                }
+            )
+
+    return (
+        pd.DataFrame(rows)
+        .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
+        .sort_values(["option", "abs_partial_rank_corr"], ascending=[True, False])
+        .drop(columns=["abs_partial_rank_corr"])
+        .reset_index(drop=True)
+    )
+
+
 def decision_delta_sensitivity(
     results: pd.DataFrame,
     selected_option: str,
-    runner_up: str,
+    comparison_option: str,
 ) -> pd.DataFrame:
     """Return descriptive sensitivity of the selected-vs-runner-up delta."""
 
-    delta = pd.Series(results[selected_option] - results[runner_up], name="delta_value_eur")
+    delta = pd.Series(results[selected_option] - results[comparison_option], name="delta_value_eur")
     params = [column for column in results.columns if column not in {*OPTION_COLUMNS, "scenario"}]
     rows = []
     for parameter in params:
@@ -171,21 +243,27 @@ def stability_analysis(
             diagnostics = decision_diagnostics(results)
             recommendation = select_recommendation(summary, diagnostics, policy)
             ev_leader = str(summary.iloc[0]["option"])
-            runner_p05 = float(
-                summary.loc[summary["option"] == recommendation.runner_up, "p05_value_eur"].iloc[0]
-            )
+            comparison_option = recommendation.comparison_option
+            comparison_role = recommendation.comparison_option_role or "no_comparison_available"
+            comparison_p05 = None
+            comparison_mean_value = recommendation.comparison_mean_value_eur
+            if comparison_option is not None:
+                comparison_p05 = float(
+                    summary.loc[summary["option"] == comparison_option, "p05_value_eur"].iloc[0]
+                )
             rows.append(
                 {
                     "scenario": default_scenario,
                     "n_worlds": int(world_count),
                     "seed": int(seed),
                     "selected_option": recommendation.selected_option,
-                    "runner_up": recommendation.runner_up,
+                    "comparison_option": comparison_option,
+                    "comparison_option_role": comparison_role,
                     "ev_leader": ev_leader,
                     "selected_mean_value_eur": recommendation.selected_mean_value_eur,
-                    "runner_up_mean_value_eur": recommendation.runner_up_mean_value_eur,
+                    "comparison_mean_value_eur": comparison_mean_value,
                     "selected_p05_value_eur": recommendation.selected_p05_value_eur,
-                    "runner_up_p05_value_eur": runner_p05,
+                    "comparison_p05_value_eur": comparison_p05,
                     "binding_constraint": recommendation.binding_constraint,
                 }
             )
@@ -202,7 +280,7 @@ def stability_summary(stability_runs: pd.DataFrame) -> dict[str, object]:
             "recommendation_frequency": [],
             "ev_leader_frequency": [],
             "selected_p05_range_eur": None,
-            "runner_up_p05_range_eur": None,
+            "comparison_p05_range_eur": None,
         }
 
     recommendation_frequency = (
@@ -225,10 +303,12 @@ def stability_summary(stability_runs: pd.DataFrame) -> dict[str, object]:
             stability_runs["selected_p05_value_eur"].max()
             - stability_runs["selected_p05_value_eur"].min()
         ),
-        "runner_up_p05_range_eur": float(
-            stability_runs["runner_up_p05_value_eur"].max()
-            - stability_runs["runner_up_p05_value_eur"].min()
-        ),
+        "comparison_p05_range_eur": float(
+            stability_runs["comparison_p05_value_eur"].dropna().max()
+            - stability_runs["comparison_p05_value_eur"].dropna().min()
+        )
+        if stability_runs["comparison_p05_value_eur"].notna().any()
+        else None,
     }
 
 
@@ -237,9 +317,86 @@ __all__ = [
     "OPTION_LABELS",
     "decision_delta_sensitivity",
     "decision_diagnostics",
+    "driver_analysis",
     "sensitivity_analysis",
     "spearman_rank_correlation",
     "stability_analysis",
     "stability_summary",
     "summarize_results",
 ]
+
+
+def _partial_rank_correlations(
+    features: pd.DataFrame,
+    target: pd.Series,
+) -> dict[str, float]:
+    """Return partial-rank correlations for each feature against one target."""
+
+    combined = pd.concat([features.reset_index(drop=True), target.reset_index(drop=True)], axis=1)
+    combined = combined.dropna()
+    if combined.empty:
+        return {column: 0.0 for column in features.columns}
+
+    ranked = combined.rank(method="average")
+    correlation = ranked.corr(method="pearson").fillna(0.0)
+    precision = np.linalg.pinv(correlation.to_numpy(dtype=float))
+    target_index = len(correlation.columns) - 1
+
+    rows: dict[str, float] = {}
+    for feature_index, feature_name in enumerate(features.columns):
+        denominator = precision[feature_index, feature_index] * precision[target_index, target_index]
+        if denominator <= 0.0:
+            rows[str(feature_name)] = 0.0
+            continue
+        rows[str(feature_name)] = float(
+            np.clip(
+                -precision[feature_index, target_index] / np.sqrt(denominator),
+                -1.0,
+                1.0,
+            )
+        )
+    return rows
+
+
+def _bootstrap_partial_rank_correlations(
+    analysis_frame: pd.DataFrame,
+    *,
+    feature_columns: list[str],
+    target_column: str,
+    bootstrap_samples: int,
+    rng: np.random.Generator,
+) -> dict[str, list[float]]:
+    """Return bootstrap draws for the partial-rank driver estimates."""
+
+    if bootstrap_samples < 1 or analysis_frame.empty:
+        return {column: [] for column in feature_columns}
+
+    draws = {column: [] for column in feature_columns}
+    n_rows = len(analysis_frame)
+    for _ in range(bootstrap_samples):
+        sample_indices = rng.integers(0, n_rows, size=n_rows)
+        sampled = analysis_frame.iloc[sample_indices].reset_index(drop=True)
+        estimates = _partial_rank_correlations(
+            sampled[feature_columns],
+            pd.Series(sampled[target_column], name=target_column),
+        )
+        for column in feature_columns:
+            draws[column].append(float(estimates.get(column, 0.0)))
+    return draws
+
+
+def _bootstrap_interval(
+    draws: list[float],
+    *,
+    confidence_level: float,
+    fallback: float,
+) -> tuple[float, float]:
+    """Return a percentile bootstrap interval for one estimate."""
+
+    if not draws:
+        return fallback, fallback
+    alpha = max(0.0, min(1.0, 1.0 - confidence_level))
+    return (
+        float(np.quantile(draws, alpha / 2.0)),
+        float(np.quantile(draws, 1.0 - (alpha / 2.0))),
+    )

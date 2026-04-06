@@ -19,6 +19,7 @@ ALLOWED_SOURCE_TYPES = {
     "illustrative_benchmark",
     "placeholder_for_real_telemetry",
     "portfolio_governance_assumption",
+    "public_open_data_benchmark",
     "scenario_worldview",
     "synthetic_case_assumption",
 }

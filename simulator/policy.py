@@ -37,27 +37,70 @@ class RecommendationResult:
 
     policy_name: str
     selected_option: str
-    runner_up: str
+    policy_runner_up: str | None
+    best_excluded_option: str | None
     selection_reason: str
     binding_constraint: str
-    selection_margin_eur: float
     selected_mean_value_eur: float
-    runner_up_mean_value_eur: float
+    policy_runner_up_mean_value_eur: float | None
+    best_excluded_mean_value_eur: float | None
     selected_p05_value_eur: float
     selected_mean_regret_eur: float
     eligible_option_count: int
     eligible_options: tuple[str, ...]
     selected_reason_type: str
-    runner_up_failure_reason: str | None
+    best_excluded_failure_reason: str | None
     selected_downside_slack_eur: float
     selected_regret_slack_eur: float
-    runner_up_downside_slack_eur: float
-    runner_up_regret_slack_eur: float
+    policy_runner_up_downside_slack_eur: float | None
+    policy_runner_up_regret_slack_eur: float | None
+    best_excluded_downside_slack_eur: float | None
+    best_excluded_regret_slack_eur: float | None
+
+    @property
+    def comparison_option(self) -> str | None:
+        """Return the honest comparison option for diagnostics and narration."""
+
+        if self.policy_runner_up is not None:
+            return self.policy_runner_up
+        return self.best_excluded_option
+
+    @property
+    def comparison_option_role(self) -> str | None:
+        """Return whether the comparison stays inside policy scope or outside it."""
+
+        if self.policy_runner_up is not None:
+            return "policy_runner_up"
+        if self.best_excluded_option is not None:
+            return "best_excluded_option"
+        return None
+
+    @property
+    def comparison_mean_value_eur(self) -> float | None:
+        """Return the selected option's main comparison mean value."""
+
+        if self.policy_runner_up is not None:
+            return self.policy_runner_up_mean_value_eur
+        return self.best_excluded_mean_value_eur
+
+    @property
+    def comparison_margin_eur(self) -> float | None:
+        """Return the EV gap between the selected option and the honest comparison."""
+
+        comparison_value = self.comparison_mean_value_eur
+        if comparison_value is None:
+            return None
+        return float(self.selected_mean_value_eur - comparison_value)
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-friendly dictionary representation."""
 
-        return asdict(self)
+        payload = asdict(self)
+        payload["comparison_option"] = self.comparison_option
+        payload["comparison_option_role"] = self.comparison_option_role
+        payload["comparison_mean_value_eur"] = self.comparison_mean_value_eur
+        payload["comparison_margin_eur"] = self.comparison_margin_eur
+        return payload
 
 
 class PayoffDeltaRow(TypedDict):
@@ -74,10 +117,11 @@ class PayoffDeltaDiagnostic(TypedDict):
     """Typed selected-vs-runner-up payoff diagnostic."""
 
     selected_option: str
-    runner_up: str
+    comparison_option: str
+    comparison_option_role: str
     mean_delta_eur: float
     p05_delta_eur: float
-    win_rate_vs_runner_up: float
+    win_rate_vs_comparison: float
     delta_rows: list[PayoffDeltaRow]
 
 
@@ -113,9 +157,12 @@ class PolicyFrontierResult(TypedDict):
 
     selected_option: str
     baseline_selected_option: str
-    runner_up: str
+    policy_runner_up: str | None
+    best_excluded_option: str | None
+    comparison_option: str | None
+    comparison_option_role: str | None
     frontier_rows: list[PolicyFrontierRow]
-    runner_up_comparison_rows: list[RunnerUpFrontierRow]
+    secondary_comparison_rows: list[RunnerUpFrontierRow]
 
 
 @dataclass(frozen=True)
@@ -160,20 +207,19 @@ def select_recommendation(
 
     scored = build_policy_eligibility_table(summary, diagnostics, policy)
     eligible = scored.loc[scored["eligible"]].copy()
+    scored_indexed = scored.set_index("option")
 
     if eligible.empty:
         ranked = scored.sort_values(["mean_value_eur", "mean_regret_eur"], ascending=[False, True])
         selected = ranked.iloc[0]
-        runner_up = ranked.iloc[1] if len(ranked) > 1 else ranked.iloc[0]
+        policy_runner_up = None
+        best_excluded_option = _remaining_best_row(scored, str(selected["option"]))
         binding_constraint = "guardrails_relaxed"
         selected_reason_type = "guardrails_relaxed_highest_ev"
     elif len(eligible) == 1:
         selected = eligible.iloc[0]
-        runner_candidates = scored.loc[scored["option"] != selected["option"]].sort_values(
-            ["mean_value_eur", "mean_regret_eur"],
-            ascending=[False, True],
-        )
-        runner_up = runner_candidates.iloc[0] if not runner_candidates.empty else selected
+        policy_runner_up = None
+        best_excluded_option = _remaining_best_row(scored, str(selected["option"]))
         binding_constraint = "only_option_passing_guardrails"
         selected_reason_type = "only_option_passing_guardrails"
     else:
@@ -195,41 +241,60 @@ def select_recommendation(
         else:
             binding_constraint = "highest_ev_eligible"
             selected_reason_type = "highest_ev_eligible"
-
-        runner_candidates = scored.loc[scored["option"] != selected["option"]].sort_values(
-            ["mean_value_eur", "mean_regret_eur"],
-            ascending=[False, True],
+        policy_runner_up = _policy_runner_up_row(summary, diagnostics, policy, str(selected["option"]))
+        excluded_candidates = scored.loc[
+            (~scored["eligible"]) & (scored["option"] != selected["option"])
+        ]
+        best_excluded_option = _remaining_best_row(
+            excluded_candidates,
+            excluded_option=None,
         )
-        runner_up = runner_candidates.iloc[0] if not runner_candidates.empty else selected
 
     eligible_options = tuple(str(option) for option in eligible["option"].tolist())
     reason = _selection_reason(
         selected=selected,
-        runner_up=runner_up,
+        policy_runner_up=policy_runner_up,
+        best_excluded_option=best_excluded_option,
         policy=policy,
         selected_reason_type=selected_reason_type,
         eligible_option_count=len(eligible),
     )
 
+    selected_option = str(selected["option"])
+    policy_runner_up_option = (
+        None if policy_runner_up is None else str(policy_runner_up["option"])
+    )
+    best_excluded_option_name = (
+        None if best_excluded_option is None else str(best_excluded_option["option"])
+    )
+    selected_lookup = scored_indexed.loc[selected_option]
+
     return RecommendationResult(
         policy_name=policy.name,
-        selected_option=str(selected["option"]),
-        runner_up=str(runner_up["option"]),
+        selected_option=selected_option,
+        policy_runner_up=policy_runner_up_option,
+        best_excluded_option=best_excluded_option_name,
         selection_reason=reason,
         binding_constraint=binding_constraint,
-        selection_margin_eur=float(selected["mean_value_eur"] - runner_up["mean_value_eur"]),
         selected_mean_value_eur=float(selected["mean_value_eur"]),
-        runner_up_mean_value_eur=float(runner_up["mean_value_eur"]),
+        policy_runner_up_mean_value_eur=_optional_float(policy_runner_up, "mean_value_eur"),
+        best_excluded_mean_value_eur=_optional_float(best_excluded_option, "mean_value_eur"),
         selected_p05_value_eur=float(selected["p05_value_eur"]),
         selected_mean_regret_eur=float(selected["mean_regret_eur"]),
         eligible_option_count=int(len(eligible)),
         eligible_options=eligible_options,
         selected_reason_type=selected_reason_type,
-        runner_up_failure_reason=_as_optional_reason(runner_up["failure_reason"]),
-        selected_downside_slack_eur=float(selected["downside_slack_eur"]),
-        selected_regret_slack_eur=float(selected["regret_slack_eur"]),
-        runner_up_downside_slack_eur=float(runner_up["downside_slack_eur"]),
-        runner_up_regret_slack_eur=float(runner_up["regret_slack_eur"]),
+        best_excluded_failure_reason=(
+            None
+            if best_excluded_option is None
+            else _as_optional_reason(best_excluded_option["failure_reason"])
+        ),
+        selected_downside_slack_eur=float(selected_lookup["downside_slack_eur"]),
+        selected_regret_slack_eur=float(selected_lookup["regret_slack_eur"]),
+        policy_runner_up_downside_slack_eur=_optional_float(policy_runner_up, "downside_slack_eur"),
+        policy_runner_up_regret_slack_eur=_optional_float(policy_runner_up, "regret_slack_eur"),
+        best_excluded_downside_slack_eur=_optional_float(best_excluded_option, "downside_slack_eur"),
+        best_excluded_regret_slack_eur=_optional_float(best_excluded_option, "regret_slack_eur"),
     )
 
 
@@ -242,11 +307,24 @@ def payoff_delta_diagnostic(
 
     from simulator.analytics import decision_delta_sensitivity
 
-    delta = results[recommendation.selected_option] - results[recommendation.runner_up]
+    comparison_option = recommendation.comparison_option
+    comparison_role = recommendation.comparison_option_role
+    if comparison_option is None or comparison_role is None:
+        return {
+            "selected_option": recommendation.selected_option,
+            "comparison_option": recommendation.selected_option,
+            "comparison_option_role": "no_comparison_available",
+            "mean_delta_eur": 0.0,
+            "p05_delta_eur": 0.0,
+            "win_rate_vs_comparison": 0.0,
+            "delta_rows": [],
+        }
+
+    delta = results[recommendation.selected_option] - results[comparison_option]
     delta_sensitivity = decision_delta_sensitivity(
         results,
         selected_option=recommendation.selected_option,
-        runner_up=recommendation.runner_up,
+        comparison_option=comparison_option,
     )
     candidates = (
         delta_sensitivity.assign(
@@ -271,7 +349,7 @@ def payoff_delta_diagnostic(
                 "sampled_min_value": float(results[parameter].min()),
                 "sampled_max_value": float(results[parameter].max()),
                 "interpretation_note": (
-                    "Descriptive rank association with the selected-minus-runner-up "
+                    "Descriptive rank association with the selected-minus-comparison "
                     "payoff delta inside the sampled worlds."
                 ),
             }
@@ -279,10 +357,11 @@ def payoff_delta_diagnostic(
 
     return {
         "selected_option": recommendation.selected_option,
-        "runner_up": recommendation.runner_up,
+        "comparison_option": comparison_option,
+        "comparison_option_role": comparison_role,
         "mean_delta_eur": float(delta.mean()),
         "p05_delta_eur": float(np.quantile(delta, 0.05)),
-        "win_rate_vs_runner_up": float(np.mean(delta > 0.0)),
+        "win_rate_vs_comparison": float(np.mean(delta > 0.0)),
         "delta_rows": rows,
     }
 
@@ -297,7 +376,15 @@ def policy_frontier_analysis(
 
     scored = build_policy_eligibility_table(summary, diagnostics, policy).set_index("option")
     selected = scored.loc[recommendation.selected_option]
-    runner_up = scored.loc[recommendation.runner_up]
+    comparison_option = recommendation.comparison_option
+    comparison_rows: list[RunnerUpFrontierRow] = []
+    if comparison_option is not None:
+        comparison = scored.loc[comparison_option]
+        comparison_rows = [
+            _downside_frontier_row(policy, comparison, recommendation),
+            _regret_frontier_row(policy, comparison, recommendation),
+            _tolerance_frontier_row(policy, selected, comparison, recommendation),
+        ]
 
     frontier_rows = [
         policy_frontier_first_switch(
@@ -325,17 +412,15 @@ def policy_frontier_analysis(
             threshold_label="EV tolerance",
         ),
     ]
-    runner_up_rows = [
-        _downside_frontier_row(policy, runner_up, recommendation),
-        _regret_frontier_row(policy, runner_up, recommendation),
-        _tolerance_frontier_row(policy, selected, runner_up, recommendation),
-    ]
     return {
         "selected_option": recommendation.selected_option,
         "baseline_selected_option": recommendation.selected_option,
-        "runner_up": recommendation.runner_up,
+        "policy_runner_up": recommendation.policy_runner_up,
+        "best_excluded_option": recommendation.best_excluded_option,
+        "comparison_option": recommendation.comparison_option,
+        "comparison_option_role": recommendation.comparison_option_role,
         "frontier_rows": frontier_rows,
-        "runner_up_comparison_rows": runner_up_rows,
+        "secondary_comparison_rows": comparison_rows,
     }
 
 
@@ -425,7 +510,8 @@ def policy_frontier_grid(
                     "threshold_label": frontier_row["threshold_label"],
                     "tested_value": float(tested_value),
                     "selected_option": varied_result.selected_option,
-                    "runner_up": varied_result.runner_up,
+                    "comparison_option": varied_result.comparison_option,
+                    "comparison_option_role": varied_result.comparison_option_role,
                     "binding_constraint": varied_result.binding_constraint,
                     "eligible_option_count": varied_result.eligible_option_count,
                     "baseline_selected_option": recommendation.selected_option,
@@ -570,7 +656,8 @@ def _evaluate_threshold(
 
 def _selection_reason(
     selected: pd.Series,
-    runner_up: pd.Series,
+    policy_runner_up: pd.Series | None,
+    best_excluded_option: pd.Series | None,
     policy: DecisionPolicyConfig,
     selected_reason_type: str,
     eligible_option_count: int,
@@ -578,17 +665,24 @@ def _selection_reason(
     """Return plain-English recommendation reasoning tied to the actual policy branch."""
 
     selected_label = labeled_option(str(selected["option"]))
-    runner_label = labeled_option(str(runner_up["option"]))
     if selected_reason_type == "only_option_passing_guardrails":
-        failure_detail = _failure_detail(runner_up)
+        if best_excluded_option is None:
+            return f"{selected_label} is the only option that passes both guardrails."
+        comparison_label = labeled_option(str(best_excluded_option["option"]))
+        failure_detail = _failure_detail(best_excluded_option)
         value_direction = (
-            "higher" if runner_up["mean_value_eur"] > selected["mean_value_eur"] else "lower"
+            "higher"
+            if best_excluded_option["mean_value_eur"] > selected["mean_value_eur"]
+            else "lower"
         )
         return (
             f"{selected_label} is the only option that passes both guardrails. "
-            f"{runner_label} has {value_direction} expected value, but {failure_detail}."
+            f"{comparison_label} has {value_direction} expected value, but {failure_detail}."
         )
     if selected_reason_type == "ev_tolerance_override":
+        if policy_runner_up is None:
+            raise ValueError("EV-tolerance override requires a policy runner-up.")
+        runner_label = labeled_option(str(policy_runner_up["option"]))
         return (
             f"{selected_label} and {runner_label} both pass the guardrails. "
             f"They sit inside the {policy.ev_tolerance_eur:,.0f} EUR EV tolerance band, "
@@ -646,7 +740,8 @@ def _downside_frontier_row(
 
     runner_downside_slack = float(runner_up["downside_slack_eur"])
     if runner_downside_slack >= 0.0:
-        note = f"{labeled_option(recommendation.runner_up)} already passes the downside floor."
+        comparison_label = _comparison_label(recommendation)
+        note = f"{comparison_label} already passes the downside floor."
         return _runner_up_frontier_row(
             "minimum_p05_value_eur",
             "Downside floor",
@@ -659,7 +754,7 @@ def _downside_frontier_row(
 
     switching_value = float(runner_up["p05_value_eur"])
     note = (
-        f"{labeled_option(recommendation.runner_up)} becomes eligible on downside once the "
+        f"{_comparison_label(recommendation)} becomes eligible on downside once the "
         f"floor is relaxed to {switching_value:,.2f} EUR."
     )
     return _runner_up_frontier_row(
@@ -682,7 +777,8 @@ def _regret_frontier_row(
 
     runner_regret_slack = float(runner_up["regret_slack_eur"])
     if runner_regret_slack >= 0.0:
-        note = f"{labeled_option(recommendation.runner_up)} already passes the regret cap."
+        comparison_label = _comparison_label(recommendation)
+        note = f"{comparison_label} already passes the regret cap."
         return _runner_up_frontier_row(
             "maximum_mean_regret_eur",
             "Regret cap",
@@ -695,7 +791,7 @@ def _regret_frontier_row(
 
     switching_value = float(runner_up["mean_regret_eur"])
     note = (
-        f"{labeled_option(recommendation.runner_up)} becomes eligible on regret once the cap "
+        f"{_comparison_label(recommendation)} becomes eligible on regret once the cap "
         f"rises to {switching_value:,.2f} EUR."
     )
     return _runner_up_frontier_row(
@@ -750,7 +846,7 @@ def _tolerance_frontier_row(
 
     if runner_ev > selected_ev and runner_regret <= selected_regret:
         note = (
-            f"{labeled_option(recommendation.runner_up)} would not need an EV tolerance override "
+            f"{_comparison_label(recommendation)} would not need an EV tolerance override "
             "once it is eligible because it already leads on EV and regret."
         )
         return _runner_up_frontier_row(
@@ -781,7 +877,7 @@ def _tolerance_frontier_row(
     switching_value = abs(selected_ev - runner_ev)
     lower_regret = recommendation.selected_option
     if runner_regret < selected_regret:
-        lower_regret = recommendation.runner_up
+        lower_regret = str(runner_up["option"])
     note = (
         f"{labeled_option(lower_regret)} would need an EV tolerance of {switching_value:,.2f} EUR "
         "to win on regret despite trailing on EV."
@@ -1012,3 +1108,60 @@ def _as_optional_reason(value: object) -> str | None:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     return str(value)
+
+
+def _policy_runner_up_row(
+    summary: pd.DataFrame,
+    diagnostics: pd.DataFrame,
+    policy: DecisionPolicyConfig,
+    selected_option: str,
+) -> pd.Series | None:
+    """Return the next-best option under the policy when two or more options are eligible."""
+
+    filtered_summary = summary.loc[summary["option"] != selected_option].reset_index(drop=True)
+    filtered_diagnostics = diagnostics.loc[
+        diagnostics["option"] != selected_option
+    ].reset_index(drop=True)
+    if filtered_summary.empty:
+        return None
+
+    rerun = select_recommendation(filtered_summary, filtered_diagnostics, policy)
+    rerun_scored = build_policy_eligibility_table(filtered_summary, filtered_diagnostics, policy)
+    rerun_selected = rerun_scored.loc[
+        rerun_scored["option"] == rerun.selected_option
+    ].reset_index(drop=True)
+    if rerun_selected.empty or not bool(rerun_selected.iloc[0]["eligible"]):
+        return None
+    return rerun_selected.iloc[0]
+
+
+def _remaining_best_row(
+    frame: pd.DataFrame,
+    excluded_option: str | None = None,
+) -> pd.Series | None:
+    """Return the highest-EV remaining row from a pre-filtered candidate frame."""
+
+    remaining = frame.copy()
+    if excluded_option is not None:
+        remaining = remaining.loc[remaining["option"] != excluded_option]
+    if remaining.empty:
+        return None
+    ranked = remaining.sort_values(["mean_value_eur", "mean_regret_eur"], ascending=[False, True])
+    return ranked.iloc[0]
+
+
+def _optional_float(row: pd.Series | None, column: str) -> float | None:
+    """Return one float cell from an optional dataframe row."""
+
+    if row is None:
+        return None
+    return float(row[column])
+
+
+def _comparison_label(recommendation: RecommendationResult) -> str:
+    """Return the display label for the active comparison option."""
+
+    comparison_option = recommendation.comparison_option
+    if comparison_option is None:
+        return "Comparison option"
+    return labeled_option(comparison_option)

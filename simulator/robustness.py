@@ -19,7 +19,7 @@ from simulator.config import (
     load_config,
     parse_param_specs,
 )
-from simulator.output_utils import labeled_option, material_sensitivity_rows
+from simulator.output_utils import labeled_option, material_driver_rows
 from simulator.policy import policy_frontier_analysis, select_recommendation
 from simulator.simulation import run_simulation
 
@@ -27,7 +27,7 @@ from simulator.simulation import run_simulation
 def build_robustness_report(
     config_path: str | Path,
     stability_runs: pd.DataFrame,
-    sensitivity: pd.DataFrame,
+    driver_analysis: pd.DataFrame,
     selected_option: str,
 ) -> dict[str, Any]:
     """Build a compact robustness artifact for the current published case."""
@@ -40,9 +40,14 @@ def build_robustness_report(
         seeds=DEFAULT_STABILITY_SEEDS,
         world_counts=DEFAULT_STABILITY_WORLD_COUNTS,
     )
+    metric_error_rows = _metric_error_rows(
+        config_path,
+        seeds=DEFAULT_STABILITY_SEEDS,
+        world_counts=DEFAULT_STABILITY_WORLD_COUNTS,
+    )
     stress_tests = _stress_test_rows(
         config_path=config_path,
-        sensitivity=sensitivity,
+        driver_analysis=driver_analysis,
         selected_option=selected_option,
         threshold=analysis.sensitivity_materiality_threshold_abs_spearman,
     )
@@ -50,6 +55,7 @@ def build_robustness_report(
         "selected_option": selected_option,
         "convergence_rows": convergence,
         "frontier_stability_rows": frontier_stability,
+        "metric_error_rows": metric_error_rows,
         "stress_test_rows": stress_tests,
     }
 
@@ -105,6 +111,26 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             )
         ),
         "",
+        "Monte Carlo error bands by option and world count:",
+        "",
+        _markdown_table(
+            pd.DataFrame(payload["metric_error_rows"])[
+                [
+                    "world_count",
+                    "option",
+                    "mean_value_range_eur",
+                    "p05_value_range_eur",
+                ]
+            ].assign(option=lambda frame: frame["option"].map(labeled_option)).rename(
+                columns={
+                    "world_count": "Worlds",
+                    "option": "Option",
+                    "mean_value_range_eur": "EV range (EUR)",
+                    "p05_value_range_eur": "P05 range (EUR)",
+                }
+            )
+        ),
+        "",
         "Directional stress tests on the strongest material drivers:",
         "",
         _markdown_table(
@@ -151,12 +177,27 @@ def _convergence_rows(stability_runs: pd.DataFrame) -> list[dict[str, Any]]:
                 "world_count": world_count_int,
                 "run_count": int(len(group)),
                 "recommendation_consistency": round(recommendation_consistency, 6),
+                "consistency_target_met": recommendation_consistency >= 0.80,
                 "selected_ev_std_eur": round(
                     float(group["selected_mean_value_eur"].astype(float).std(ddof=0)),
                     6,
                 ),
                 "selected_p05_std_eur": round(
                     float(group["selected_p05_value_eur"].astype(float).std(ddof=0)),
+                    6,
+                ),
+                "selected_ev_range_eur": round(
+                    float(
+                        group["selected_mean_value_eur"].astype(float).max()
+                        - group["selected_mean_value_eur"].astype(float).min()
+                    ),
+                    6,
+                ),
+                "selected_p05_range_eur": round(
+                    float(
+                        group["selected_p05_value_eur"].astype(float).max()
+                        - group["selected_p05_value_eur"].astype(float).min()
+                    ),
                     6,
                 ),
             }
@@ -232,7 +273,7 @@ def _frontier_stability_rows(
 def _stress_test_rows(
     *,
     config_path: str | Path,
-    sensitivity: pd.DataFrame,
+    driver_analysis: pd.DataFrame,
     selected_option: str,
     threshold: float,
 ) -> list[dict[str, Any]]:
@@ -246,8 +287,8 @@ def _stress_test_rows(
     base_diagnostics = decision_diagnostics(base_results)
     base_recommendation = select_recommendation(base_summary, base_diagnostics, policy)
 
-    drivers = material_sensitivity_rows(
-        sensitivity=sensitivity,
+    drivers = material_driver_rows(
+        driver_analysis=driver_analysis,
         option=selected_option,
         threshold=threshold,
         limit=2,
@@ -256,8 +297,16 @@ def _stress_test_rows(
         return []
 
     rows: list[dict[str, Any]] = []
-    driver_names = [str(value) for value in drivers["parameter"].tolist()]
-    for driver_name in driver_names:
+    driver_specs = [
+        {
+            "name": str(row["parameter"]),
+            "estimate": float(row["partial_rank_corr"]),
+        }
+        for _, row in drivers.iterrows()
+    ]
+    driver_names = [driver["name"] for driver in driver_specs]
+    for driver in driver_specs:
+        driver_name = driver["name"]
         levels = _stress_levels_for_spec(specs[driver_name])
         for level_name, level_value in levels.items():
             results = run_simulation(
@@ -281,23 +330,8 @@ def _stress_test_rows(
                 }
             )
 
-    if len(driver_names) >= 2:
-        paired: dict[str, dict[str, dict[str, float | str]]] = {
-            "paired_low": {
-                name: {
-                    "dist": "constant",
-                    "value": float(_stress_levels_for_spec(specs[name])["low"]),
-                }
-                for name in driver_names[:2]
-            },
-            "paired_high": {
-                name: {
-                    "dist": "constant",
-                    "value": float(_stress_levels_for_spec(specs[name])["high"]),
-                }
-                for name in driver_names[:2]
-            },
-        }
+    if len(driver_specs) >= 2:
+        paired = _paired_driver_overrides(driver_specs[:2], specs)
         for level_name, overrides in paired.items():
             results = run_simulation(
                 config_path,
@@ -322,6 +356,50 @@ def _stress_test_rows(
     return rows
 
 
+def _metric_error_rows(
+    config_path: str | Path,
+    seeds: tuple[int, ...],
+    world_counts: tuple[int, ...],
+) -> list[dict[str, Any]]:
+    """Return per-option EV and P05 ranges across the stability grid."""
+
+    cfg = load_config(config_path)
+    scenario = str(cfg["simulation"]["scenario"])
+    rows: list[dict[str, Any]] = []
+    for world_count in world_counts:
+        for seed in seeds:
+            results = run_simulation(
+                config_path,
+                n_worlds=int(world_count),
+                seed=int(seed),
+                scenario=scenario,
+            )
+            summary = summarize_results(results)
+            for _, row in summary.iterrows():
+                rows.append(
+                    {
+                        "world_count": int(world_count),
+                        "seed": int(seed),
+                        "option": str(row["option"]),
+                        "mean_value_eur": float(row["mean_value_eur"]),
+                        "p05_value_eur": float(row["p05_value_eur"]),
+                    }
+                )
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        return []
+    return (
+        frame.groupby(["world_count", "option"], observed=True)
+        .agg(
+            mean_value_range_eur=("mean_value_eur", lambda series: float(series.max() - series.min())),
+            p05_value_range_eur=("p05_value_eur", lambda series: float(series.max() - series.min())),
+        )
+        .reset_index()
+        .sort_values(["world_count", "option"])
+        .to_dict(orient="records")
+    )
+
+
 def _stress_levels_for_spec(spec: Any) -> dict[str, float]:
     """Return low/base/high values for one parameter specification."""
 
@@ -333,6 +411,55 @@ def _stress_levels_for_spec(spec: Any) -> dict[str, float]:
     if spec.dist == "constant":
         return {"low": float(spec.value), "base": float(spec.value), "high": float(spec.value)}
     return {"low": float(spec.median), "base": float(spec.median), "high": float(spec.p95)}
+
+
+def _paired_driver_overrides(
+    drivers: list[dict[str, float | str]],
+    specs: dict[str, Any],
+) -> dict[str, dict[str, dict[str, float | str]]]:
+    """Return multi-driver stress cases, including opposing directions."""
+
+    all_adverse: dict[str, dict[str, float | str]] = {}
+    all_supportive: dict[str, dict[str, float | str]] = {}
+    opposing_challenge: dict[str, dict[str, float | str]] = {}
+    opposing_relief: dict[str, dict[str, float | str]] = {}
+
+    for index, driver in enumerate(drivers):
+        name = str(driver["name"])
+        estimate = float(driver["estimate"])
+        all_adverse[name] = _stress_override_for_direction(specs[name], estimate, "adverse")
+        all_supportive[name] = _stress_override_for_direction(specs[name], estimate, "supportive")
+        direction = "adverse" if index == 0 else "supportive"
+        opposing_challenge[name] = _stress_override_for_direction(specs[name], estimate, direction)
+        opposite_direction = "supportive" if index == 0 else "adverse"
+        opposing_relief[name] = _stress_override_for_direction(
+            specs[name],
+            estimate,
+            opposite_direction,
+        )
+
+    return {
+        "paired_all_adverse": all_adverse,
+        "paired_all_supportive": all_supportive,
+        "paired_opposing_challenge": opposing_challenge,
+        "paired_opposing_relief": opposing_relief,
+    }
+
+
+def _stress_override_for_direction(
+    spec: Any,
+    driver_estimate: float,
+    direction: str,
+) -> dict[str, float | str]:
+    """Return the constant override that either helps or hurts the selected option."""
+
+    levels = _stress_levels_for_spec(spec)
+    hurts_when_higher = driver_estimate < 0.0
+    if direction == "adverse":
+        target_level = "high" if hurts_when_higher else "low"
+    else:
+        target_level = "low" if hurts_when_higher else "high"
+    return {"dist": "constant", "value": float(levels[target_level])}
 
 
 def _markdown_table(frame: pd.DataFrame) -> str:

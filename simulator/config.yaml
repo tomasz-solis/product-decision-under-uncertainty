@@ -1,7 +1,7 @@
 # simulator/config.yaml
 project:
   seed: 42
-  model_version: "4.0.0"
+  model_version: "5.0.0"
 
 simulation:
   n_worlds: 20000
@@ -44,9 +44,9 @@ scenarios:
     description: Reliability pain intensifies, drift gets costlier, and delivery gets harder.
     parameter_overrides:
       baseline_failure_rate:
-        low: 0.04
-        mode: 0.08
-        high: 0.13
+        low: 0.08
+        mode: 0.14
+        high: 0.20
       failure_to_churn_rel:
         low: 0.12
         mode: 0.18
@@ -119,9 +119,9 @@ scenarios:
     description: Economics strengthen, reliability pressure eases, and delivery conditions improve.
     parameter_overrides:
       baseline_failure_rate:
-        low: 0.01
-        mode: 0.04
-        high: 0.08
+        low: 0.02
+        mode: 0.06
+        high: 0.10
       failure_to_churn_rel:
         low: 0.08
         mode: 0.12
@@ -192,9 +192,9 @@ scenarios:
 params:
   baseline_failure_rate:
     dist: tri
-    low: 0.02
-    mode: 0.05
-    high: 0.10
+    low: 0.04
+    mode: 0.10
+    high: 0.15
 
   failure_to_churn_rel:
     dist: tri

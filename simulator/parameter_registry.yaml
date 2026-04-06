@@ -2,14 +2,16 @@ baseline_failure_rate:
   unit: share_of_volume
   business_meaning: Share of annual volume that fails on the legacy path before any intervention.
   distribution_type: tri
-  low: 0.02
-  mode: 0.05
-  high: 0.10
-  source_type: illustrative_benchmark
-  source_reference: Synthetic case anchor based on generic checkout reliability ranges.
-  reason_for_range: Wide enough to make reliability pressure matter without baking in a crisis narrative.
+  low: 0.04
+  mode: 0.10
+  high: 0.15
+  source_type: public_open_data_benchmark
+  source_reference: HM Land Registry live service data for Search (gov), March 2023 to March 2024. Modeled failure rate is 1 minus the published completion rate.
+  reason_for_range: Uses the public benchmark's rough P10, median, and P90 failure rates as an external anchor for a critical digital transaction path while keeping the domain mismatch explicit.
   owner: Tomasz Solis
-  last_updated: 2026-04-05
+  last_updated: 2026-04-06
+  evidence_ids:
+    - hm_land_registry_search_completion_benchmark
 failure_to_churn_rel:
   unit: revenue_penalty_share
   business_meaning: Relative downstream value loss that follows when one failure damages trust, retention, or future conversion for the affected unit.
