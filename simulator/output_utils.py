@@ -91,8 +91,52 @@ def sensitivity_note(
     if rows.empty:
         return f"No parameter cleared the materiality threshold of |rho| >= {threshold:.2f}."
     if len(rows) == 1:
-        parameter = str(rows.iloc[0]["parameter"])
+        parameter = clean_label(str(rows.iloc[0]["parameter"]))
         return f"Only `{parameter}` cleared the materiality threshold of |rho| >= {threshold:.2f}."
+    return None
+
+
+def material_driver_rows(
+    driver_analysis: pd.DataFrame,
+    option: str,
+    threshold: float,
+    limit: int,
+) -> pd.DataFrame:
+    """Return the strongest decision-support drivers for one option."""
+
+    rows = (
+        driver_analysis.loc[driver_analysis["option"] == option]
+        .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
+        .sort_values("abs_partial_rank_corr", ascending=False)
+    )
+    rows = rows.loc[rows["abs_partial_rank_corr"] >= threshold].head(limit).copy()
+    return rows.drop(columns=["abs_partial_rank_corr"], errors="ignore").reset_index(drop=True)
+
+
+def driver_note(
+    driver_analysis: pd.DataFrame,
+    option: str,
+    threshold: float,
+) -> str | None:
+    """Return a short note about decision-support driver coverage."""
+
+    rows = material_driver_rows(
+        driver_analysis=driver_analysis,
+        option=option,
+        threshold=threshold,
+        limit=100,
+    )
+    if rows.empty:
+        return (
+            "No decision-support driver cleared the current materiality threshold of "
+            f"|partial rho| >= {threshold:.2f}."
+        )
+    if len(rows) == 1:
+        parameter = clean_label(str(rows.iloc[0]["parameter"]))
+        return (
+            f"Only `{parameter}` cleared the decision-support materiality threshold of "
+            f"|partial rho| >= {threshold:.2f}."
+        )
     return None
 
 

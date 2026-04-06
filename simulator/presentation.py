@@ -5,10 +5,13 @@ from __future__ import annotations
 import pandas as pd
 
 from simulator.output_utils import (
+    clean_label,
+    driver_note,
     format_eur,
     format_pct,
     format_threshold_eur,
     labeled_option,
+    material_driver_rows,
     material_sensitivity_rows,
     sensitivity_note,
 )
@@ -106,7 +109,7 @@ def payoff_delta_display_table(delta_rows: pd.DataFrame) -> pd.DataFrame:
     if delta_rows.empty:
         return pd.DataFrame(columns=["Parameter", "Delta rho", "Sampled range", "Interpretation"])
     table = delta_rows.copy()
-    table["Parameter"] = table["parameter"]
+    table["Parameter"] = table["parameter"].map(lambda value: clean_label(str(value)))
     table["Delta rho"] = table["delta_spearman_corr"].map(lambda value: f"{value:+.2f}")
     table["Sampled range"] = table.apply(
         lambda row: f"{row['sampled_min_value']:,.3f} to {row['sampled_max_value']:,.3f}",
@@ -158,17 +161,15 @@ def frontier_display_table(frontier_rows: pd.DataFrame) -> pd.DataFrame:
     ]
 
 
-def runner_up_frontier_display_table(frontier_rows: pd.DataFrame) -> pd.DataFrame:
-    """Return a formatted runner-up threshold-comparison table for display."""
+def comparison_frontier_display_table(frontier_rows: pd.DataFrame) -> pd.DataFrame:
+    """Return a formatted secondary comparison table for display."""
 
     if frontier_rows.empty:
-        return pd.DataFrame(
-            columns=["Threshold", "Current value", "Runner-up threshold", "Status"]
-        )
+        return pd.DataFrame(columns=["Threshold", "Current value", "Comparison threshold", "Status"])
     table = frontier_rows.copy()
     table["Threshold"] = table["threshold_label"]
     table["Current value"] = table["current_value"].map(format_threshold_eur)
-    table["Runner-up threshold"] = table["switching_value"].map(
+    table["Comparison threshold"] = table["switching_value"].map(
         lambda value: "not needed" if pd.isna(value) else format_threshold_eur(float(value))
     )
     table["Status"] = table["status"].map(
@@ -179,11 +180,17 @@ def runner_up_frontier_display_table(frontier_rows: pd.DataFrame) -> pd.DataFram
         [
             "Threshold",
             "Current value",
-            "Runner-up threshold",
+            "Comparison threshold",
             "Status",
             "Interpretation",
         ]
     ]
+
+
+def runner_up_frontier_display_table(frontier_rows: pd.DataFrame) -> pd.DataFrame:
+    """Return the legacy alias for the comparison frontier display table."""
+
+    return comparison_frontier_display_table(frontier_rows)
 
 
 def stability_frequency_table(rows: list[dict[str, object]], key: str) -> pd.DataFrame:
@@ -205,6 +212,23 @@ def top_sensitivity_rows(
 ) -> pd.DataFrame:
     """Return the strongest material sensitivity rows for one option."""
 
+    if "partial_rank_corr" in sensitivity.columns:
+        table = material_driver_rows(
+            driver_analysis=sensitivity,
+            option=option,
+            threshold=threshold,
+            limit=limit,
+        ).copy()
+        if table.empty:
+            return pd.DataFrame(columns=["Parameter", "Partial rank corr", "95% CI"])
+        table["Parameter"] = table["parameter"].map(lambda value: clean_label(str(value)))
+        table["Partial rank corr"] = table["partial_rank_corr"].map(lambda value: f"{value:+.2f}")
+        table["95% CI"] = table.apply(
+            lambda row: f"{float(row['ci_low']):+.2f} to {float(row['ci_high']):+.2f}",
+            axis=1,
+        )
+        return table[["Parameter", "Partial rank corr", "95% CI"]]
+
     table = material_sensitivity_rows(
         sensitivity=sensitivity,
         option=option,
@@ -213,7 +237,7 @@ def top_sensitivity_rows(
     ).copy()
     if table.empty:
         return pd.DataFrame(columns=["Parameter", "Spearman"])
-    table["Parameter"] = table["parameter"]
+    table["Parameter"] = table["parameter"].map(lambda value: clean_label(str(value)))
     table["Spearman"] = table["spearman_corr"].map(lambda value: f"{value:+.2f}")
     return table[["Parameter", "Spearman"]]
 
@@ -223,4 +247,6 @@ def sensitivity_summary_note(
 ) -> str | None:
     """Return a short note about material sensitivity coverage."""
 
+    if "partial_rank_corr" in sensitivity.columns:
+        return driver_note(sensitivity, option, threshold)
     return sensitivity_note(sensitivity, option, threshold)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
+
 from app import PublishedGovernance, governance_warning_message, published_case_caption
 from simulator.output_utils import build_run_context
 
@@ -56,6 +58,7 @@ def test_governance_warning_message_flags_stale_artifacts() -> None:
 
     governance = PublishedGovernance(
         metadata={},
+        stability_runs=pd.DataFrame(),
         stability_summary={},
         evidence_summary={},
         manifest_counts={},
