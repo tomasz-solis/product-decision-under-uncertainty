@@ -42,6 +42,35 @@
     }
   ],
   "policy_runner_up": null,
+  "runner_up_comparison_rows": [
+    {
+      "current_value": -300000.0,
+      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -420,803.72 EUR.",
+      "status": "switch_observed",
+      "switching_value": -420803.720046,
+      "threshold_label": "Downside floor",
+      "threshold_name": "minimum_p05_value_eur",
+      "unit": "eur"
+    },
+    {
+      "current_value": 450000.0,
+      "interpretation_note": "Feature Extension already passes the regret cap.",
+      "status": "already_non_binding",
+      "switching_value": null,
+      "threshold_label": "Regret cap",
+      "threshold_name": "maximum_mean_regret_eur",
+      "unit": "eur"
+    },
+    {
+      "current_value": 100000.0,
+      "interpretation_note": "EV tolerance is not the binding threshold because both options are not yet eligible.",
+      "status": "not_binding",
+      "switching_value": null,
+      "threshold_label": "EV tolerance",
+      "threshold_name": "ev_tolerance_eur",
+      "unit": "eur"
+    }
+  ],
   "secondary_comparison_rows": [
     {
       "current_value": -300000.0,
