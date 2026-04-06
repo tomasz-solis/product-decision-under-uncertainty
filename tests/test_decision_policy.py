@@ -171,7 +171,8 @@ def test_policy_marks_only_surviving_option_explicitly() -> None:
     assert result.selected_option == "do_nothing"
     assert result.binding_constraint == "only_option_passing_guardrails"
     assert result.eligible_option_count == 1
-    assert result.runner_up_failure_reason == "misses_downside_floor"
+    assert result.best_excluded_option == "feature_extension"
+    assert result.best_excluded_failure_reason == "misses_downside_floor"
     assert not bool(
         eligibility.loc[eligibility["option"] == "feature_extension", "eligible"].iloc[0]
     )
@@ -306,8 +307,8 @@ def test_policy_frontier_grid_brackets_real_switching_region() -> None:
     assert downside_rows["switch_from_baseline"].any()
 
 
-def test_full_option_frontier_can_switch_to_non_runner_up_option() -> None:
-    """The first actual policy switch can differ from the current runner-up."""
+def test_full_option_frontier_tracks_policy_runner_up_and_best_excluded_separately() -> None:
+    """The frontier should distinguish the policy runner-up from the best excluded option."""
 
     summary = pd.DataFrame(
         [
@@ -370,9 +371,10 @@ def test_full_option_frontier_can_switch_to_non_runner_up_option() -> None:
     frontier = policy_frontier_analysis(summary, diagnostics, policy, recommendation)
 
     assert recommendation.selected_option == "stabilize_core"
-    assert recommendation.runner_up == "feature_extension"
+    assert recommendation.policy_runner_up == "do_nothing"
+    assert recommendation.best_excluded_option == "feature_extension"
     assert frontier["frontier_rows"][0]["first_switching_option"] == "do_nothing"
-    assert frontier["runner_up_comparison_rows"][0]["switching_value"] == -500000.0
+    assert frontier["secondary_comparison_rows"][2]["switching_value"] == 5000.0
 
 
 def test_policy_frontier_grids_respect_non_negative_threshold_domains() -> None:

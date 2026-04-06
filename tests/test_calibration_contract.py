@@ -29,11 +29,15 @@ def test_calibration_contract_covers_registry_targets_marked_for_future_telemetr
     )
 
 
-def test_parameter_candidates_empty_state_has_stable_schema() -> None:
-    """The empty evidence state should still emit a stable candidate schema."""
+def test_parameter_candidates_empty_state_has_stable_schema(tmp_path: Path) -> None:
+    """An empty evidence profile should still emit a stable candidate schema."""
 
     contract = load_calibration_contract(CALIBRATION_CONTRACT_PATH)
-    profile = profile_public_evidence("data/public", "data/public/sources.yaml")
+    data_dir = tmp_path / "public"
+    manifest_path = tmp_path / "sources.yaml"
+    data_dir.mkdir()
+    manifest_path.write_text("sources: []\n", encoding="utf-8")
+    profile = profile_public_evidence(data_dir, manifest_path)
     payload = build_parameter_candidates(profile, contract)
 
     assert payload["status"] == "awaiting_sources"

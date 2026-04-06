@@ -88,6 +88,7 @@ def test_published_json_and_fragments_match_fresh_generation(generated_artifact_
     }
     expected_text_files = {
         "parameter_registry.csv",
+        "driver_analysis.md",
         "recommendation.md",
         "summary_table.md",
         "diagnostics_table.md",

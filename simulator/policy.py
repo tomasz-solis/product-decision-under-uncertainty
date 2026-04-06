@@ -58,6 +58,18 @@ class RecommendationResult:
     best_excluded_regret_slack_eur: float | None
 
     @property
+    def runner_up(self) -> str | None:
+        """Return the legacy overall runner-up alias for backward compatibility."""
+
+        return self.best_excluded_option
+
+    @property
+    def runner_up_failure_reason(self) -> str | None:
+        """Return the legacy runner-up failure alias for backward compatibility."""
+
+        return self.best_excluded_failure_reason
+
+    @property
     def comparison_option(self) -> str | None:
         """Return the honest comparison option for diagnostics and narration."""
 
@@ -421,6 +433,7 @@ def policy_frontier_analysis(
         "comparison_option_role": recommendation.comparison_option_role,
         "frontier_rows": frontier_rows,
         "secondary_comparison_rows": comparison_rows,
+        "runner_up_comparison_rows": comparison_rows,
     }
 
 

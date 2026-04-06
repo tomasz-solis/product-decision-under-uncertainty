@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from numbers import Integral, Real
 from typing import Any
 
 import pandas as pd
@@ -466,7 +467,7 @@ def _markdown_table(frame: pd.DataFrame) -> str:
     """Render a small markdown table without optional dependencies."""
 
     headers = [str(column) for column in frame.columns]
-    rows = [[str(value) for value in row] for row in frame.values.tolist()]
+    rows = [[_markdown_scalar(value) for value in row] for row in frame.values.tolist()]
     separator = ["---"] * len(headers)
     lines = [
         "| " + " | ".join(headers) + " |",
@@ -475,3 +476,20 @@ def _markdown_table(frame: pd.DataFrame) -> str:
     for row in rows:
         lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines)
+
+
+def _markdown_scalar(value: Any) -> str:
+    """Return one stable markdown-cell string."""
+
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, Integral):
+        return str(int(value))
+    if isinstance(value, Real):
+        number = float(value)
+        if pd.isna(number):
+            return ""
+        return f"{round(number, 6):.6f}".rstrip("0").rstrip(".")
+    return str(value)
