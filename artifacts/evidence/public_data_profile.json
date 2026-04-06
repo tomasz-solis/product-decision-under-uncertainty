@@ -1,9 +1,88 @@
 {
-  "file_count": 0,
+  "file_count": 1,
   "input_dir": "data/public",
   "manifest_path": "data/public/sources.yaml",
-  "note": "No public sources are registered yet. Add a manifest entry and a supported raw file under data/public/, then rerun the profiler.",
-  "source_count": 0,
-  "sources": [],
-  "status": "ready_for_data"
+  "note": "All manifest-declared public sources matched the expected files and schema.",
+  "source_count": 1,
+  "sources": [
+    {
+      "assumption_families": [
+        "baseline_failure_rate"
+      ],
+      "column_count": 4,
+      "columns": [
+        "date",
+        "service_name",
+        "completion_rate",
+        "failure_rate"
+      ],
+      "date_ranges": {
+        "date": {
+          "max": "2024-03-01T00:00:00",
+          "min": "2023-03-01T00:00:00"
+        }
+      },
+      "dtypes": {
+        "completion_rate": "float64",
+        "date": "str",
+        "failure_rate": "float64",
+        "service_name": "str"
+      },
+      "duplicate_row_count": 0,
+      "expected_schema": {
+        "completion_rate": "float",
+        "date": "date",
+        "failure_rate": "float",
+        "service_name": "category"
+      },
+      "extraction_date": "2026-04-06",
+      "file_name": "hm_land_registry_search_completion_benchmark.csv",
+      "grain": "monthly_public_service_completion_rate",
+      "license": "Open Government Licence v3.0",
+      "low_cardinality_distinct_counts": {
+        "completion_rate": 13,
+        "date": 13,
+        "failure_rate": 13,
+        "service_name": 1
+      },
+      "missingness_by_column": {
+        "completion_rate": {
+          "missing_count": 0,
+          "missing_share": 0.0
+        },
+        "date": {
+          "missing_count": 0,
+          "missing_share": 0.0
+        },
+        "failure_rate": {
+          "missing_count": 0,
+          "missing_share": 0.0
+        },
+        "service_name": {
+          "missing_count": 0,
+          "missing_share": 0.0
+        }
+      },
+      "numeric_summaries": {
+        "completion_rate": {
+          "max": 0.9967,
+          "mean": 0.902846,
+          "median": 0.9004,
+          "min": 0.8347
+        },
+        "failure_rate": {
+          "max": 0.1653,
+          "mean": 0.097154,
+          "median": 0.0996,
+          "min": 0.0033
+        }
+      },
+      "publication": "HM Land Registry live service completion-rate data",
+      "row_count": 13,
+      "sha256": "004fe7bba9b246b0f3bf95c332a93689541481615c5d01bd91d540bec49b2e49",
+      "source_id": "hm_land_registry_search_completion_benchmark",
+      "source_url": "https://www.gov.uk/csv-preview/661665c11a70cf4b92093184/Live_Service_DataGov_stats_.csv"
+    }
+  ],
+  "status": "profiled"
 }

@@ -1,17 +1,17 @@
 {
+  "comparison_p05_range_eur": 25234.24506,
   "ev_leader_frequency": [
     {
-      "count": 15,
-      "ev_leader": "feature_extension"
+      "count": 24,
+      "ev_leader": "stabilize_core"
     }
   ],
   "recommendation_frequency": [
     {
-      "count": 15,
-      "selected_option": "do_nothing"
+      "count": 24,
+      "selected_option": "stabilize_core"
     }
   ],
-  "run_count": 15,
-  "runner_up_p05_range_eur": 23945.606622,
-  "selected_p05_range_eur": 2553.60876
+  "run_count": 24,
+  "selected_p05_range_eur": 24033.870629
 }

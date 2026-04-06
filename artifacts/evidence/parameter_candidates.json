@@ -3,17 +3,19 @@
     {
       "aggregation_window": "trailing_90_days",
       "assumption_family": "baseline_failure_rate",
-      "candidate_status": "awaiting_source",
-      "candidate_value": null,
+      "candidate_status": "candidate_ready",
+      "candidate_value": 0.09715384615384615,
       "derived_metric_name": "mean_failure_rate",
       "expected_output_artifact": "artifacts/evidence/parameter_candidates.json",
-      "matched_source_ids": [],
+      "matched_source_ids": [
+        "hm_land_registry_search_completion_benchmark"
+      ],
       "minimum_quality_checks": [
         "no_missing_failure_rate",
         "no_duplicate_rows",
         "date_column_is_monotonic"
       ],
-      "notes": "No profiled source currently targets this assumption family.",
+      "notes": "Profiled evidence matches the declared columns. Review the derived metric before updating the registry.",
       "required_columns": [
         "failure_rate",
         "date"
@@ -106,8 +108,8 @@
     "decision_policy.maximum_mean_regret_eur",
     "decision_policy.ev_tolerance_eur"
   ],
-  "profile_status": "ready_for_data",
-  "ready_candidate_count": 0,
-  "status": "awaiting_sources",
+  "profile_status": "profiled",
+  "ready_candidate_count": 1,
+  "status": "candidates_ready",
   "target_count": 4
 }

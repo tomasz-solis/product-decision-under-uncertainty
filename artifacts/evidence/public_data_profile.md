@@ -1,4 +1,7 @@
-- Status: `ready_for_data`.
-- Manifest: checked in and validated.
-- Raw files present: `0`.
-- Next step: add the first public source file under `data/public/` and rerun the profiler.
+- Status: `profiled`.
+- Source count: `1`.
+- File count: `1`.
+
+| Source ID | File | Rows | Duplicates | Columns |
+| --- | --- | --- | --- | --- |
+| hm_land_registry_search_completion_benchmark | hm_land_registry_search_completion_benchmark.csv | 13 | 0 | 4 |

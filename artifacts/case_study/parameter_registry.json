@@ -1,20 +1,22 @@
 [
   {
     "business_meaning": "Share of annual volume that fails on the legacy path before any intervention.",
-    "chosen_range_or_value": "0.02 / 0.05 / 0.1",
+    "chosen_range_or_value": "0.04 / 0.1 / 0.15",
     "distribution_type": "tri",
-    "evidence_ids": [],
-    "high": 0.1,
-    "last_updated": "2026-04-05",
-    "low": 0.02,
+    "evidence_ids": [
+      "hm_land_registry_search_completion_benchmark"
+    ],
+    "high": 0.15,
+    "last_updated": "2026-04-06",
+    "low": 0.04,
     "median": null,
-    "mode": 0.05,
+    "mode": 0.1,
     "owner": "Tomasz Solis",
     "p95": null,
     "parameter_name": "baseline_failure_rate",
-    "reason_for_range": "Wide enough to make reliability pressure matter without baking in a crisis narrative.",
-    "source_reference": "Synthetic case anchor based on generic checkout reliability ranges.",
-    "source_type": "illustrative_benchmark",
+    "reason_for_range": "Uses the public benchmark's rough P10, median, and P90 failure rates as an external anchor for a critical digital transaction path while keeping the domain mismatch explicit.",
+    "source_reference": "HM Land Registry live service data for Search (gov), March 2023 to March 2024. Modeled failure rate is 1 minus the published completion rate.",
+    "source_type": "public_open_data_benchmark",
     "unit": "share_of_volume",
     "value": null
   },

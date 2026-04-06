@@ -1,9 +1,13 @@
 {
-  "assumption_families": [],
-  "file_count": 0,
-  "note": "No public sources are registered yet. Add a manifest entry and a supported raw file under data/public/, then rerun the profiler.",
+  "assumption_families": [
+    "baseline_failure_rate"
+  ],
+  "file_count": 1,
+  "note": "All manifest-declared public sources matched the expected files and schema.",
   "note_artifact_path": "artifacts/evidence/public_data_profile.md",
-  "source_count": 0,
-  "source_ids": [],
-  "status": "ready_for_data"
+  "source_count": 1,
+  "source_ids": [
+    "hm_land_registry_search_completion_benchmark"
+  ],
+  "status": "profiled"
 }

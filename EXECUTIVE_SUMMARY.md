@@ -5,12 +5,13 @@ This is the shortest path to the current published result. For assumptions, form
 ## Recommendation
 
 <!-- GENERATED:EXEC_SUMMARY_RECOMMENDATION:START -->
-- Recommendation: **Do Nothing**.
+- Recommendation: **Stabilize Core**.
 - Policy: `guardrailed_expected_value`.
-- Why it wins: Do Nothing is the only option that passes both guardrails.
-- Best excluded alternative: **Feature Extension** has the strongest excluded EV case, but it misses the downside floor by about €247,304.
-- Expected-value comparison: the selected option trails **Feature Extension** by €44,651.
-- Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `4.0.0`.
+- Why it wins: No option clears both guardrails, so the policy falls back to expected value.
+- Guardrail reality: no option passes both guardrails, so **Stabilize Core** wins on expected value.
+- Best remaining excluded alternative: **Feature Extension**.
+- Expected-value comparison: the selected option leads **Feature Extension** by €176,174.
+- Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `5.0.0`.
 <!-- GENERATED:EXEC_SUMMARY_RECOMMENDATION:END -->
 
 ## Default run table
@@ -18,10 +19,10 @@ This is the shortest path to the current published result. For assumptions, form
 <!-- GENERATED:EXEC_SUMMARY_RESULTS:START -->
 | Option | Expected Value | P05 | Median | P95 |
 | --- | --- | --- | --- | --- |
-| Feature Extension | €-60,019 | €-547,304 | €-91,349 | €530,971 |
+| Stabilize Core | €373,233 | €-360,761 | €326,965 | €1,268,354 |
+| Feature Extension | €197,060 | €-420,804 | €156,314 | €944,158 |
 | Do Nothing | €-104,671 | €-145,374 | €-102,378 | €-69,716 |
-| Stabilize Core | €-207,577 | €-693,811 | €-249,949 | €431,055 |
-| New Capability | €-956,398 | €-1,382,691 | €-967,359 | €-492,711 |
+| New Capability | €-991,538 | €-1,408,501 | €-1,001,211 | €-539,891 |
 <!-- GENERATED:EXEC_SUMMARY_RESULTS:END -->
 
 ## What this summary is for

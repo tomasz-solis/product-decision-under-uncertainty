@@ -1,14 +1,17 @@
 {
-  "baseline_selected_option": "do_nothing",
+  "baseline_selected_option": "stabilize_core",
+  "best_excluded_option": "feature_extension",
+  "comparison_option": "feature_extension",
+  "comparison_option_role": "best_excluded_option",
   "frontier_rows": [
     {
       "all_options_considered": true,
       "current_value": -300000.0,
-      "first_switching_option": "feature_extension",
-      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the downside floor moves up past -145,373.57 EUR.",
-      "switch_direction": "more_restrictive",
-      "switch_type": "grid_bracket",
-      "switching_value": -145373.574751,
+      "first_switching_option": null,
+      "interpretation_note": "Re-evaluating the full option set across the tested threshold domain did not change the selected option.",
+      "switch_direction": null,
+      "switch_type": "no_switch_observed",
+      "switching_value": null,
       "threshold_label": "Downside floor",
       "threshold_name": "minimum_p05_value_eur",
       "unit": "eur"
@@ -16,11 +19,11 @@
     {
       "all_options_considered": true,
       "current_value": 450000.0,
-      "first_switching_option": "feature_extension",
-      "interpretation_note": "Full-option sweep: Do Nothing switches to Feature Extension once the regret cap moves down past 204,235.67 EUR.",
-      "switch_direction": "more_restrictive",
-      "switch_type": "grid_bracket",
-      "switching_value": 204235.668014,
+      "first_switching_option": "do_nothing",
+      "interpretation_note": "Full-option sweep: Stabilize Core switches to Do Nothing when the regret cap moves up to 609,360.57 EUR.",
+      "switch_direction": "more_permissive",
+      "switch_type": "exact_match",
+      "switching_value": 609360.573822,
       "threshold_label": "Regret cap",
       "threshold_name": "maximum_mean_regret_eur",
       "unit": "eur"
@@ -38,13 +41,13 @@
       "unit": "eur"
     }
   ],
-  "runner_up": "feature_extension",
-  "runner_up_comparison_rows": [
+  "policy_runner_up": null,
+  "secondary_comparison_rows": [
     {
       "current_value": -300000.0,
-      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -547,304.01 EUR.",
+      "interpretation_note": "Feature Extension becomes eligible on downside once the floor is relaxed to -420,803.72 EUR.",
       "status": "switch_observed",
-      "switching_value": -547304.009578,
+      "switching_value": -420803.720046,
       "threshold_label": "Downside floor",
       "threshold_name": "minimum_p05_value_eur",
       "unit": "eur"
@@ -68,5 +71,5 @@
       "unit": "eur"
     }
   ],
-  "selected_option": "do_nothing"
+  "selected_option": "stabilize_core"
 }

@@ -1,25 +1,44 @@
 {
   "convergence_rows": [
     {
+      "consistency_target_met": true,
       "recommendation_consistency": 1.0,
-      "run_count": 5,
-      "selected_ev_std_eur": 213.13737,
-      "selected_p05_std_eur": 406.082053,
+      "run_count": 6,
+      "selected_ev_range_eur": 12313.39738,
+      "selected_ev_std_eur": 4103.626321,
+      "selected_p05_range_eur": 24033.870629,
+      "selected_p05_std_eur": 7582.662322,
       "world_count": 5000
     },
     {
+      "consistency_target_met": true,
       "recommendation_consistency": 1.0,
-      "run_count": 5,
-      "selected_ev_std_eur": 248.798547,
-      "selected_p05_std_eur": 621.840731,
+      "run_count": 6,
+      "selected_ev_range_eur": 15350.017276,
+      "selected_ev_std_eur": 4697.819849,
+      "selected_p05_range_eur": 16211.794346,
+      "selected_p05_std_eur": 5069.319992,
       "world_count": 10000
     },
     {
+      "consistency_target_met": true,
       "recommendation_consistency": 1.0,
-      "run_count": 5,
-      "selected_ev_std_eur": 110.399593,
-      "selected_p05_std_eur": 394.520007,
+      "run_count": 6,
+      "selected_ev_range_eur": 12789.854273,
+      "selected_ev_std_eur": 4357.899094,
+      "selected_p05_range_eur": 11015.138784,
+      "selected_p05_std_eur": 3822.326607,
       "world_count": 20000
+    },
+    {
+      "consistency_target_met": true,
+      "recommendation_consistency": 1.0,
+      "run_count": 6,
+      "selected_ev_range_eur": 10230.50699,
+      "selected_ev_std_eur": 3052.347796,
+      "selected_p05_range_eur": 10654.470878,
+      "selected_p05_std_eur": 3442.31377,
+      "world_count": 40000
     }
   ],
   "frontier_stability_rows": [
@@ -32,44 +51,191 @@
       "threshold_name": "ev_tolerance_eur"
     },
     {
-      "switch_type_modes": "grid_bracket",
-      "switching_options_observed": "Feature Extension",
-      "switching_value_max": 204235.668014,
-      "switching_value_min": 197242.437604,
+      "switch_type_modes": "exact_match",
+      "switching_options_observed": "Do Nothing",
+      "switching_value_max": 609360.573822,
+      "switching_value_min": 594458.396419,
       "threshold_label": "Regret cap",
       "threshold_name": "maximum_mean_regret_eur"
     },
     {
-      "switch_type_modes": "grid_bracket",
-      "switching_options_observed": "Feature Extension",
-      "switching_value_max": -144580.119938,
-      "switching_value_min": -147133.728698,
+      "switch_type_modes": "no_switch_observed",
+      "switching_options_observed": "none",
+      "switching_value_max": null,
+      "switching_value_min": null,
       "threshold_label": "Downside floor",
       "threshold_name": "minimum_p05_value_eur"
     }
   ],
-  "selected_option": "do_nothing",
+  "metric_error_rows": [
+    {
+      "mean_value_range_eur": 574.991169,
+      "option": "do_nothing",
+      "p05_value_range_eur": 1187.732788,
+      "world_count": 5000
+    },
+    {
+      "mean_value_range_eur": 11078.193779,
+      "option": "feature_extension",
+      "p05_value_range_eur": 17387.170141,
+      "world_count": 5000
+    },
+    {
+      "mean_value_range_eur": 5043.62274,
+      "option": "new_capability",
+      "p05_value_range_eur": 16131.56764,
+      "world_count": 5000
+    },
+    {
+      "mean_value_range_eur": 12313.39738,
+      "option": "stabilize_core",
+      "p05_value_range_eur": 24033.870629,
+      "world_count": 5000
+    },
+    {
+      "mean_value_range_eur": 687.231818,
+      "option": "do_nothing",
+      "p05_value_range_eur": 1804.175681,
+      "world_count": 10000
+    },
+    {
+      "mean_value_range_eur": 13586.083964,
+      "option": "feature_extension",
+      "p05_value_range_eur": 17278.492876,
+      "world_count": 10000
+    },
+    {
+      "mean_value_range_eur": 6127.906007,
+      "option": "new_capability",
+      "p05_value_range_eur": 13430.470092,
+      "world_count": 10000
+    },
+    {
+      "mean_value_range_eur": 15350.017276,
+      "option": "stabilize_core",
+      "p05_value_range_eur": 16211.794346,
+      "world_count": 10000
+    },
+    {
+      "mean_value_range_eur": 317.532848,
+      "option": "do_nothing",
+      "p05_value_range_eur": 1080.829976,
+      "world_count": 20000
+    },
+    {
+      "mean_value_range_eur": 9738.126869,
+      "option": "feature_extension",
+      "p05_value_range_eur": 7996.616018,
+      "world_count": 20000
+    },
+    {
+      "mean_value_range_eur": 5750.057252,
+      "option": "new_capability",
+      "p05_value_range_eur": 15984.609209,
+      "world_count": 20000
+    },
+    {
+      "mean_value_range_eur": 12789.854273,
+      "option": "stabilize_core",
+      "p05_value_range_eur": 11015.138784,
+      "world_count": 20000
+    },
+    {
+      "mean_value_range_eur": 439.909523,
+      "option": "do_nothing",
+      "p05_value_range_eur": 614.46537,
+      "world_count": 40000
+    },
+    {
+      "mean_value_range_eur": 5988.993105,
+      "option": "feature_extension",
+      "p05_value_range_eur": 7512.740908,
+      "world_count": 40000
+    },
+    {
+      "mean_value_range_eur": 2045.21212,
+      "option": "new_capability",
+      "p05_value_range_eur": 8046.824338,
+      "world_count": 40000
+    },
+    {
+      "mean_value_range_eur": 10230.50699,
+      "option": "stabilize_core",
+      "p05_value_range_eur": 10654.470878,
+      "world_count": 40000
+    }
+  ],
+  "selected_option": "stabilize_core",
   "stress_test_rows": [
     {
-      "parameter": "do_nothing_drift_cost_eur",
-      "recommendation_changed": false,
+      "parameter": "baseline_failure_rate",
+      "recommendation_changed": true,
       "selected_option": "do_nothing",
       "stress_level": "low",
-      "tested_value": 30000.0
+      "tested_value": 0.04
     },
     {
-      "parameter": "do_nothing_drift_cost_eur",
+      "parameter": "baseline_failure_rate",
       "recommendation_changed": false,
-      "selected_option": "do_nothing",
+      "selected_option": "stabilize_core",
       "stress_level": "base",
-      "tested_value": 50000.0
+      "tested_value": 0.1
     },
     {
-      "parameter": "do_nothing_drift_cost_eur",
+      "parameter": "baseline_failure_rate",
       "recommendation_changed": false,
-      "selected_option": "do_nothing",
+      "selected_option": "stabilize_core",
       "stress_level": "high",
-      "tested_value": 90000.0
+      "tested_value": 0.15
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "low",
+      "tested_value": 0.4
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "base",
+      "tested_value": 0.6
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "high",
+      "tested_value": 0.8
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "paired_all_adverse",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "paired_all_supportive",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "paired_opposing_challenge",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "feature_extension",
+      "stress_level": "paired_opposing_relief",
+      "tested_value": "paired override"
     }
   ]
 }

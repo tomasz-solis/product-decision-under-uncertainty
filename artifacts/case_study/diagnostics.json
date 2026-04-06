@@ -1,30 +1,30 @@
 [
   {
-    "mean_regret_eur": 159584.342955,
-    "median_regret_eur": 69118.648373,
-    "option": "feature_extension",
-    "p95_regret_eur": 548930.992277,
-    "win_rate": 0.4174
-  },
-  {
-    "mean_regret_eur": 204235.668014,
-    "median_regret_eur": 102421.252224,
-    "option": "do_nothing",
-    "p95_regret_eur": 714253.764538,
-    "win_rate": 0.3742
-  },
-  {
-    "mean_regret_eur": 307141.792092,
-    "median_regret_eur": 283040.22353,
+    "mean_regret_eur": 131456.508832,
+    "median_regret_eur": 0.0,
     "option": "stabilize_core",
-    "p95_regret_eur": 778388.685576,
-    "win_rate": 0.20755
+    "p95_regret_eur": 613540.534374,
+    "win_rate": 0.58135
   },
   {
-    "mean_regret_eur": 1055962.743339,
-    "median_regret_eur": 1039449.025049,
+    "mean_regret_eur": 307630.153475,
+    "median_regret_eur": 185872.722686,
+    "option": "feature_extension",
+    "p95_regret_eur": 1045854.439613,
+    "win_rate": 0.33645
+  },
+  {
+    "mean_regret_eur": 609360.573822,
+    "median_regret_eur": 559780.556007,
+    "option": "do_nothing",
+    "p95_regret_eur": 1417442.645862,
+    "win_rate": 0.0821
+  },
+  {
+    "mean_regret_eur": 1496228.231063,
+    "median_regret_eur": 1459030.005974,
     "option": "new_capability",
-    "p95_regret_eur": 1693140.020483,
-    "win_rate": 0.00085
+    "p95_regret_eur": 2389646.758242,
+    "win_rate": 0.0001
   }
 ]
