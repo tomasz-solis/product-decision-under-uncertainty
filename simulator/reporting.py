@@ -42,6 +42,7 @@ from simulator.output_utils import (
     format_pct,
     format_threshold_eur_markdown,
     labeled_option,
+    material_driver_rows,
 )
 from simulator.policy import (
     FAILURE_REASON_LABELS,
@@ -789,13 +790,11 @@ def build_sensitivity_markdown(artifacts: CaseStudyArtifacts) -> str:
         "",
     ]
     for option in sorted(artifacts.driver_analysis["option"].unique()):
-        rows = (
-            artifacts.driver_analysis.loc[artifacts.driver_analysis["option"] == option]
-            .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
-            .sort_values("abs_partial_rank_corr", ascending=False)
-            .loc[lambda frame: frame["abs_partial_rank_corr"] >= threshold]
-            .head(limit)
-            .copy()
+        rows = material_driver_rows(
+            driver_analysis=artifacts.driver_analysis,
+            option=str(option),
+            threshold=threshold,
+            limit=limit,
         )
         sections.append(f"### {labeled_option(str(option))}")
         if rows.empty:

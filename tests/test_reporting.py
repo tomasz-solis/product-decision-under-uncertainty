@@ -6,6 +6,9 @@ import re
 from pathlib import Path
 from typing import cast
 
+import pandas as pd
+
+from simulator.output_utils import material_driver_rows
 from simulator.policy import PolicyFrontierRow
 from simulator.reporting import (
     build_case_study_artifacts,
@@ -69,6 +72,49 @@ def test_sensitivity_markdown_suppresses_noise_for_do_nothing() -> None:
     assert "do_nothing_drift_cost_eur" in do_nothing_section
     assert "Partial rank corr" in do_nothing_section
     assert "baseline_failure_rate" not in do_nothing_section
+    assert "stabilize_core_upfront_cost_eur" not in do_nothing_section
+
+
+def test_material_driver_rows_drop_intervals_that_cross_zero() -> None:
+    """Borderline driver rows should not survive when the interval still includes zero."""
+
+    driver_analysis = pd.DataFrame(
+        [
+            {
+                "option": "do_nothing",
+                "parameter": "do_nothing_drift_cost_eur",
+                "partial_rank_corr": 1.0,
+                "ci_low": 1.0,
+                "ci_high": 1.0,
+            },
+            {
+                "option": "do_nothing",
+                "parameter": "stabilize_core_upfront_cost_eur",
+                "partial_rank_corr": 0.11,
+                "ci_low": -0.04,
+                "ci_high": 0.05,
+            },
+            {
+                "option": "do_nothing",
+                "parameter": "feature_extension_regression_prob_multiplier",
+                "partial_rank_corr": 0.10,
+                "ci_low": 0.02,
+                "ci_high": 0.16,
+            },
+        ]
+    )
+
+    rows = material_driver_rows(
+        driver_analysis=driver_analysis,
+        option="do_nothing",
+        threshold=0.10,
+        limit=3,
+    )
+
+    assert list(rows["parameter"]) == [
+        "do_nothing_drift_cost_eur",
+        "feature_extension_regression_prob_multiplier",
+    ]
 
 
 def test_payoff_delta_markdown_stays_descriptive_and_drops_fake_thresholds() -> None:

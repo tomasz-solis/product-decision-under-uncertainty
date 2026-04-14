@@ -168,7 +168,6 @@ This section is the decision-support view. It uses partial rank correlation with
 | Parameter | Partial rank corr | 95% CI |
 | --- | --- | --- |
 | do_nothing_drift_cost_eur | +1.00 | +1.00 to +1.00 |
-| stabilize_core_upfront_cost_eur | -0.11 | -0.04 to +0.05 |
 
 ### Feature Extension
 | Parameter | Partial rank corr | 95% CI |

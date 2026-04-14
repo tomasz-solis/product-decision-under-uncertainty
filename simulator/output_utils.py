@@ -58,6 +58,12 @@ def clean_label(text: str) -> str:
     return text.replace("_", " ").replace("-", " ").title()
 
 
+def confidence_interval_excludes_zero(ci_low: float, ci_high: float) -> bool:
+    """Return whether a confidence interval stays on one side of zero."""
+
+    return (ci_low > 0.0 and ci_high > 0.0) or (ci_low < 0.0 and ci_high < 0.0)
+
+
 def material_sensitivity_rows(
     sensitivity: pd.DataFrame,
     option: str,
@@ -109,7 +115,18 @@ def material_driver_rows(
         .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
         .sort_values("abs_partial_rank_corr", ascending=False)
     )
-    rows = rows.loc[rows["abs_partial_rank_corr"] >= threshold].head(limit).copy()
+    rows = rows.loc[rows["abs_partial_rank_corr"] >= threshold]
+    if {"ci_low", "ci_high"}.issubset(rows.columns):
+        rows = rows.loc[
+            rows.apply(
+                lambda row: confidence_interval_excludes_zero(
+                    float(row["ci_low"]),
+                    float(row["ci_high"]),
+                ),
+                axis=1,
+            )
+        ]
+    rows = rows.head(limit).copy()
     return rows.drop(columns=["abs_partial_rank_corr"], errors="ignore").reset_index(drop=True)
 
 
