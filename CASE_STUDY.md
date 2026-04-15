@@ -25,6 +25,12 @@ This is the published case-study view of the current model. For the repo map and
 - Formula appendix: [simulator/formulas.md](simulator/formulas.md)
 - Config and policy: [simulator/config.yaml](simulator/config.yaml)
 
+## Validation seam
+
+- One public proxy dataset currently feeds the evidence workflow for `baseline_failure_rate`.
+- That evidence produces a candidate metric in [artifacts/evidence/parameter_candidates.json](artifacts/evidence/parameter_candidates.json).
+- It does not automatically rewrite the model config yet because the checked-in source is still a proxy benchmark, not a like-for-like SaaS checkout dataset.
+
 ## Published recommendation
 
 <!-- GENERATED:CASE_STUDY_RECOMMENDATION:START -->
@@ -167,28 +173,16 @@ This section is the decision-support view. It uses partial rank correlation with
 ### Do Nothing
 | Parameter | Partial rank corr | 95% CI |
 | --- | --- | --- |
-| do_nothing_drift_cost_eur | +1.00 | +1.00 to +1.00 |
+| do_nothing_drift_cost_eur | -1.00 | -1.00 to -1.00 |
 
 ### Feature Extension
-| Parameter | Partial rank corr | 95% CI |
-| --- | --- | --- |
-| extension_uptake | +0.94 | +0.93 to +0.94 |
-| extension_value_per_uptake_eur | +0.70 | +0.69 to +0.71 |
-| baseline_failure_rate | +0.61 | +0.60 to +0.62 |
+No decision-support driver cleared the current materiality threshold of |partial rho| >= 0.10.
 
 ### New Capability
-| Parameter | Partial rank corr | 95% CI |
-| --- | --- | --- |
-| new_capability_uplift | +0.86 | +0.86 to +0.86 |
-| new_capability_cost_overrun_multiplier | -0.76 | -0.77 to -0.76 |
-| value_per_success_eur | +0.58 | +0.57 to +0.59 |
+No decision-support driver cleared the current materiality threshold of |partial rho| >= 0.10.
 
 ### Stabilize Core
-| Parameter | Partial rank corr | 95% CI |
-| --- | --- | --- |
-| baseline_failure_rate | +0.86 | +0.85 to +0.86 |
-| stabilize_failure_reduction | +0.85 | +0.85 to +0.86 |
-| stabilize_core_launch_delay_months | -0.62 | -0.64 to -0.62 |
+No decision-support driver cleared the current materiality threshold of |partial rho| >= 0.10.
 <!-- GENERATED:CASE_STUDY_SENSITIVITY:END -->
 
 ## How to read the result
@@ -197,3 +191,4 @@ This section is the decision-support view. It uses partial rank correlation with
 - `Do Nothing` is not a victory lap result. It survives because it is the only option that clears the current guardrails.
 - The scenario table is a worldview exercise, not just an option-effectiveness toggle. It lets exogenous business conditions move too.
 - The payoff-delta section is descriptive. The policy-frontier section is the one that answers what would need to change for the recommendation to flip.
+- The robustness artifact now includes a dependency ablation that reruns the model with all configured correlations set to zero. Use it to check whether the copula changes the recommendation or mainly changes the downside shape.

@@ -1,8 +1,9 @@
 # Product Decision Under Uncertainty
+[![CI](https://github.com/tomasz-solis/product-decision-under-uncertainty/actions/workflows/ci.yml/badge.svg)](https://github.com/tomasz-solis/product-decision-under-uncertainty/actions/workflows/ci.yml)
 
 This repo is a small decision-analysis case study built around one product-platform choice, one synthetic published example, and one reproducible artifact pipeline.
 
-In the default run, `Feature Extension` has the best expected value, but `Do Nothing` is still the recommendation because it is the only option that clears the downside and regret guardrails.
+In the current published run, `Stabilize Core` is the recommendation. No option clears both guardrails, so the policy falls back to expected value and `Stabilize Core` leads the field on that measure.
 
 ## Scope and evidence
 
@@ -19,6 +20,34 @@ There is no private company telemetry here. What is here is the assumption chain
 - Generated JSON and markdown artifacts for the published case, including guardrail eligibility, a full-option policy frontier, stability diagnostics, and a separate robustness artifact
 - A small Streamlit app for exploratory reruns of the same model
 
+## Module map
+
+```mermaid
+graph TD
+    app["app.py\n(Streamlit UI)"]
+    config["simulator/config\n(load · validate · scenarios)"]
+    sim["simulator/simulation\n(Monte Carlo · options)"]
+    analytics["simulator/analytics\n(summarize · sensitivity · drivers)"]
+    policy["simulator/policy\n(guardrails · frontier · recommendation)"]
+    provenance["simulator/provenance\n(registries · manifest)"]
+    reporting["simulator/reporting\n(artifact generation)"]
+    robustness["simulator/robustness\n(convergence · stress tests)"]
+
+    app --> config
+    app --> sim
+    app --> analytics
+    app --> policy
+    app --> provenance
+    app --> reporting
+    sim --> config
+    analytics --> sim
+    policy --> analytics
+    reporting --> analytics
+    reporting --> policy
+    robustness --> analytics
+    robustness --> policy
+```
+
 ## Install and run
 
 This repo is `uv` first.
@@ -31,6 +60,20 @@ Generate the published artifacts:
 
 ```bash
 uv run python scripts/generate_case_study_artifacts.py
+```
+
+If you already activated a virtual environment by hand, make sure it is this
+project's `.venv`. Otherwise `uv` will warn that the active environment does
+not match. In that case, either:
+
+```bash
+source .venv/bin/activate
+```
+
+or:
+
+```bash
+uv run --active python scripts/generate_case_study_artifacts.py
 ```
 
 Run the app:
@@ -64,7 +107,7 @@ uv run --extra dev mypy app.py simulator tests
 
 ## Evidence workflow
 
-The first public calibration dataset is not checked in yet. The repo does already define what happens when it arrives: manifest validation, evidence profiling, a calibration contract, and candidate-metric artifacts.
+One public proxy dataset is checked in now. It exercises the evidence pipeline for `baseline_failure_rate`, but it is still treated as a proxy challenge input rather than a like-for-like calibration source. The repo also defines the broader workflow for future evidence: manifest validation, evidence profiling, a calibration contract, and candidate-metric artifacts.
 
 - Evidence note: [simulator/data_sources.md](simulator/data_sources.md)
 - Public-data staging folder: [data/public/README.md](data/public/README.md)

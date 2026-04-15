@@ -41,6 +41,65 @@
       "world_count": 40000
     }
   ],
+  "dependency_ablation": {
+    "comparison_rows": [
+      {
+        "correlated_mean_value_eur": -104670.596932,
+        "correlated_p05_value_eur": -145373.574751,
+        "independent_mean_value_eur": -104635.377626,
+        "independent_p05_value_eur": -145589.021658,
+        "mean_value_delta_eur": -35.219306,
+        "option": "do_nothing",
+        "option_label": "Do Nothing",
+        "p05_value_delta_eur": 215.446907
+      },
+      {
+        "correlated_mean_value_eur": 373233.468058,
+        "correlated_p05_value_eur": -360761.416674,
+        "independent_mean_value_eur": 341973.625789,
+        "independent_p05_value_eur": -306541.279637,
+        "mean_value_delta_eur": 31259.842269,
+        "option": "stabilize_core",
+        "option_label": "Stabilize Core",
+        "p05_value_delta_eur": -54220.137037
+      },
+      {
+        "correlated_mean_value_eur": 197059.823415,
+        "correlated_p05_value_eur": -420803.720046,
+        "independent_mean_value_eur": 169177.136693,
+        "independent_p05_value_eur": -379416.724567,
+        "mean_value_delta_eur": 27882.686723,
+        "option": "feature_extension",
+        "option_label": "Feature Extension",
+        "p05_value_delta_eur": -41386.995479
+      },
+      {
+        "correlated_mean_value_eur": -991538.254173,
+        "correlated_p05_value_eur": -1408500.775471,
+        "independent_mean_value_eur": -986144.078217,
+        "independent_p05_value_eur": -1392532.791016,
+        "mean_value_delta_eur": -5394.175956,
+        "option": "new_capability",
+        "option_label": "New Capability",
+        "p05_value_delta_eur": -15967.984455
+      }
+    ],
+    "correlated_selected_option": "stabilize_core",
+    "independent_selected_option": "stabilize_core",
+    "interpretation": "Negative delta means the configured dependency layer makes the metric worse than the independence baseline for the same option and run settings.",
+    "n_worlds": 20000,
+    "recommendation_changed": false,
+    "scenario": "mid_range_pressure",
+    "seed": 42,
+    "selected_option": "stabilize_core",
+    "selected_option_label": "Stabilize Core",
+    "selected_option_mean_correlated_eur": 373233.468058,
+    "selected_option_mean_delta_eur": 31259.842269,
+    "selected_option_mean_independent_eur": 341973.625789,
+    "selected_option_p05_correlated_eur": -360761.416674,
+    "selected_option_p05_delta_eur": -54220.137037,
+    "selected_option_p05_independent_eur": -306541.279637
+  },
   "frontier_stability_rows": [
     {
       "switch_type_modes": "no_switch_observed",
@@ -166,76 +225,5 @@
     }
   ],
   "selected_option": "stabilize_core",
-  "stress_test_rows": [
-    {
-      "parameter": "baseline_failure_rate",
-      "recommendation_changed": true,
-      "selected_option": "do_nothing",
-      "stress_level": "low",
-      "tested_value": 0.04
-    },
-    {
-      "parameter": "baseline_failure_rate",
-      "recommendation_changed": false,
-      "selected_option": "stabilize_core",
-      "stress_level": "base",
-      "tested_value": 0.1
-    },
-    {
-      "parameter": "baseline_failure_rate",
-      "recommendation_changed": false,
-      "selected_option": "stabilize_core",
-      "stress_level": "high",
-      "tested_value": 0.15
-    },
-    {
-      "parameter": "stabilize_failure_reduction",
-      "recommendation_changed": true,
-      "selected_option": "do_nothing",
-      "stress_level": "low",
-      "tested_value": 0.4
-    },
-    {
-      "parameter": "stabilize_failure_reduction",
-      "recommendation_changed": false,
-      "selected_option": "stabilize_core",
-      "stress_level": "base",
-      "tested_value": 0.6
-    },
-    {
-      "parameter": "stabilize_failure_reduction",
-      "recommendation_changed": false,
-      "selected_option": "stabilize_core",
-      "stress_level": "high",
-      "tested_value": 0.8
-    },
-    {
-      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
-      "recommendation_changed": true,
-      "selected_option": "do_nothing",
-      "stress_level": "paired_all_adverse",
-      "tested_value": "paired override"
-    },
-    {
-      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
-      "recommendation_changed": false,
-      "selected_option": "stabilize_core",
-      "stress_level": "paired_all_supportive",
-      "tested_value": "paired override"
-    },
-    {
-      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
-      "recommendation_changed": true,
-      "selected_option": "do_nothing",
-      "stress_level": "paired_opposing_challenge",
-      "tested_value": "paired override"
-    },
-    {
-      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
-      "recommendation_changed": true,
-      "selected_option": "feature_extension",
-      "stress_level": "paired_opposing_relief",
-      "tested_value": "paired override"
-    }
-  ]
+  "stress_test_rows": []
 }

@@ -1,5 +1,16 @@
 - Baseline selected option: **Stabilize Core**.
 - This artifact separates convergence, frontier stability, and directional driver stress.
+- Dependency ablation: the correlated run selects **Stabilize Core**, while the independence rerun selects **Stabilize Core**.
+- For the correlated selected option, downside P05 moves from **-306541.279637** under independence to **-360761.416674** with dependencies.
+
+Dependency ablation by option:
+
+| Option | Correlated EV (EUR) | Independent EV (EUR) | Correlated P05 (EUR) | Independent P05 (EUR) |
+| --- | --- | --- | --- | --- |
+| Do Nothing | -104670.596932 | -104635.377626 | -145373.574751 | -145589.021658 |
+| Stabilize Core | 373233.468058 | 341973.625789 | -360761.416674 | -306541.279637 |
+| Feature Extension | 197059.823415 | 169177.136693 | -420803.720046 | -379416.724567 |
+| New Capability | -991538.254173 | -986144.078217 | -1408500.775471 | -1392532.791016 |
 
 Convergence by world count:
 
@@ -43,13 +54,3 @@ Directional stress tests on the strongest material drivers:
 
 | Parameter | Stress level | Tested value | Selected option | Recommendation changed? |
 | --- | --- | --- | --- | --- |
-| baseline_failure_rate | low | 0.04 | Do Nothing | yes |
-| baseline_failure_rate | base | 0.1 | Stabilize Core | no |
-| baseline_failure_rate | high | 0.15 | Stabilize Core | no |
-| stabilize_failure_reduction | low | 0.4 | Do Nothing | yes |
-| stabilize_failure_reduction | base | 0.6 | Stabilize Core | no |
-| stabilize_failure_reduction | high | 0.8 | Stabilize Core | no |
-| baseline_failure_rate + stabilize_failure_reduction | paired_all_adverse | paired override | Do Nothing | yes |
-| baseline_failure_rate + stabilize_failure_reduction | paired_all_supportive | paired override | Stabilize Core | no |
-| baseline_failure_rate + stabilize_failure_reduction | paired_opposing_challenge | paired override | Do Nothing | yes |
-| baseline_failure_rate + stabilize_failure_reduction | paired_opposing_relief | paired override | Feature Extension | yes |

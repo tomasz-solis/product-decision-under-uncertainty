@@ -29,6 +29,8 @@ The model keeps marginal distributions in config, then applies a small Gaussian-
 
 The dependency map is small on purpose. It is there to avoid the weaker assumption that every uncertain variable moves independently.
 
+The tradeoff behind that choice is documented in [docs/adr/adr-001-gaussian-copula.md](docs/adr/adr-001-gaussian-copula.md).
+
 ## 4. Model timing, delivery, and value realization
 
 Each intervention option now has:
@@ -70,7 +72,7 @@ The generator script writes JSON, CSV, and markdown fragments into [artifacts/ca
 
 ## 8. Prepare the public-evidence seam honestly
 
-There is still no real public calibration slice in the published case. What is ready now is the evidence-to-parameter contract:
+There is now one checked-in public proxy slice for `baseline_failure_rate`, but not yet a like-for-like calibration source for the full model. What is ready now is the evidence-to-parameter contract:
 
 - raw files belong in [data/public/README.md](data/public/README.md)
 - each raw file needs a manifest entry in [data/public/sources.yaml](data/public/sources.yaml)

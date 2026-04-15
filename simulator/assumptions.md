@@ -1,6 +1,6 @@
 # Assumptions
 
-This file defines the main assumption names used in the case study. For provenance, see [parameter_provenance.md](parameter_provenance.md).
+This file defines the main assumption names used in the case study. For provenance, see [parameter_provenance.md](parameter_provenance.md). For the dependency-modeling choice, see [../docs/adr/adr-001-gaussian-copula.md](../docs/adr/adr-001-gaussian-copula.md).
 
 ## Core economics
 
