@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict, dataclass
 from typing import TypedDict
 
@@ -10,6 +11,8 @@ import pandas as pd
 
 from simulator.config import AnalysisConfig, DecisionPolicyConfig
 from simulator.output_utils import labeled_option
+
+logger = logging.getLogger(__name__)
 
 FAILURE_REASON_LABELS = {
     "misses_downside_floor": "fails the downside floor",
@@ -175,6 +178,7 @@ class PolicyFrontierResult(TypedDict):
     comparison_option_role: str | None
     frontier_rows: list[PolicyFrontierRow]
     secondary_comparison_rows: list[RunnerUpFrontierRow]
+    runner_up_comparison_rows: list[RunnerUpFrontierRow]
 
 
 @dataclass(frozen=True)
@@ -281,7 +285,7 @@ def select_recommendation(
     )
     selected_lookup = scored_indexed.loc[selected_option]
 
-    return RecommendationResult(
+    result = RecommendationResult(
         policy_name=policy.name,
         selected_option=selected_option,
         policy_runner_up=policy_runner_up_option,
@@ -308,6 +312,13 @@ def select_recommendation(
         best_excluded_downside_slack_eur=_optional_float(best_excluded_option, "downside_slack_eur"),
         best_excluded_regret_slack_eur=_optional_float(best_excluded_option, "regret_slack_eur"),
     )
+    logger.debug(
+        "Selected '%s' via '%s' (binding_constraint=%s).",
+        result.selected_option,
+        result.policy_name,
+        result.binding_constraint,
+    )
+    return result
 
 
 def payoff_delta_diagnostic(

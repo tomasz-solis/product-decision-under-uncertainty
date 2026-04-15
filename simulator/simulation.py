@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+import logging
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from simulator.config import (
+    REQUIRED_PARAMS,
     ParamSpec,
     apply_scenario,
     get_decision_policy,
@@ -24,6 +27,8 @@ from simulator.config import (
     parse_param_specs,
     validate_config,
 )
+
+logger = logging.getLogger(__name__)
 
 OPTION_COLUMNS = [
     "do_nothing",
@@ -83,6 +88,25 @@ def sample_params(
     return pd.DataFrame(data)
 
 
+def _assert_params_schema(params: pd.DataFrame, expected_columns: set[str]) -> None:
+    """Raise when sampled parameters are incomplete or contain null values."""
+
+    missing = expected_columns - set(params.columns)
+    if missing:
+        raise ValueError(
+            f"Sampled parameter frame is missing required columns: {sorted(missing)}. "
+            "Check that all required parameters are present in the config."
+        )
+
+    null_counts = params.isnull().sum()
+    null_params = null_counts[null_counts > 0]
+    if not null_params.empty:
+        raise ValueError(
+            f"Sampled parameter frame contains null values in: {null_params.to_dict()}. "
+            "This usually means one parameter distribution produced invalid draws."
+        )
+
+
 def _sample_param(spec: ParamSpec, rng: np.random.Generator, size: int) -> np.ndarray:
     """Sample a parameter spec into a NumPy array."""
 
@@ -113,10 +137,33 @@ def run_simulation(
     seed: int | None = None,
     scenario: str | None = None,
     param_overrides: dict[str, ParamOverride] | None = None,
+    dependency_overrides: dict[str, dict[str, float]] | None = None,
 ) -> pd.DataFrame:
     """Run one scenario and return parameters plus option outcomes per world."""
 
     cfg = load_config(config_path)
+    return _run_simulation_from_config(
+        cfg,
+        n_worlds=n_worlds,
+        seed=seed,
+        scenario=scenario,
+        param_overrides=param_overrides,
+        dependency_overrides=dependency_overrides,
+    )
+
+
+def _run_simulation_from_config(
+    cfg: dict[str, Any],
+    *,
+    n_worlds: int | None = None,
+    seed: int | None = None,
+    scenario: str | None = None,
+    param_overrides: dict[str, ParamOverride] | None = None,
+    dependency_overrides: dict[str, dict[str, float]] | None = None,
+) -> pd.DataFrame:
+    """Run one scenario from a loaded config mapping."""
+
+    cfg = copy.deepcopy(cfg)
     validate_config(cfg)
     simulation = get_simulation_settings(cfg)
 
@@ -137,12 +184,23 @@ def run_simulation(
     param_seed, shared_risk_seed = seed_sequence.spawn(2)
 
     param_specs = parse_param_specs(cfg)
-    dependencies = get_dependency_settings(cfg)
+    dependencies = (
+        get_dependency_settings(cfg)
+        if dependency_overrides is None
+        else dict(dependency_overrides)
+    )
     params = sample_params(
         simulation["n_worlds"],
         param_specs,
         seed=int(param_seed.generate_state(1)[0]),
         dependencies=dependencies,
+    )
+    _assert_params_schema(params, REQUIRED_PARAMS)
+    logger.debug(
+        "Sampled %d worlds for scenario '%s' (seed=%d).",
+        simulation["n_worlds"],
+        simulation["scenario"],
+        chosen_seed,
     )
 
     horizon_years = float(simulation["time_horizon_years"])

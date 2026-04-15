@@ -250,3 +250,36 @@ def sensitivity_summary_note(
     if "partial_rank_corr" in sensitivity.columns:
         return driver_note(sensitivity, option, threshold)
     return sensitivity_note(sensitivity, option, threshold)
+
+
+def driver_analysis_interpretation_note(
+    driver_df: pd.DataFrame,
+    selected_option: str,
+    top_n: int = 3,
+) -> str:
+    """Return a plain-English sentence summarizing the strongest driver findings."""
+
+    option_rows = (
+        driver_df.loc[driver_df["option"] == selected_option]
+        .sort_values("partial_rank_corr", key=abs, ascending=False)
+        .head(top_n)
+    )
+    if option_rows.empty:
+        return "No material drivers identified for this option."
+
+    parts: list[str] = []
+    for _, row in option_rows.iterrows():
+        name = clean_label(str(row["parameter"]))
+        direction = "higher tends to help" if float(row["partial_rank_corr"]) > 0 else "lower tends to help"
+        parts.append(f"{name} ({direction})")
+
+    if len(parts) == 1:
+        top_names = parts[0]
+    else:
+        top_names = ", ".join(parts[:-1]) + f", and {parts[-1]}"
+
+    return (
+        "Holding the other modeled parameters fixed, the selected option is most sensitive to "
+        f"{top_names}. These are the assumptions where updated evidence is most likely to move "
+        "the recommendation."
+    )

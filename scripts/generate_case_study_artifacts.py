@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 
 from simulator.calibration import (
     build_parameter_candidates,
@@ -24,6 +25,9 @@ from simulator.reporting import (
     update_case_study_docs,
     write_case_study_artifacts,
 )
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +59,7 @@ def main() -> None:
 
     args = parse_args()
     artifacts = build_case_study_artifacts(args.config)
+    logger.info("Writing evidence profile artifacts to %s.", PUBLIC_EVIDENCE_PROFILE_JSON)
     write_public_evidence_outputs(
         artifacts.evidence_profile,
         json_output_path=PUBLIC_EVIDENCE_PROFILE_JSON,
@@ -64,14 +69,17 @@ def main() -> None:
         artifacts.evidence_profile,
         load_calibration_contract(CALIBRATION_CONTRACT_PATH),
     )
+    logger.info("Writing parameter candidate artifacts to %s.", PARAMETER_CANDIDATES_JSON)
     write_parameter_candidates_outputs(
         parameter_candidates,
         json_output_path=PARAMETER_CANDIDATES_JSON,
         markdown_output_path=PARAMETER_CANDIDATES_MARKDOWN,
     )
+    logger.info("Writing case-study artifact bundle to %s.", args.output_dir)
     fragments = write_case_study_artifacts(artifacts, args.output_dir)
 
     if not args.skip_docs:
+        logger.info("Updating markdown case-study documents.")
         update_case_study_docs(
             case_study_path=CASE_STUDY_PATH,
             executive_summary_path=EXECUTIVE_SUMMARY_PATH,

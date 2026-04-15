@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,9 @@ import pandas as pd
 from simulator.config import get_decision_policy, get_simulation_settings, load_config
 from simulator.policy import select_recommendation
 from simulator.simulation import OPTION_COLUMNS, OPTION_LABELS, run_simulation
+
+logger = logging.getLogger(__name__)
+_HAS_LOGGED_SINGULAR_WARNING = False
 
 DEFAULT_STABILITY_SEEDS = (11, 17, 23, 31, 42, 57)
 DEFAULT_STABILITY_WORLD_COUNTS = (5000, 10000, 20000, 40000)
@@ -312,18 +316,110 @@ def stability_summary(stability_runs: pd.DataFrame) -> dict[str, object]:
     }
 
 
-__all__ = [
-    "OPTION_COLUMNS",
-    "OPTION_LABELS",
-    "decision_delta_sensitivity",
-    "decision_diagnostics",
-    "driver_analysis",
-    "sensitivity_analysis",
-    "spearman_rank_correlation",
-    "stability_analysis",
-    "stability_summary",
-    "summarize_results",
-]
+def independence_ablation(
+    config_path: str | Path,
+    *,
+    n_worlds: int = 10_000,
+    seed: int = 42,
+    scenario: str | None = None,
+) -> dict[str, object]:
+    """Compare the published dependency model against full independence."""
+
+    cfg = load_config(config_path)
+    simulation = get_simulation_settings(cfg)
+    chosen_scenario = str(simulation["scenario"] if scenario is None else scenario)
+    policy = get_decision_policy(cfg)
+
+    correlated_results = run_simulation(
+        config_path,
+        n_worlds=n_worlds,
+        seed=seed,
+        scenario=chosen_scenario,
+    )
+    independent_results = run_simulation(
+        config_path,
+        n_worlds=n_worlds,
+        seed=seed,
+        scenario=chosen_scenario,
+        dependency_overrides={},
+    )
+
+    correlated_summary = summarize_results(correlated_results)
+    independent_summary = summarize_results(independent_results)
+    correlated_diagnostics = decision_diagnostics(correlated_results)
+    independent_diagnostics = decision_diagnostics(independent_results)
+    correlated_recommendation = select_recommendation(
+        correlated_summary,
+        correlated_diagnostics,
+        policy,
+    )
+    independent_recommendation = select_recommendation(
+        independent_summary,
+        independent_diagnostics,
+        policy,
+    )
+
+    correlated_indexed = correlated_summary.set_index("option")
+    independent_indexed = independent_summary.set_index("option")
+    selected_option = correlated_recommendation.selected_option
+    correlated_selected = correlated_indexed.loc[selected_option]
+    independent_selected = independent_indexed.loc[selected_option]
+
+    comparison_rows: list[dict[str, object]] = []
+    for option in OPTION_COLUMNS:
+        correlated_row = correlated_indexed.loc[option]
+        independent_row = independent_indexed.loc[option]
+        comparison_rows.append(
+            {
+                "option": option,
+                "option_label": OPTION_LABELS[option],
+                "correlated_mean_value_eur": float(correlated_row["mean_value_eur"]),
+                "independent_mean_value_eur": float(independent_row["mean_value_eur"]),
+                "mean_value_delta_eur": float(
+                    correlated_row["mean_value_eur"] - independent_row["mean_value_eur"]
+                ),
+                "correlated_p05_value_eur": float(correlated_row["p05_value_eur"]),
+                "independent_p05_value_eur": float(independent_row["p05_value_eur"]),
+                "p05_value_delta_eur": float(
+                    correlated_row["p05_value_eur"] - independent_row["p05_value_eur"]
+                ),
+            }
+        )
+
+    logger.debug(
+        "Completed dependency ablation for scenario '%s' (n_worlds=%d, seed=%d).",
+        chosen_scenario,
+        n_worlds,
+        seed,
+    )
+    return {
+        "scenario": chosen_scenario,
+        "n_worlds": int(n_worlds),
+        "seed": int(seed),
+        "selected_option": selected_option,
+        "selected_option_label": OPTION_LABELS[selected_option],
+        "correlated_selected_option": correlated_recommendation.selected_option,
+        "independent_selected_option": independent_recommendation.selected_option,
+        "recommendation_changed": (
+            correlated_recommendation.selected_option
+            != independent_recommendation.selected_option
+        ),
+        "selected_option_p05_correlated_eur": float(correlated_selected["p05_value_eur"]),
+        "selected_option_p05_independent_eur": float(independent_selected["p05_value_eur"]),
+        "selected_option_p05_delta_eur": float(
+            correlated_selected["p05_value_eur"] - independent_selected["p05_value_eur"]
+        ),
+        "selected_option_mean_correlated_eur": float(correlated_selected["mean_value_eur"]),
+        "selected_option_mean_independent_eur": float(independent_selected["mean_value_eur"]),
+        "selected_option_mean_delta_eur": float(
+            correlated_selected["mean_value_eur"] - independent_selected["mean_value_eur"]
+        ),
+        "comparison_rows": comparison_rows,
+        "interpretation": (
+            "Negative delta means the configured dependency layer makes the metric worse than "
+            "the independence baseline for the same option and run settings."
+        ),
+    }
 
 
 def _partial_rank_correlations(
@@ -338,9 +434,26 @@ def _partial_rank_correlations(
         return {column: 0.0 for column in features.columns}
 
     ranked = combined.rank(method="average")
-    correlation = ranked.corr(method="pearson").fillna(0.0)
-    precision = np.linalg.pinv(correlation.to_numpy(dtype=float))
-    target_index = len(correlation.columns) - 1
+    direct_correlation = ranked.corr(method="pearson").fillna(0.0).iloc[:-1, -1]
+    perfect_driver_mask = direct_correlation.abs() >= (1.0 - 1e-12)
+    if perfect_driver_mask.any():
+        return {
+            str(feature_name): (
+                float(np.sign(direct_correlation.loc[feature_name]))
+                if bool(perfect_driver_mask.loc[feature_name])
+                else 0.0
+            )
+            for feature_name in features.columns
+        }
+
+    corr_matrix = ranked.corr(method="pearson").fillna(0.0).to_numpy(dtype=float)
+    condition_number = float(np.linalg.cond(corr_matrix))
+    if not np.isfinite(condition_number) or condition_number > 1e10:
+        _log_singular_partial_corr_warning(condition_number)
+        return {column: 0.0 for column in features.columns}
+
+    precision = np.linalg.pinv(corr_matrix)
+    target_index = len(corr_matrix) - 1
 
     rows: dict[str, float] = {}
     for feature_index, feature_name in enumerate(features.columns):
@@ -371,7 +484,7 @@ def _bootstrap_partial_rank_correlations(
     if bootstrap_samples < 1 or analysis_frame.empty:
         return {column: [] for column in feature_columns}
 
-    draws = {column: [] for column in feature_columns}
+    draws: dict[str, list[float]] = {column: [] for column in feature_columns}
     n_rows = len(analysis_frame)
     for _ in range(bootstrap_samples):
         sample_indices = rng.integers(0, n_rows, size=n_rows)
@@ -400,3 +513,40 @@ def _bootstrap_interval(
         float(np.quantile(draws, alpha / 2.0)),
         float(np.quantile(draws, 1.0 - (alpha / 2.0))),
     )
+
+
+def _log_singular_partial_corr_warning(condition_number: float) -> None:
+    """Log the near-singular partial-correlation warning once per process."""
+
+    global _HAS_LOGGED_SINGULAR_WARNING
+
+    if _HAS_LOGGED_SINGULAR_WARNING:
+        logger.debug(
+            "Suppressed repeated near-singular partial-correlation warning "
+            "(condition number=%.1e).",
+            condition_number,
+        )
+        return
+
+    logger.debug(
+        "Rank correlation matrix is near-singular (condition number=%.1e). "
+        "Partial rank correlations will be zeroed out. Further occurrences "
+        "will be suppressed for this process.",
+        condition_number,
+    )
+    _HAS_LOGGED_SINGULAR_WARNING = True
+
+
+__all__ = [
+    "OPTION_COLUMNS",
+    "OPTION_LABELS",
+    "decision_delta_sensitivity",
+    "decision_diagnostics",
+    "driver_analysis",
+    "independence_ablation",
+    "sensitivity_analysis",
+    "spearman_rank_correlation",
+    "stability_analysis",
+    "stability_summary",
+    "summarize_results",
+]

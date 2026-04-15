@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from simulator.analytics import summarize_results
 from simulator.simulation import (
@@ -233,6 +234,41 @@ def test_run_simulation_is_reproducible_for_the_same_seed() -> None:
     second = run_simulation(CONFIG_PATH, n_worlds=500, seed=42, scenario="mid_range_pressure")
 
     pd.testing.assert_frame_equal(first, second)
+
+
+@pytest.mark.parametrize(
+    ("low", "mode", "high"),
+    [
+        (0.05, 0.05, 0.05),
+        (0.01, 0.01, 0.10),
+        (0.01, 0.10, 0.10),
+    ],
+)
+def test_triangular_degenerate_cases_do_not_raise(
+    low: float,
+    mode: float,
+    high: float,
+) -> None:
+    """Boundary triangular configurations should still return finite samples."""
+
+    from simulator.config import ParamSpec
+    from simulator.simulation import _inverse_cdf_param
+
+    spec = ParamSpec(
+        dist="tri",
+        low=low,
+        mode=mode,
+        high=high,
+        value=None,
+        median=None,
+        p95=None,
+    )
+    uniforms = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+
+    result = _inverse_cdf_param(spec, uniforms)
+
+    assert result.shape == (5,)
+    assert np.all(np.isfinite(result))
 
 
 def test_scenario_worldviews_move_do_nothing_as_well() -> None:

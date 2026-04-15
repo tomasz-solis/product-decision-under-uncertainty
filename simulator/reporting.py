@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -73,6 +74,8 @@ from simulator.provenance import (
 from simulator.robustness import build_robustness_markdown, build_robustness_report
 from simulator.simulation import run_all_scenarios, run_simulation
 from simulator.visualizations import create_ranked_payoff_profile
+
+logger = logging.getLogger(__name__)
 
 CASE_STUDY_MARKERS = {
     "recommendation": (
@@ -165,6 +168,11 @@ def build_case_study_artifacts(
     chosen_seed = get_seed(cfg) if seed is None else int(seed)
     if n_worlds is not None:
         simulation["n_worlds"] = int(n_worlds)
+    logger.info(
+        "Building case study artifacts (n_worlds=%d, seed=%d).",
+        int(simulation["n_worlds"]),
+        int(chosen_seed),
+    )
 
     base_results = run_simulation(
         config_path,
@@ -237,7 +245,7 @@ def build_case_study_artifacts(
         discount_rate_annual=float(simulation["discount_rate_annual"]),
         published_scenario=str(simulation["scenario"]),
     )
-    return CaseStudyArtifacts(
+    artifacts = CaseStudyArtifacts(
         metadata=metadata,
         summary=summary,
         diagnostics=diagnostics,
@@ -259,6 +267,12 @@ def build_case_study_artifacts(
         scenario_metadata=scenario_metadata,
         analysis=analysis,
     )
+    logger.info(
+        "Case study artifact payload assembled (summary_rows=%d, scenario_rows=%d).",
+        len(summary),
+        len(scenario_results),
+    )
+    return artifacts
 
 
 def write_case_study_artifacts(
@@ -313,6 +327,11 @@ def write_case_study_artifacts(
     }
     for filename, content in fragments.items():
         (out_dir / filename).write_text(content, encoding="utf-8")
+    logger.info(
+        "Artifacts complete. %d files written to %s.",
+        19 + len(fragments),
+        out_dir,
+    )
     return fragments
 
 

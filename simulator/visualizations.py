@@ -12,6 +12,7 @@ from simulator.output_utils import (
     labeled_option,
     material_sensitivity_rows,
 )
+from simulator.policy import PolicyFrontierResult
 
 COLORS = {
     "do_nothing": "#9b9ea4",
@@ -201,7 +202,7 @@ def create_guardrail_chart(
 
 
 def create_frontier_switch_chart(
-    policy_frontier: dict[str, object],
+    policy_frontier: PolicyFrontierResult,
     policy_frontier_grid: pd.DataFrame,
 ) -> go.Figure:
     """Create a threshold runway chart that shows current values and switch points."""
