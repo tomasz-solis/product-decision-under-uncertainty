@@ -18,9 +18,11 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
 ]
 dev = [
     "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
     "pandas-stubs>=2.2.2.240807",
@@ -35,6 +37,7 @@ exclude = ["tests*", "archive*", "venv*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "--cov=simulator --cov-fail-under=80 --cov-report=term-missing"
 
 [tool.ruff]
 line-length = 100
@@ -42,6 +45,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
