@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import html
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import pandas as pd
 import streamlit as st
@@ -17,6 +16,7 @@ from simulator.analytics import (
     sensitivity_analysis,
     summarize_results,
 )
+from simulator.app_state import AppOutputs, PublishedGovernance
 from simulator.artifact_freshness import build_artifact_metadata, compare_artifact_metadata
 from simulator.config import (
     apply_scenario,
@@ -30,8 +30,6 @@ from simulator.config import (
 )
 from simulator.output_utils import build_run_context, format_eur, labeled_option
 from simulator.policy import (
-    PayoffDeltaDiagnostic,
-    PolicyFrontierResult,
     RecommendationResult,
     build_policy_eligibility_table,
     payoff_delta_diagnostic,
@@ -42,6 +40,7 @@ from simulator.policy import (
 from simulator.presentation import (
     comparison_frontier_display_table,
     diagnostics_display_table,
+    driver_analysis_interpretation_note,
     eligibility_display_table,
     frontier_display_table,
     payoff_delta_display_table,
@@ -75,38 +74,16 @@ from simulator.visualizations import (
 )
 
 
-@dataclass(frozen=True)
-class AppOutputs:
-    """Typed container for the app's cached simulation outputs."""
+class SelectedOptionSnapshot(TypedDict):
+    """Typed summary of the currently selected option's core decision metrics."""
 
-    simulation_settings: dict[str, Any]
-    results: pd.DataFrame
-    summary: pd.DataFrame
-    diagnostics: pd.DataFrame
-    sensitivity: pd.DataFrame
-    driver_analysis: pd.DataFrame
-    scenario_results: pd.DataFrame
-    recommendation: RecommendationResult
-    policy_eligibility: pd.DataFrame
-    payoff_delta: PayoffDeltaDiagnostic
-    policy_frontier: PolicyFrontierResult
-    policy_frontier_grid: pd.DataFrame
-
-
-@dataclass(frozen=True)
-class PublishedGovernance:
-    """Published governance and provenance payload used in the app sidebar and panels."""
-
-    metadata: dict[str, Any]
-    stability_runs: pd.DataFrame
-    stability_summary: dict[str, Any]
-    evidence_summary: dict[str, Any]
-    manifest_counts: dict[str, int]
-    freshness_status: str
-    freshness_message: str
-    stale_fields: tuple[str, ...]
-    evidence_note_path: str
-    frontier_semantics: str
+    option: str
+    label: str
+    mean_value_eur: float
+    p05_value_eur: float
+    mean_regret_eur: float
+    downside_slack_eur: float
+    regret_slack_eur: float
 
 
 PLOTLY_CONFIG: dict[str, object] = {
@@ -141,67 +118,174 @@ def inject_app_styles() -> None:
         """
         <style>
         :root {
-            --app-bg-top: #f7f4ec;
-            --app-bg-bottom: #fcfbf7;
-            --panel-bg: #fcfaf5;
-            --panel-border: #e5dfd3;
-            --panel-shadow: rgba(23, 32, 38, 0.05);
-            --ink: #172026;
-            --muted: #58656d;
-            --accent: #0b6e4f;
-            --sidebar-bg: #eff2f6;
+            --app-bg: #f4f7fb;
+            --app-bg-deep: #eef2f8;
+            --panel-bg: rgba(255, 255, 255, 0.92);
+            --panel-border: rgba(15, 23, 42, 0.08);
+            --panel-shadow: rgba(15, 23, 42, 0.08);
+            --panel-shadow-strong: rgba(15, 23, 42, 0.14);
+            --ink: #0f1728;
+            --muted: #586477;
+            --accent: #2563ff;
+            --accent-soft: rgba(37, 99, 255, 0.12);
+            --accent-strong: #1d4ed8;
+            --sidebar-bg-top: #0f1728;
+            --sidebar-bg-bottom: #182236;
+            --sidebar-border: rgba(255, 255, 255, 0.10);
+            --sidebar-ink: #f8fbff;
+            --sidebar-muted: rgba(248, 251, 255, 0.72);
+        }
+
+        @keyframes surface-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .stApp {
-            background: linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 22%, #ffffff 100%);
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 255, 0.14), transparent 30%),
+                radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 28%),
+                linear-gradient(180deg, #fbfdff 0%, var(--app-bg) 40%, var(--app-bg-deep) 100%);
             color: var(--ink);
+            font-family: "Soehne", "Avenir Next", "IBM Plex Sans", "Helvetica Neue", sans-serif;
         }
 
         .block-container {
-            padding-top: 2.1rem;
-            padding-bottom: 3.2rem;
-            max-width: 1380px;
+            padding-top: 2.25rem;
+            padding-bottom: 3.6rem;
+            max-width: 1440px;
         }
 
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #f8f9fb 100%);
-            border-right: 1px solid #d9e0e7;
+            background: linear-gradient(
+                180deg,
+                var(--sidebar-bg-top) 0%,
+                var(--sidebar-bg-bottom) 100%
+            );
+            border-right: 1px solid var(--sidebar-border);
         }
 
-        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+        [data-testid="stSidebar"] [data-testid="stText"] {
+            color: var(--sidebar-ink) !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+            color: var(--sidebar-muted) !important;
             line-height: 1.55;
         }
 
-        h1, h2, h3 {
-            letter-spacing: -0.03em;
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="base-input"],
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="input"],
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="input"] > div,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"],
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            border-radius: 18px !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] input,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] input,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [role="combobox"] {
+            background: transparent !important;
+            color: var(--sidebar-ink) !important;
+            -webkit-text-fill-color: var(--sidebar-ink) !important;
+            caret-color: var(--sidebar-ink) !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"],
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] *,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] input::placeholder {
+            color: var(--sidebar-ink) !important;
+            -webkit-text-fill-color: var(--sidebar-ink) !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] button,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] button,
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] svg,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] svg {
+            background: transparent !important;
+            color: var(--sidebar-ink) !important;
+            fill: var(--sidebar-ink) !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover,
+        [data-testid="stSidebar"] [data-testid="stSelectbox"] button:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        [data-testid="stSidebar"] code {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--sidebar-ink);
+            border-radius: 8px;
+            padding: 0.12rem 0.4rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            letter-spacing: -0.04em;
+            color: var(--ink);
         }
 
         h2 {
-            margin-top: 0.25rem;
+            margin-top: 0.35rem;
+            font-size: 1.45rem;
+        }
+
+        h3 {
+            font-size: 1.02rem;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: 2.7rem;
+            font-weight: 800;
         }
 
         [data-testid="stCaptionContainer"] {
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.7rem;
+            color: var(--muted);
         }
 
         [data-testid="stTabs"] {
-            margin-top: 1rem;
+            margin-top: 1.2rem;
         }
 
         [data-testid="stTabs"] button[role="tab"] {
             border-radius: 999px;
             border: 1px solid var(--panel-border);
-            background: #f4efe3;
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(12px);
             padding: 0.45rem 0.95rem;
+            transition: all 140ms ease;
         }
 
         [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
             background: var(--ink);
             border-color: var(--ink);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
         }
 
         [data-testid="stTabs"] button[role="tab"] p {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 600;
         }
 
@@ -211,81 +295,98 @@ def inject_app_styles() -> None:
 
         [data-testid="stPlotlyChart"],
         [data-testid="stDataFrame"],
-        [data-testid="stExpander"] {
+        [data-testid="stExpander"],
+        [data-testid="stMetric"] {
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
-            border-radius: 20px;
-            box-shadow: 0 12px 32px var(--panel-shadow);
+            border-radius: 24px;
+            box-shadow: 0 18px 48px var(--panel-shadow);
+            animation: surface-in 420ms ease both;
         }
 
         [data-testid="stPlotlyChart"] {
-            padding: 0.7rem 0.9rem 0.4rem 0.9rem;
+            padding: 0.75rem 0.95rem 0.45rem 0.95rem;
             margin-bottom: 1.4rem;
         }
 
         [data-testid="stDataFrame"] {
-            padding: 0.4rem;
+            padding: 0.45rem;
             margin-bottom: 1.2rem;
         }
 
         .section-copy {
-            max-width: 64rem;
+            max-width: 62rem;
             color: var(--muted);
-            line-height: 1.55;
-            margin: 0 0 0.9rem 0;
+            line-height: 1.6;
+            margin: 0 0 0.95rem 0;
+            font-size: 0.98rem;
         }
 
         .note-card {
-            background: #f6f2e8;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.94));
             border: 1px solid var(--panel-border);
-            border-radius: 18px;
-            padding: 0.95rem 1rem;
-            margin: 0 0 0.9rem 0;
+            border-radius: 22px;
+            padding: 1rem 1.05rem;
+            margin: 0 0 0.95rem 0;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+            animation: surface-in 420ms ease both;
         }
 
         .note-card__title {
-            font-size: 0.82rem;
+            font-size: 0.76rem;
             font-weight: 700;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: var(--accent);
-            margin: 0 0 0.35rem 0;
+            color: var(--accent-strong);
+            margin: 0 0 0.5rem 0;
         }
 
         .note-card__body {
             color: var(--ink);
-            line-height: 1.5;
+            line-height: 1.6;
             margin: 0;
         }
 
         .metric-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.85rem;
-            margin: 0.5rem 0 1.25rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.95rem;
+            margin: 0.65rem 0 1.4rem 0;
         }
 
         .metric-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 18px;
-            box-shadow: 0 12px 28px var(--panel-shadow);
-            padding: 0.95rem 1rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.94));
+            border: 1px solid rgba(15, 23, 42, 0.07);
+            border-radius: 24px;
+            box-shadow: 0 22px 48px var(--panel-shadow);
+            padding: 1rem 1.05rem;
+            position: relative;
+            overflow: hidden;
+            animation: surface-in 420ms ease both;
+        }
+
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent) 0%, #7aa2ff 100%);
         }
 
         .metric-card__label {
-            font-size: 0.8rem;
+            font-size: 0.74rem;
             font-weight: 700;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
             color: var(--muted);
-            margin: 0 0 0.25rem 0;
+            margin: 0 0 0.35rem 0;
         }
 
         .metric-card__value {
             color: var(--ink);
-            font-size: 1.35rem;
-            font-weight: 700;
+            font-size: 1.4rem;
+            font-weight: 800;
             letter-spacing: -0.02em;
             line-height: 1.2;
             margin: 0;
@@ -293,9 +394,29 @@ def inject_app_styles() -> None:
 
         .metric-card__detail {
             color: var(--muted);
-            font-size: 0.92rem;
-            line-height: 1.45;
-            margin: 0.35rem 0 0 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0.45rem 0 0 0;
+        }
+
+        .stButton > button,
+        .stDownloadButton > button {
+            border-radius: 16px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+            color: var(--ink);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            transition: transform 120ms ease, box-shadow 120ms ease;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+        }
+
+        hr {
+            border-color: rgba(15, 23, 42, 0.08);
         }
         </style>
         """,
@@ -382,7 +503,7 @@ def _policy_status_detail(recommendation: RecommendationResult) -> str:
     return f"{selected_label} clears the guardrails and still leads the eligible set on expected value."
 
 
-def _selected_option_snapshot(outputs: AppOutputs) -> dict[str, object]:
+def _selected_option_snapshot(outputs: AppOutputs) -> SelectedOptionSnapshot:
     """Return the selected option's main summary, regret, and guardrail metrics."""
 
     selected_option = outputs.recommendation.selected_option
@@ -699,7 +820,7 @@ def render_metric_dictionary() -> None:
     """Render the grouped metric dictionary inside the dedicated app tab."""
 
     dictionary_tabs = st.tabs(list(metric_dictionary_sections()))
-    for tab, (label, table) in zip(
+    for tab, (_label, table) in zip(
         dictionary_tabs,
         metric_dictionary_sections().items(),
         strict=False,
@@ -826,26 +947,24 @@ def load_published_governance() -> PublishedGovernance:
     )
 
 
-def render_app() -> None:
-    """Render the Streamlit interface."""
+def _show_governance_warning(governance: PublishedGovernance) -> None:
+    """Render the freshness banner for the published governance bundle."""
 
-    st.set_page_config(page_title="Product Decision Under Uncertainty", layout="wide")
-    inject_app_styles()
-    st.title("Product Decision Under Uncertainty")
+    warning_message = governance_warning_message(governance)
+    if warning_message is None:
+        return
+    if governance.freshness_status == "stale":
+        st.warning(warning_message)
+    else:
+        st.info(warning_message)
 
-    cfg = load_config(CONFIG_PATH)
-    analysis = get_analysis_settings(cfg)
-    decision_policy = get_decision_policy(cfg)
+
+def _render_sidebar(cfg: dict[str, Any]) -> tuple[int, int, str]:
+    """Render the sidebar controls and return the selected run settings."""
+
     simulation = get_simulation_settings(cfg)
     scenario_metadata = get_scenario_metadata(cfg)
     scenario_names = list(scenario_metadata)
-    published_governance = load_published_governance()
-    warning_message = governance_warning_message(published_governance)
-    if warning_message:
-        if published_governance.freshness_status == "stale":
-            st.warning(warning_message)
-        else:
-            st.info(warning_message)
 
     with st.sidebar:
         st.header("Run settings")
@@ -873,8 +992,23 @@ def render_app() -> None:
         for name in scenario_names:
             label = scenario_metadata[name]["label"]
             description = scenario_metadata[name]["description"]
-            st.caption(f"`{label}`: {description}")
+            st.caption(f"{label}: {description}")
 
+    return int(n_worlds), int(seed), str(scenario)
+
+
+def _render_run_summary(
+    cfg: dict[str, Any],
+    *,
+    scenario: str,
+    seed: int,
+    n_worlds: int,
+) -> None:
+    """Render the current run context above the main analytical sections."""
+
+    simulation = get_simulation_settings(cfg)
+    scenario_metadata = get_scenario_metadata(cfg)
+    published_scenario = str(simulation["scenario"])
     run_context = build_run_context(
         selected_settings={
             "scenario": scenario,
@@ -883,8 +1017,8 @@ def render_app() -> None:
             "n_worlds": int(n_worlds),
         },
         published_settings={
-            "scenario": str(simulation["scenario"]),
-            "scenario_label": str(scenario_metadata[str(simulation["scenario"])]["label"]),
+            "scenario": published_scenario,
+            "scenario_label": str(scenario_metadata[published_scenario]["label"]),
             "seed": int(get_seed(cfg)),
             "n_worlds": int(simulation["n_worlds"]),
         },
@@ -895,8 +1029,17 @@ def render_app() -> None:
     if not bool(run_context["matches_published"]):
         st.caption(str(run_context["note"]))
 
-    outputs = compute_outputs(int(n_worlds), int(seed), scenario)
-    current_metadata = {
+
+def _build_current_metadata(
+    cfg: dict[str, Any],
+    *,
+    n_worlds: int,
+    seed: int,
+    outputs: AppOutputs,
+) -> dict[str, Any]:
+    """Build the metadata payload used in the recommendation summary."""
+
+    return {
         "seed": int(seed),
         "n_worlds": int(n_worlds),
         "annual_volume": int(outputs.simulation_settings["annual_volume"]),
@@ -904,6 +1047,10 @@ def render_app() -> None:
         "discount_rate_annual": float(outputs.simulation_settings["discount_rate_annual"]),
         "declared_model_version": get_declared_model_version(cfg),
     }
+
+
+def _render_hero_section(outputs: AppOutputs, current_metadata: dict[str, Any]) -> None:
+    """Render the recommendation summary and payoff distribution section."""
 
     render_executive_metric_cards(outputs)
     hero_left, hero_right = st.columns([3, 2])
@@ -924,7 +1071,6 @@ def render_app() -> None:
         )
 
     st.divider()
-
     st.subheader("Payoff distribution")
     render_section_copy(
         "Each option is shown as a range from P05 to P95. The circle marks expected value and the diamond marks the median, so you can separate central value from tail risk."
@@ -941,6 +1087,14 @@ def render_app() -> None:
         "Read this chart",
         "A wider range means more uncertainty. A higher P05 means a safer downside. Use the table below the chart when you need exact numbers rather than visual ranking.",
     )
+
+
+def _render_policy_section(
+    outputs: AppOutputs,
+    decision_policy: Any,
+    scenario_metadata: dict[str, dict[str, str]],
+) -> None:
+    """Render the policy-defining charts and the scenario comparison."""
 
     st.subheader("Guardrail eligibility")
     render_section_copy(
@@ -991,8 +1145,15 @@ def render_app() -> None:
         width="stretch",
         hide_index=True,
     )
-
     st.divider()
+
+
+def _render_analysis_section(
+    outputs: AppOutputs,
+    analysis: Any,
+    published_governance: PublishedGovernance,
+) -> None:
+    """Render driver analysis, descriptive diagnostics, and stability checks."""
 
     st.subheader("Driver analysis")
     render_section_copy(
@@ -1035,6 +1196,9 @@ def render_app() -> None:
             "Read this chart",
             "Positive values mean the parameter tends to help the option as it rises. Negative values mean it tends to hurt. Larger absolute values matter more than small ones.",
         )
+    st.caption(
+        driver_analysis_interpretation_note(outputs.driver_analysis, selected_option)
+    )
 
     comparison_heading = (
         "Selected-vs-policy-runner-up payoff diagnostic"
@@ -1051,7 +1215,6 @@ def render_app() -> None:
         hide_index=True,
     )
 
-    st.subheader("Published-case stability")
     stability = published_governance.stability_summary
     comparison_p05_range = stability["comparison_p05_range_eur"]
     stability_caption = (
@@ -1062,14 +1225,22 @@ def render_app() -> None:
         stability_caption += (
             f" Comparison-option P05 range: {format_eur(float(comparison_p05_range))}."
         )
+    st.subheader("Published-case stability")
     render_section_copy(
         "This is a sampling-robustness check on the published configuration. Stable frequency and narrower metric ranges mean the recommendation is less sensitive to Monte Carlo noise."
     )
     st.caption(stability_caption)
     render_stability_summary_cards(stability)
     render_plotly_figure(create_stability_chart(published_governance.stability_runs))
-
     st.divider()
+
+
+def _render_reference_section(
+    outputs: AppOutputs,
+    scenario_metadata: dict[str, dict[str, str]],
+    published_governance: PublishedGovernance,
+) -> None:
+    """Render the reference tabs with provenance, downloads, and raw tables."""
 
     reference_dictionary, reference_provenance, reference_downloads = st.tabs(
         ["Metric dictionary", "Provenance and evidence", "Downloads and raw tables"]
@@ -1173,6 +1344,37 @@ def render_app() -> None:
                 width="stretch",
                 hide_index=True,
             )
+
+
+def render_app() -> None:
+    """Render the Streamlit interface."""
+
+    st.set_page_config(page_title="Product Decision Under Uncertainty", layout="wide")
+    inject_app_styles()
+    st.title("Product Decision Under Uncertainty")
+
+    cfg = load_config(CONFIG_PATH)
+    analysis = get_analysis_settings(cfg)
+    decision_policy = get_decision_policy(cfg)
+    scenario_metadata = get_scenario_metadata(cfg)
+    published_governance = load_published_governance()
+
+    _show_governance_warning(published_governance)
+    n_worlds, seed, scenario = _render_sidebar(cfg)
+    _render_run_summary(cfg, scenario=scenario, seed=seed, n_worlds=n_worlds)
+
+    outputs = compute_outputs(n_worlds, seed, scenario)
+    current_metadata = _build_current_metadata(
+        cfg,
+        n_worlds=n_worlds,
+        seed=seed,
+        outputs=outputs,
+    )
+
+    _render_hero_section(outputs, current_metadata)
+    _render_policy_section(outputs, decision_policy, scenario_metadata)
+    _render_analysis_section(outputs, analysis, published_governance)
+    _render_reference_section(outputs, scenario_metadata, published_governance)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
