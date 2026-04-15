@@ -11,6 +11,7 @@ import pandas as pd
 from simulator.output_utils import material_driver_rows
 from simulator.policy import PolicyFrontierRow
 from simulator.reporting import (
+    _stable_plotly_figure,
     build_case_study_artifacts,
     build_payoff_delta_markdown,
     build_policy_frontier_markdown,
@@ -19,6 +20,7 @@ from simulator.reporting import (
     build_stability_markdown,
     write_case_study_artifacts,
 )
+from simulator.visualizations import create_ranked_payoff_profile
 
 CONFIG_PATH = "simulator/config.yaml"
 
@@ -47,6 +49,7 @@ def test_write_case_study_artifacts_emits_traceable_outputs(tmp_path: Path) -> N
         "evidence_summary.json",
         "robustness.json",
         "metadata.json",
+        "decision_summary.html",
         "recommendation.md",
         "summary_table.md",
         "diagnostics_table.md",
@@ -60,6 +63,45 @@ def test_write_case_study_artifacts_emits_traceable_outputs(tmp_path: Path) -> N
     }
 
     assert expected_files.issubset({path.name for path in tmp_path.iterdir()})
+
+
+def test_write_case_study_artifacts_keeps_decision_summary_html_stable(tmp_path: Path) -> None:
+    """The Plotly HTML export should keep a fixed DOM id and stable repeated output."""
+
+    artifacts = build_case_study_artifacts(CONFIG_PATH, n_worlds=1200, seed=42)
+
+    write_case_study_artifacts(artifacts, tmp_path)
+    first_html = (tmp_path / "decision_summary.html").read_text(encoding="utf-8")
+
+    write_case_study_artifacts(artifacts, tmp_path)
+    second_html = (tmp_path / "decision_summary.html").read_text(encoding="utf-8")
+
+    assert first_html == second_html
+    assert 'id="decision-summary-chart"' in first_html
+    assert 'document.getElementById("decision-summary-chart")' in first_html
+
+
+def test_stable_plotly_figure_rounds_numeric_payloads() -> None:
+    """The deterministic Plotly export helper should round chart values to six decimals."""
+
+    summary = pd.DataFrame(
+        [
+            {
+                "option": "stabilize_core",
+                "mean_value_eur": 1.123456789,
+                "median_value_eur": 2.987654321,
+                "p05_value_eur": 3.123456789,
+                "p95_value_eur": 4.987654321,
+            }
+        ]
+    )
+
+    stable_figure = _stable_plotly_figure(create_ranked_payoff_profile(summary))
+    traces = stable_figure.to_plotly_json()["data"]
+
+    assert traces[0]["x"] == [3.123457, 4.987654]
+    assert traces[1]["x"] == [1.123457]
+    assert traces[2]["x"] == [2.987654]
 
 
 def test_sensitivity_markdown_suppresses_noise_for_do_nothing() -> None:

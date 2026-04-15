@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
 
 from simulator.analytics import (
     DEFAULT_STABILITY_SEEDS,
@@ -76,6 +78,7 @@ from simulator.simulation import run_all_scenarios, run_simulation
 from simulator.visualizations import create_ranked_payoff_profile
 
 logger = logging.getLogger(__name__)
+DECISION_SUMMARY_DIV_ID = "decision-summary-chart"
 
 CASE_STUDY_MARKERS = {
     "recommendation": (
@@ -302,11 +305,15 @@ def write_case_study_artifacts(
     _write_json_object(out_dir / "robustness.json", artifacts.robustness)
     _write_json_object(out_dir / "metadata.json", artifacts.metadata)
     _write_csv(out_dir / "parameter_registry.csv", artifacts.parameter_registry)
-    create_ranked_payoff_profile(
-        artifacts.summary,
-        recommended_option=artifacts.recommendation.selected_option,
-        comparison_option=artifacts.recommendation.comparison_option,
-    ).write_html(out_dir / "decision_summary.html", include_plotlyjs="cdn")
+    _write_plotly_html(
+        out_dir / "decision_summary.html",
+        create_ranked_payoff_profile(
+            artifacts.summary,
+            recommended_option=artifacts.recommendation.selected_option,
+            comparison_option=artifacts.recommendation.comparison_option,
+        ),
+        div_id=DECISION_SUMMARY_DIV_ID,
+    )
 
     sensitivity_markdown = build_sensitivity_markdown(artifacts)
     fragments = {
@@ -949,6 +956,17 @@ def _write_csv(path: Path, frame: pd.DataFrame) -> None:
     frame.to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
 
 
+def _write_plotly_html(path: Path, figure: go.Figure, *, div_id: str) -> None:
+    """Write one Plotly HTML artifact with stable IDs and rounded numeric payloads."""
+
+    pio.write_html(
+        _stable_plotly_figure(figure),
+        file=path,
+        include_plotlyjs="cdn",
+        div_id=div_id,
+    )
+
+
 def _markdown_table(frame: pd.DataFrame) -> str:
     """Render a simple markdown table without optional dependencies."""
 
@@ -1002,6 +1020,13 @@ def _stable_json_value(payload: Any) -> Any:
     if isinstance(payload, list):
         return [_stable_json_value(value) for value in payload]
     return payload
+
+
+def _stable_plotly_figure(figure: go.Figure) -> go.Figure:
+    """Return a figure copy with rounded numeric payloads for deterministic HTML export."""
+
+    stable_payload = _stable_json_value(figure.to_plotly_json())
+    return go.Figure(stable_payload)
 
 
 @lru_cache(maxsize=4)
