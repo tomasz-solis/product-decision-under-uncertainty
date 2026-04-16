@@ -256,16 +256,27 @@ def driver_analysis_interpretation_note(
     driver_df: pd.DataFrame,
     selected_option: str,
     top_n: int = 3,
+    threshold: float | None = None,
 ) -> str:
     """Return a plain-English sentence summarizing the strongest driver findings."""
 
-    option_rows = (
-        driver_df.loc[driver_df["option"] == selected_option]
-        .sort_values("partial_rank_corr", key=abs, ascending=False)
-        .head(top_n)
-    )
+    if threshold is None:
+        option_rows = (
+            driver_df.loc[driver_df["option"] == selected_option]
+            .sort_values("partial_rank_corr", key=abs, ascending=False)
+            .head(top_n)
+        )
+    else:
+        option_rows = material_driver_rows(
+            driver_analysis=driver_df,
+            option=selected_option,
+            threshold=threshold,
+            limit=top_n,
+        )
     if option_rows.empty:
-        return "No material drivers identified for this option."
+        if threshold is None:
+            return "No material drivers identified for this option."
+        return "No decision-support driver cleared the current materiality threshold for this option."
 
     parts: list[str] = []
     for _, row in option_rows.iterrows():

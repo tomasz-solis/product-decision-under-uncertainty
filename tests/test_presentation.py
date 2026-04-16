@@ -40,3 +40,35 @@ def test_driver_analysis_interpretation_note_handles_empty_option() -> None:
     result = driver_analysis_interpretation_note(frame, "stabilize_core")
 
     assert result == "No material drivers identified for this option."
+
+
+def test_driver_analysis_interpretation_note_uses_material_filter_when_available() -> None:
+    """The narration helper should match the filtered decision-support view."""
+
+    frame = pd.DataFrame(
+        [
+            {
+                "option": "stabilize_core",
+                "parameter": "baseline_failure_rate",
+                "partial_rank_corr": 0.41,
+                "ci_low": -0.03,
+                "ci_high": 0.58,
+            },
+            {
+                "option": "stabilize_core",
+                "parameter": "cost_per_failure_eur",
+                "partial_rank_corr": 0.22,
+                "ci_low": 0.16,
+                "ci_high": 0.28,
+            },
+        ]
+    )
+
+    result = driver_analysis_interpretation_note(
+        frame,
+        "stabilize_core",
+        threshold=0.10,
+    )
+
+    assert "Cost Per Failure Eur (higher tends to help)" in result
+    assert "Baseline Failure Rate" not in result

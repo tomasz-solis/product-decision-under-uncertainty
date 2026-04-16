@@ -450,7 +450,6 @@ def _partial_rank_correlations(
     condition_number = float(np.linalg.cond(corr_matrix))
     if not np.isfinite(condition_number) or condition_number > 1e10:
         _log_singular_partial_corr_warning(condition_number)
-        return {column: 0.0 for column in features.columns}
 
     precision = np.linalg.pinv(corr_matrix)
     target_index = len(corr_matrix) - 1
@@ -530,8 +529,8 @@ def _log_singular_partial_corr_warning(condition_number: float) -> None:
 
     logger.debug(
         "Rank correlation matrix is near-singular (condition number=%.1e). "
-        "Partial rank correlations will be zeroed out. Further occurrences "
-        "will be suppressed for this process.",
+        "Estimates will be computed with the pseudoinverse and may be less "
+        "stable than usual. Further occurrences will be suppressed for this process.",
         condition_number,
     )
     _HAS_LOGGED_SINGULAR_WARNING = True

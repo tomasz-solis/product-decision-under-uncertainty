@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from simulator.analytics import _partial_rank_correlations, independence_ablation
 
 CONFIG_PATH = "simulator/config.yaml"
 
 
-def test_partial_rank_correlations_zero_near_singular_matrix() -> None:
-    """Perfect collinearity should zero the partial-rank output instead of exploding."""
+def test_partial_rank_correlations_stay_bounded_near_singular_matrix() -> None:
+    """Perfect collinearity should still return finite pseudoinverse estimates."""
 
     features = pd.DataFrame(
         {
@@ -22,10 +23,12 @@ def test_partial_rank_correlations_zero_near_singular_matrix() -> None:
 
     result = _partial_rank_correlations(features, target)
 
-    assert result == {
-        "baseline_failure_rate": 0.0,
-        "regression_event_prob": 0.0,
-    }
+    assert result == pytest.approx(
+        {
+            "baseline_failure_rate": 0.8,
+            "regression_event_prob": 0.8,
+        }
+    )
 
 
 def test_independence_ablation_returns_expected_shape() -> None:

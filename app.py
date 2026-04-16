@@ -1197,7 +1197,11 @@ def _render_analysis_section(
             "Positive values mean the parameter tends to help the option as it rises. Negative values mean it tends to hurt. Larger absolute values matter more than small ones.",
         )
     st.caption(
-        driver_analysis_interpretation_note(outputs.driver_analysis, selected_option)
+        driver_analysis_interpretation_note(
+            outputs.driver_analysis,
+            selected_option,
+            threshold=analysis.sensitivity_materiality_threshold_abs_spearman,
+        )
     )
 
     comparison_heading = (

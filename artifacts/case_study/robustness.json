@@ -225,5 +225,76 @@
     }
   ],
   "selected_option": "stabilize_core",
-  "stress_test_rows": []
+  "stress_test_rows": [
+    {
+      "parameter": "baseline_failure_rate",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "low",
+      "tested_value": 0.04
+    },
+    {
+      "parameter": "baseline_failure_rate",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "base",
+      "tested_value": 0.1
+    },
+    {
+      "parameter": "baseline_failure_rate",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "high",
+      "tested_value": 0.15
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "low",
+      "tested_value": 0.4
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "base",
+      "tested_value": 0.6
+    },
+    {
+      "parameter": "stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "high",
+      "tested_value": 0.8
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "paired_all_adverse",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "stress_level": "paired_all_supportive",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "do_nothing",
+      "stress_level": "paired_opposing_challenge",
+      "tested_value": "paired override"
+    },
+    {
+      "parameter": "baseline_failure_rate + stabilize_failure_reduction",
+      "recommendation_changed": true,
+      "selected_option": "feature_extension",
+      "stress_level": "paired_opposing_relief",
+      "tested_value": "paired override"
+    }
+  ]
 }

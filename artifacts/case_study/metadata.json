@@ -1,7 +1,7 @@
 {
   "annual_volume": 250000,
   "assumption_registry_sha256": "6f3fb4632f5e8428a8e623bb131b310836017decbcd454178e8a3a9f73948f40",
-  "code_sha256": "2c721a55b67a5eeda45a555399495a9e3fa004ad9852f291428ae24ae8f60596",
+  "code_sha256": "0fe3f8706081217531ab6a6eb1d032657fbc9a1525399afa888a766fd6f012dd",
   "config_sha256": "5c32a5bbf2e7bb4bf2ae2bca1a853806e254b509d9c300b99bb1c556d08aaa7f",
   "declared_model_version": "5.0.0",
   "discount_rate_annual": 0.08,

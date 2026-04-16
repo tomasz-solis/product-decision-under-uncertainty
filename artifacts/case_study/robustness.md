@@ -54,3 +54,13 @@ Directional stress tests on the strongest material drivers:
 
 | Parameter | Stress level | Tested value | Selected option | Recommendation changed? |
 | --- | --- | --- | --- | --- |
+| baseline_failure_rate | low | 0.04 | Do Nothing | yes |
+| baseline_failure_rate | base | 0.1 | Stabilize Core | no |
+| baseline_failure_rate | high | 0.15 | Stabilize Core | no |
+| stabilize_failure_reduction | low | 0.4 | Do Nothing | yes |
+| stabilize_failure_reduction | base | 0.6 | Stabilize Core | no |
+| stabilize_failure_reduction | high | 0.8 | Stabilize Core | no |
+| baseline_failure_rate + stabilize_failure_reduction | paired_all_adverse | paired override | Do Nothing | yes |
+| baseline_failure_rate + stabilize_failure_reduction | paired_all_supportive | paired override | Stabilize Core | no |
+| baseline_failure_rate + stabilize_failure_reduction | paired_opposing_challenge | paired override | Do Nothing | yes |
+| baseline_failure_rate + stabilize_failure_reduction | paired_opposing_relief | paired override | Feature Extension | yes |
