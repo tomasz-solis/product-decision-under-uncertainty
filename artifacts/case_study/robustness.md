@@ -64,3 +64,30 @@ Directional stress tests on the strongest material drivers:
 | baseline_failure_rate + stabilize_failure_reduction | paired_all_supportive | paired override | Stabilize Core | no |
 | baseline_failure_rate + stabilize_failure_reduction | paired_opposing_challenge | paired override | Do Nothing | yes |
 | baseline_failure_rate + stabilize_failure_reduction | paired_opposing_relief | paired override | Feature Extension | yes |
+
+Dependency-value frontier (each pair swept across rho grid):
+
+- Rows show whether the recommendation changed when a single dependency correlation was moved to a tested value while others stayed fixed.
+
+| Dependency pair | Base rho | Tested rho | Selected option | Recommendation changed? |
+| --- | --- | --- | --- | --- |
+| baseline_failure_rate:cost_per_failure_eur | 0.55 | 0 | Stabilize Core | no |
+| baseline_failure_rate:cost_per_failure_eur | 0.55 | 0.2 | Stabilize Core | no |
+| baseline_failure_rate:cost_per_failure_eur | 0.55 | 0.4 | Stabilize Core | no |
+| baseline_failure_rate:cost_per_failure_eur | 0.55 | 0.6 | Stabilize Core | no |
+| baseline_failure_rate:cost_per_failure_eur | 0.55 | 0.8 | Stabilize Core | no |
+| baseline_failure_rate:failure_to_churn_rel | 0.6 | 0 | Stabilize Core | no |
+| baseline_failure_rate:failure_to_churn_rel | 0.6 | 0.2 | Stabilize Core | no |
+| baseline_failure_rate:failure_to_churn_rel | 0.6 | 0.4 | Stabilize Core | no |
+| baseline_failure_rate:failure_to_churn_rel | 0.6 | 0.6 | Stabilize Core | no |
+| baseline_failure_rate:failure_to_churn_rel | 0.6 | 0.8 | Stabilize Core | no |
+| extension_uptake:extension_value_per_uptake_eur | 0.4 | 0 | Stabilize Core | no |
+| extension_uptake:extension_value_per_uptake_eur | 0.4 | 0.2 | Stabilize Core | no |
+| extension_uptake:extension_value_per_uptake_eur | 0.4 | 0.4 | Stabilize Core | no |
+| extension_uptake:extension_value_per_uptake_eur | 0.4 | 0.6 | Stabilize Core | no |
+| extension_uptake:extension_value_per_uptake_eur | 0.4 | 0.8 | Stabilize Core | no |
+| regression_event_prob:regression_event_cost_eur | 0.45 | 0 | Stabilize Core | no |
+| regression_event_prob:regression_event_cost_eur | 0.45 | 0.2 | Stabilize Core | no |
+| regression_event_prob:regression_event_cost_eur | 0.45 | 0.4 | Stabilize Core | no |
+| regression_event_prob:regression_event_cost_eur | 0.45 | 0.6 | Stabilize Core | no |
+| regression_event_prob:regression_event_cost_eur | 0.45 | 0.8 | Stabilize Core | no |

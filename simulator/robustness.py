@@ -19,6 +19,8 @@ from simulator.analytics import (
 from simulator.config import (
     get_analysis_settings,
     get_decision_policy,
+    get_dependency_settings,
+    get_simulation_settings,
     load_config,
     parse_param_specs,
 )
@@ -63,6 +65,11 @@ def build_robustness_report(
         seed=int(cfg["project"]["seed"]),
         scenario=str(cfg["simulation"]["scenario"]),
     )
+    dependency_frontier = _dependency_value_frontier(
+        config_path,
+        n_worlds=min(int(cfg["simulation"]["n_worlds"]), 5000),
+        seed=int(cfg["project"]["seed"]),
+    )
     report = {
         "selected_option": selected_option,
         "convergence_rows": convergence,
@@ -70,6 +77,7 @@ def build_robustness_report(
         "metric_error_rows": metric_error_rows,
         "stress_test_rows": stress_tests,
         "dependency_ablation": dependency_check,
+        "dependency_value_frontier": dependency_frontier,
     }
     logger.info("Robustness report complete.")
     return report
@@ -220,6 +228,47 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             ),
         ]
     )
+
+    dvf_rows = payload.get("dependency_value_frontier", [])
+    if dvf_rows:
+        lines.extend(
+            [
+                "",
+                "Dependency-value frontier (each pair swept across rho grid):",
+                "",
+                "- Rows show whether the recommendation changed when a single dependency "
+                "correlation was moved to a tested value while others stayed fixed.",
+                "",
+                _markdown_table(
+                    pd.DataFrame(dvf_rows)
+                    .reindex(
+                        columns=[
+                            "pair",
+                            "base_rho",
+                            "tested_rho",
+                            "selected_option",
+                            "recommendation_changed",
+                        ]
+                    )
+                    .assign(
+                        selected_option=lambda frame: frame["selected_option"].map(labeled_option),
+                        recommendation_changed=lambda frame: frame["recommendation_changed"].map(
+                            lambda value: "yes" if bool(value) else "no"
+                        ),
+                    )
+                    .rename(
+                        columns={
+                            "pair": "Dependency pair",
+                            "base_rho": "Base rho",
+                            "tested_rho": "Tested rho",
+                            "selected_option": "Selected option",
+                            "recommendation_changed": "Recommendation changed?",
+                        }
+                    )
+                ),
+            ]
+        )
+
     return "\n".join(lines)
 
 
@@ -330,6 +379,68 @@ def _frontier_stability_rows(
             }
         )
     return sorted(summary_rows, key=lambda row: row["threshold_name"])
+
+
+def _dependency_value_frontier(
+    config_path: str | Path,
+    *,
+    n_worlds: int = 5000,
+    seed: int = 42,
+    grid: tuple[float, ...] = (0.0, 0.2, 0.4, 0.6, 0.8),
+) -> list[dict[str, Any]]:
+    """Sweep each configured dependency rho across a grid and record recommendation flips.
+
+    For each dependency pair (left, right), holds all other correlations at
+    their configured values and varies only the tested pair across the grid.
+    Records the selected option at each point and whether it differs from the
+    baseline (all correlations at their configured values).
+    """
+
+    cfg = load_config(config_path)
+    policy = get_decision_policy(cfg)
+    simulation = get_simulation_settings(cfg)
+    base_deps = get_dependency_settings(cfg)
+    scenario = str(simulation["scenario"])
+
+    base_results = run_simulation(config_path, n_worlds=n_worlds, seed=seed, scenario=scenario)
+    base_summary = summarize_results(base_results)
+    base_diagnostics = decision_diagnostics(base_results)
+    base_recommendation = select_recommendation(base_summary, base_diagnostics, policy)
+    base_selected = base_recommendation.selected_option
+
+    rows: list[dict[str, Any]] = []
+    for left, targets in base_deps.items():
+        for right, base_rho in targets.items():
+            for tested_rho in grid:
+                overrides = {
+                    left_key: dict(right_targets)
+                    for left_key, right_targets in base_deps.items()
+                }
+                overrides[left][right] = tested_rho
+                results = run_simulation(
+                    config_path,
+                    n_worlds=n_worlds,
+                    seed=seed,
+                    scenario=scenario,
+                    dependency_overrides=overrides,
+                )
+                summary = summarize_results(results)
+                diagnostics = decision_diagnostics(results)
+                rec = select_recommendation(summary, diagnostics, policy)
+                rows.append(
+                    {
+                        "pair": f"{left}:{right}",
+                        "base_rho": round(float(base_rho), 3),
+                        "tested_rho": round(float(tested_rho), 3),
+                        "selected_option": rec.selected_option,
+                        "recommendation_changed": rec.selected_option != base_selected,
+                    }
+                )
+    logger.debug(
+        "Dependency-value frontier complete: %d pair/rho combinations.",
+        len(rows),
+    )
+    return rows
 
 
 def _stress_test_rows(

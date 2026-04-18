@@ -285,3 +285,44 @@ def test_scenario_worldviews_move_do_nothing_as_well() -> None:
         do_nothing.loc["growth_friendly_recovery", "mean_value_eur"]
         != do_nothing.loc["mid_range_pressure", "mean_value_eur"]
     )
+
+
+def test_gaussian_copula_round_trip_recovers_requested_rank_correlation() -> None:
+    """Sampling with a configured rho should return close to that rank correlation empirically.
+
+    Uses 50k worlds to keep the empirical estimate tight. The tolerance of 0.03
+    corresponds to roughly three standard errors at this sample size for rho ≈ 0.55.
+    This test verifies the Spearman-to-Pearson conversion and the inverse-CDF
+    chain produce the correlation structure that was requested — not just that the
+    code runs without error.
+    """
+    results = run_simulation(
+        CONFIG_PATH,
+        n_worlds=50_000,
+        seed=42,
+        scenario="mid_range_pressure",
+    )
+
+    # baseline_failure_rate <-> cost_per_failure_eur has configured rho = 0.55
+    observed_rho = float(
+        results[["baseline_failure_rate", "cost_per_failure_eur"]]
+        .rank(method="average")
+        .corr(method="pearson")
+        .iloc[0, 1]
+    )
+    assert abs(observed_rho - 0.55) < 0.03, (
+        f"Empirical rank correlation {observed_rho:.4f} deviates from requested 0.55 "
+        "by more than the expected tolerance. Check the copula implementation."
+    )
+
+    # baseline_failure_rate <-> failure_to_churn_rel has configured rho = 0.60
+    observed_churn_rho = float(
+        results[["baseline_failure_rate", "failure_to_churn_rel"]]
+        .rank(method="average")
+        .corr(method="pearson")
+        .iloc[0, 1]
+    )
+    assert abs(observed_churn_rho - 0.60) < 0.03, (
+        f"Empirical rank correlation {observed_churn_rho:.4f} deviates from requested 0.60 "
+        "by more than the expected tolerance. Check the copula implementation."
+    )

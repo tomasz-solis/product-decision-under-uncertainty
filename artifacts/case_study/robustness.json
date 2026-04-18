@@ -100,6 +100,148 @@
     "selected_option_p05_delta_eur": -54220.137037,
     "selected_option_p05_independent_eur": -306541.279637
   },
+  "dependency_value_frontier": [
+    {
+      "base_rho": 0.55,
+      "pair": "baseline_failure_rate:cost_per_failure_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.0
+    },
+    {
+      "base_rho": 0.55,
+      "pair": "baseline_failure_rate:cost_per_failure_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.2
+    },
+    {
+      "base_rho": 0.55,
+      "pair": "baseline_failure_rate:cost_per_failure_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.4
+    },
+    {
+      "base_rho": 0.55,
+      "pair": "baseline_failure_rate:cost_per_failure_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.6
+    },
+    {
+      "base_rho": 0.55,
+      "pair": "baseline_failure_rate:cost_per_failure_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.8
+    },
+    {
+      "base_rho": 0.6,
+      "pair": "baseline_failure_rate:failure_to_churn_rel",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.0
+    },
+    {
+      "base_rho": 0.6,
+      "pair": "baseline_failure_rate:failure_to_churn_rel",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.2
+    },
+    {
+      "base_rho": 0.6,
+      "pair": "baseline_failure_rate:failure_to_churn_rel",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.4
+    },
+    {
+      "base_rho": 0.6,
+      "pair": "baseline_failure_rate:failure_to_churn_rel",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.6
+    },
+    {
+      "base_rho": 0.6,
+      "pair": "baseline_failure_rate:failure_to_churn_rel",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.8
+    },
+    {
+      "base_rho": 0.4,
+      "pair": "extension_uptake:extension_value_per_uptake_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.0
+    },
+    {
+      "base_rho": 0.4,
+      "pair": "extension_uptake:extension_value_per_uptake_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.2
+    },
+    {
+      "base_rho": 0.4,
+      "pair": "extension_uptake:extension_value_per_uptake_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.4
+    },
+    {
+      "base_rho": 0.4,
+      "pair": "extension_uptake:extension_value_per_uptake_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.6
+    },
+    {
+      "base_rho": 0.4,
+      "pair": "extension_uptake:extension_value_per_uptake_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.8
+    },
+    {
+      "base_rho": 0.45,
+      "pair": "regression_event_prob:regression_event_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.0
+    },
+    {
+      "base_rho": 0.45,
+      "pair": "regression_event_prob:regression_event_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.2
+    },
+    {
+      "base_rho": 0.45,
+      "pair": "regression_event_prob:regression_event_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.4
+    },
+    {
+      "base_rho": 0.45,
+      "pair": "regression_event_prob:regression_event_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.6
+    },
+    {
+      "base_rho": 0.45,
+      "pair": "regression_event_prob:regression_event_cost_eur",
+      "recommendation_changed": false,
+      "selected_option": "stabilize_core",
+      "tested_rho": 0.8
+    }
+  ],
   "frontier_stability_rows": [
     {
       "switch_type_modes": "no_switch_observed",
