@@ -1,0 +1,301 @@
+:root {
+    --app-bg: #f4f7fb;
+    --app-bg-deep: #eef2f8;
+    --panel-bg: rgba(255, 255, 255, 0.92);
+    --panel-border: rgba(15, 23, 42, 0.08);
+    --panel-shadow: rgba(15, 23, 42, 0.08);
+    --panel-shadow-strong: rgba(15, 23, 42, 0.14);
+    --ink: #0f1728;
+    --muted: #586477;
+    --accent: #2563ff;
+    --accent-soft: rgba(37, 99, 255, 0.12);
+    --accent-strong: #1d4ed8;
+    --sidebar-bg-top: #0f1728;
+    --sidebar-bg-bottom: #182236;
+    --sidebar-border: rgba(255, 255, 255, 0.10);
+    --sidebar-ink: #f8fbff;
+    --sidebar-muted: rgba(248, 251, 255, 0.72);
+}
+
+@keyframes surface-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stApp {
+    background:
+        radial-gradient(circle at top left, rgba(37, 99, 255, 0.14), transparent 30%),
+        radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 28%),
+        linear-gradient(180deg, #fbfdff 0%, var(--app-bg) 40%, var(--app-bg-deep) 100%);
+    color: var(--ink);
+    font-family: "Soehne", "Avenir Next", "IBM Plex Sans", "Helvetica Neue", sans-serif;
+}
+
+.block-container {
+    padding-top: 2.25rem;
+    padding-bottom: 3.6rem;
+    max-width: 1440px;
+}
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        var(--sidebar-bg-top) 0%,
+        var(--sidebar-bg-bottom) 100%
+    );
+    border-right: 1px solid var(--sidebar-border);
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+[data-testid="stSidebar"] [data-testid="stText"] {
+    color: var(--sidebar-ink) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+    color: var(--sidebar-muted) !important;
+    line-height: 1.55;
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="base-input"],
+[data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="input"],
+[data-testid="stSidebar"] [data-testid="stNumberInput"] [data-baseweb="input"] > div,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"],
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] input,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] input,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [role="combobox"] {
+    background: transparent !important;
+    color: var(--sidebar-ink) !important;
+    -webkit-text-fill-color: var(--sidebar-ink) !important;
+    caret-color: var(--sidebar-ink) !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"],
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] *,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] input::placeholder {
+    color: var(--sidebar-ink) !important;
+    -webkit-text-fill-color: var(--sidebar-ink) !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] button,
+[data-testid="stSidebar"] [data-testid="stNumberInput"] svg,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] svg {
+    background: transparent !important;
+    color: var(--sidebar-ink) !important;
+    fill: var(--sidebar-ink) !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] button:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-testid="stSidebar"] code {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--sidebar-ink);
+    border-radius: 8px;
+    padding: 0.12rem 0.4rem;
+}
+
+h1,
+h2,
+h3 {
+    letter-spacing: -0.04em;
+    color: var(--ink);
+}
+
+h2 {
+    margin-top: 0.35rem;
+    font-size: 1.45rem;
+}
+
+h3 {
+    font-size: 1.02rem;
+    letter-spacing: -0.02em;
+}
+
+h1 {
+    font-size: 2.7rem;
+    font-weight: 800;
+}
+
+[data-testid="stCaptionContainer"] {
+    margin-bottom: 0.7rem;
+    color: var(--muted);
+}
+
+[data-testid="stTabs"] {
+    margin-top: 1.2rem;
+}
+
+[data-testid="stTabs"] button[role="tab"] {
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(12px);
+    padding: 0.45rem 0.95rem;
+    transition: all 140ms ease;
+}
+
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+}
+
+[data-testid="stTabs"] button[role="tab"] p {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
+    color: #ffffff;
+}
+
+[data-testid="stPlotlyChart"],
+[data-testid="stDataFrame"],
+[data-testid="stExpander"],
+[data-testid="stMetric"] {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 24px;
+    box-shadow: 0 18px 48px var(--panel-shadow);
+    animation: surface-in 420ms ease both;
+}
+
+[data-testid="stPlotlyChart"] {
+    padding: 0.75rem 0.95rem 0.45rem 0.95rem;
+    margin-bottom: 1.4rem;
+}
+
+[data-testid="stDataFrame"] {
+    padding: 0.45rem;
+    margin-bottom: 1.2rem;
+}
+
+.section-copy {
+    max-width: 62rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0 0 0.95rem 0;
+    font-size: 0.98rem;
+}
+
+.note-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.94));
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    padding: 1rem 1.05rem;
+    margin: 0 0 0.95rem 0;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    animation: surface-in 420ms ease both;
+}
+
+.note-card__title {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 0.5rem 0;
+}
+
+.note-card__body {
+    color: var(--ink);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.95rem;
+    margin: 0.65rem 0 1.4rem 0;
+}
+
+.metric-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.94));
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    border-radius: 24px;
+    box-shadow: 0 22px 48px var(--panel-shadow);
+    padding: 1rem 1.05rem;
+    position: relative;
+    overflow: hidden;
+    animation: surface-in 420ms ease both;
+}
+
+.metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent) 0%, #7aa2ff 100%);
+}
+
+.metric-card__label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.35rem 0;
+}
+
+.metric-card__value {
+    color: var(--ink);
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.metric-card__detail {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0.45rem 0 0 0;
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 16px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+    color: var(--ink);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+hr {
+    border-color: rgba(15, 23, 42, 0.08);
+}
