@@ -11,6 +11,7 @@ import pandas as pd
 from simulator.output_utils import material_driver_rows
 from simulator.policy import PolicyFrontierRow
 from simulator.reporting import (
+    _published_driver_analysis_rows,
     _stable_plotly_figure,
     build_case_study_artifacts,
     build_payoff_delta_markdown,
@@ -36,6 +37,7 @@ def test_write_case_study_artifacts_emits_traceable_outputs(tmp_path: Path) -> N
         "diagnostics.json",
         "scenario_results.json",
         "sensitivity.json",
+        "driver_analysis.json",
         "parameter_registry.json",
         "parameter_registry.csv",
         "policy_eligibility.json",
@@ -156,6 +158,58 @@ def test_material_driver_rows_drop_intervals_that_cross_zero() -> None:
     assert list(rows["parameter"]) == [
         "do_nothing_drift_cost_eur",
         "feature_extension_regression_prob_multiplier",
+    ]
+
+
+def test_published_driver_analysis_rows_match_the_report_contract() -> None:
+    """The published JSON should keep only stable, top-N decision-support rows per option."""
+
+    driver_analysis = pd.DataFrame(
+        [
+            {
+                "option": "feature_extension",
+                "parameter": "kept_b",
+                "partial_rank_corr": 0.22,
+                "ci_low": 0.10,
+                "ci_high": 0.30,
+            },
+            {
+                "option": "feature_extension",
+                "parameter": "dropped_for_limit",
+                "partial_rank_corr": 0.18,
+                "ci_low": 0.09,
+                "ci_high": 0.25,
+            },
+            {
+                "option": "feature_extension",
+                "parameter": "kept_a",
+                "partial_rank_corr": -0.22,
+                "ci_low": -0.28,
+                "ci_high": -0.11,
+            },
+            {
+                "option": "feature_extension",
+                "parameter": "dropped_for_noise",
+                "partial_rank_corr": 0.11,
+                "ci_low": -0.03,
+                "ci_high": 0.19,
+            },
+            {
+                "option": "stabilize_core",
+                "parameter": "kept_c",
+                "partial_rank_corr": 0.31,
+                "ci_low": 0.17,
+                "ci_high": 0.40,
+            },
+        ]
+    )
+
+    rows = _published_driver_analysis_rows(driver_analysis, threshold=0.10, limit=2)
+
+    assert rows[["option", "parameter"]].to_dict("records") == [
+        {"option": "feature_extension", "parameter": "kept_a"},
+        {"option": "feature_extension", "parameter": "kept_b"},
+        {"option": "stabilize_core", "parameter": "kept_c"},
     ]
 
 

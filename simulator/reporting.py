@@ -286,12 +286,17 @@ def write_case_study_artifacts(
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    published_driver_analysis = _published_driver_analysis_rows(
+        artifacts.driver_analysis,
+        threshold=artifacts.analysis.sensitivity_materiality_threshold_abs_spearman,
+        limit=artifacts.analysis.sensitivity_max_rows_per_option,
+    )
 
     _write_json_records(out_dir / "summary.json", artifacts.summary)
     _write_json_records(out_dir / "diagnostics.json", artifacts.diagnostics)
     _write_json_records(out_dir / "scenario_results.json", artifacts.scenario_results)
     _write_json_records(out_dir / "sensitivity.json", artifacts.sensitivity)
-    _write_json_records(out_dir / "driver_analysis.json", artifacts.driver_analysis)
+    _write_json_records(out_dir / "driver_analysis.json", published_driver_analysis)
     _write_json_records(out_dir / "parameter_registry.json", artifacts.parameter_registry)
     _write_json_records(out_dir / "policy_eligibility.json", artifacts.policy_eligibility)
     _write_json_records(out_dir / "policy_frontier_grid.json", artifacts.policy_frontier_grid)
@@ -839,6 +844,44 @@ def build_sensitivity_markdown(artifacts: CaseStudyArtifacts) -> str:
         sections.append(_markdown_table(rows[["Parameter", "Partial rank corr", "95% CI"]]))
         sections.append("")
     return "\n".join(sections).strip()
+
+
+def _published_driver_analysis_rows(
+    driver_analysis: pd.DataFrame,
+    *,
+    threshold: float,
+    limit: int,
+) -> pd.DataFrame:
+    """Return the stable decision-support rows that belong in the published JSON artifact."""
+
+    if driver_analysis.empty:
+        return driver_analysis.copy()
+
+    published_rows: list[pd.DataFrame] = []
+    for option in sorted(driver_analysis["option"].astype(str).unique()):
+        option_rows = material_driver_rows(
+            driver_analysis=driver_analysis,
+            option=option,
+            threshold=threshold,
+            limit=limit,
+        )
+        if option_rows.empty:
+            continue
+        published_rows.append(option_rows)
+
+    if not published_rows:
+        return driver_analysis.iloc[0:0].copy()
+
+    return (
+        pd.concat(published_rows, ignore_index=True)
+        .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
+        .sort_values(
+            ["option", "abs_partial_rank_corr", "parameter"],
+            ascending=[True, False, True],
+        )
+        .drop(columns=["abs_partial_rank_corr"])
+        .reset_index(drop=True)
+    )
 
 
 def _selection_reason_line(recommendation: RecommendationResult) -> str:

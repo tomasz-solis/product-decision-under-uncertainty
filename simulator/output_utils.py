@@ -113,7 +113,7 @@ def material_driver_rows(
     rows = (
         driver_analysis.loc[driver_analysis["option"] == option]
         .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
-        .sort_values("abs_partial_rank_corr", ascending=False)
+        .sort_values(["abs_partial_rank_corr", "parameter"], ascending=[False, True])
     )
     rows = rows.loc[rows["abs_partial_rank_corr"] >= threshold]
     if {"ci_low", "ci_high"}.issubset(rows.columns):

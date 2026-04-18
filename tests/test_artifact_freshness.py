@@ -73,6 +73,7 @@ def test_published_json_and_fragments_match_fresh_generation(generated_artifact_
         "diagnostics.json",
         "scenario_results.json",
         "sensitivity.json",
+        "driver_analysis.json",
         "parameter_registry.json",
         "policy_eligibility.json",
         "assumption_manifest.json",

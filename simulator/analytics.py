@@ -184,7 +184,10 @@ def driver_analysis(
     return (
         pd.DataFrame(rows)
         .assign(abs_partial_rank_corr=lambda frame: frame["partial_rank_corr"].abs())
-        .sort_values(["option", "abs_partial_rank_corr"], ascending=[True, False])
+        .sort_values(
+            ["option", "abs_partial_rank_corr", "parameter"],
+            ascending=[True, False, True],
+        )
         .drop(columns=["abs_partial_rank_corr"])
         .reset_index(drop=True)
     )
