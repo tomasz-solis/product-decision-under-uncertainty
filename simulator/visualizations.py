@@ -102,7 +102,7 @@ def create_ranked_payoff_profile(
     figure.update_layout(
         title="Ranked payoff range",
         height=470,
-        margin=dict(l=24, r=24, t=86, b=28),
+        margin=dict(l=24, r=24, t=86, b=100),
     )
     _apply_currency_axis(figure, axis="x")
     _apply_theme(figure)
@@ -191,7 +191,7 @@ def create_guardrail_chart(
     figure.update_layout(
         title="Guardrail position by option",
         height=460,
-        margin=dict(l=24, r=24, t=86, b=28),
+        margin=dict(l=24, r=24, t=86, b=100),
     )
     figure.update_xaxes(title_text="P05 value (EUR)", row=1, col=1)
     figure.update_xaxes(title_text="Mean regret (EUR)", row=1, col=2)
@@ -260,7 +260,7 @@ def create_frontier_switch_chart(
     figure.update_layout(
         title="Threshold switch runway",
         height=400,
-        margin=dict(l=24, r=24, t=86, b=24),
+        margin=dict(l=24, r=24, t=86, b=100),
         xaxis_title="Threshold value (EUR)",
     )
     _apply_currency_axis(figure, axis="x")
@@ -275,7 +275,7 @@ def create_stability_chart(stability_runs: pd.DataFrame) -> go.Figure:
 
     if stability_runs.empty:
         _apply_theme(figure)
-        figure.update_layout(height=360, margin=dict(l=24, r=24, t=86, b=24))
+        figure.update_layout(height=360, margin=dict(l=24, r=24, t=86, b=100))
         return figure
 
     spread = (
@@ -315,7 +315,7 @@ def create_stability_chart(stability_runs: pd.DataFrame) -> go.Figure:
     figure.update_layout(
         title="Metric spread by world count",
         height=400,
-        margin=dict(l=24, r=24, t=86, b=24),
+        margin=dict(l=24, r=24, t=86, b=100),
         xaxis_title="Simulation worlds",
         yaxis_title="Observed range (EUR)",
     )
@@ -419,7 +419,7 @@ def create_decision_dashboard(
     figure.update_yaxes(title_text="Win rate (%)", row=1, col=2)
     figure.update_yaxes(title_text="EUR", row=2, col=1)
     figure.update_yaxes(title_text="Spearman correlation", row=2, col=2)
-    figure.update_layout(height=760, margin=dict(l=24, r=24, t=70, b=24))
+    figure.update_layout(height=760, margin=dict(l=24, r=24, t=70, b=100))
     _apply_theme(figure)
     return figure
 
@@ -515,7 +515,7 @@ def create_scenario_comparison(
         title="Expected value by scenario",
         barmode="group",
         height=440,
-        margin=dict(l=24, r=24, t=86, b=96),
+        margin=dict(l=24, r=24, t=86, b=115),
         bargap=0.24,
         yaxis_title="EUR",
         xaxis_title="Scenario",
@@ -526,7 +526,7 @@ def create_scenario_comparison(
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.28,
             xanchor="center",
             x=0.5,
             bgcolor="rgba(0, 0, 0, 0)",
@@ -570,7 +570,7 @@ def create_sensitivity_waterfall(
             orientation="h",
             marker_color=COLORS.get(option, POLICY_SELECTED_COLOR),
             text=[f"{value:+.2f}" for value in rows[metric_column]],
-            textposition="outside",
+            textposition="auto",
             cliponaxis=False,
             hovertemplate=_build_hover_template(
                 labeled_option(option),
@@ -582,7 +582,7 @@ def create_sensitivity_waterfall(
     figure.update_layout(
         title=f"Decision drivers for {labeled_option(option)}",
         height=500,
-        margin=dict(l=24, r=56, t=86, b=24),
+        margin=dict(l=24, r=56, t=86, b=100),
         xaxis_title=title,
         yaxis_title="Parameter",
     )
@@ -636,7 +636,7 @@ def create_trade_off_matrix(summary: pd.DataFrame, diagnostics: pd.DataFrame) ->
         height=500,
         xaxis_title="Mean regret (EUR)",
         yaxis_title="Expected value (EUR)",
-        margin=dict(l=24, r=24, t=86, b=24),
+        margin=dict(l=24, r=24, t=86, b=100),
     )
     _apply_currency_axis(figure, axis="x")
     _apply_currency_axis(figure, axis="y")
