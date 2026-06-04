@@ -1,7 +1,7 @@
 """Property-based tests for Monte Carlo simulation invariants.
 
 Each test asserts an economic relationship that must hold regardless of the
-specific parameter values — not a particular numeric output, but a structural
+specific parameter values - not a particular numeric output, but a structural
 property of the model. These complement the unit tests in test_simulation_logic.py,
 which test specific scenarios with fixed inputs.
 """
@@ -20,7 +20,7 @@ from simulator.simulation import (
 )
 
 # ---------------------------------------------------------------------------
-# Shared fixture builder — single deterministic world for property tests
+# Shared fixture builder - single deterministic world for property tests
 # ---------------------------------------------------------------------------
 
 _BASE_PARAMS: dict[str, float] = {

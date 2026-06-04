@@ -1,5 +1,5 @@
-- Selected option: **Stabilize Core**.
-- Best excluded alternative: **Feature Extension**.
+- Selected option: Stabilize Core.
+- Best excluded alternative: Feature Extension.
 - Mean payoff delta: €176,174 (selected option leads the comparison option).
 - P05 payoff delta: €-611,191.
 - Win rate vs comparison: 63%.

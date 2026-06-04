@@ -293,7 +293,7 @@ def test_gaussian_copula_round_trip_recovers_requested_rank_correlation() -> Non
     Uses 50k worlds to keep the empirical estimate tight. The tolerance of 0.03
     corresponds to roughly three standard errors at this sample size for rho ≈ 0.55.
     This test verifies the Spearman-to-Pearson conversion and the inverse-CDF
-    chain produce the correlation structure that was requested — not just that the
+    chain produce the correlation structure that was requested - not just that the
     code runs without error.
     """
     results = run_simulation(

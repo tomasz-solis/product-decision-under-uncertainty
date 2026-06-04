@@ -1,16 +1,16 @@
-# Executive Summary
+# Published Decision Summary
 
 This is the shortest path to the current published result. For assumptions, formulas, and the evidence workflow, start from [README.md](README.md).
 
 ## Recommendation
 
 <!-- GENERATED:EXEC_SUMMARY_RECOMMENDATION:START -->
-- Recommendation: **Stabilize Core**.
+- Recommendation: Stabilize Core.
 - Policy: `guardrailed_expected_value`.
 - Why it wins: No option clears both guardrails, so the policy falls back to expected value.
-- Guardrail reality: no option passes both guardrails, so **Stabilize Core** wins on expected value.
-- Best remaining excluded alternative: **Feature Extension**.
-- Expected-value comparison: the selected option leads **Feature Extension** by €176,174.
+- Guardrail reality: no option passes both guardrails, so Stabilize Core wins on expected value.
+- Best remaining excluded alternative: Feature Extension.
+- Expected-value comparison: the selected option leads Feature Extension by €176,174.
 - Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `5.0.0`.
 <!-- GENERATED:EXEC_SUMMARY_RECOMMENDATION:END -->
 

@@ -25,7 +25,7 @@ This is the published case-study view of the current model. For the repo map and
 - Formula appendix: [simulator/formulas.md](simulator/formulas.md)
 - Config and policy: [simulator/config.yaml](simulator/config.yaml)
 
-## Validation seam
+## Evidence input
 
 - One public proxy dataset currently feeds the evidence workflow for `baseline_failure_rate`.
 - That evidence produces a candidate metric in [artifacts/evidence/parameter_candidates.json](artifacts/evidence/parameter_candidates.json).
@@ -34,12 +34,12 @@ This is the published case-study view of the current model. For the repo map and
 ## Published recommendation
 
 <!-- GENERATED:CASE_STUDY_RECOMMENDATION:START -->
-- Recommendation: **Stabilize Core**.
+- Recommendation: Stabilize Core.
 - Policy: `guardrailed_expected_value`.
 - Why it wins: No option clears both guardrails, so the policy falls back to expected value.
-- Guardrail reality: no option passes both guardrails, so **Stabilize Core** wins on expected value.
-- Best remaining excluded alternative: **Feature Extension**.
-- Expected-value comparison: the selected option leads **Feature Extension** by €176,174.
+- Guardrail reality: no option passes both guardrails, so Stabilize Core wins on expected value.
+- Best remaining excluded alternative: Feature Extension.
+- Expected-value comparison: the selected option leads Feature Extension by €176,174.
 - Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `5.0.0`.
 <!-- GENERATED:CASE_STUDY_RECOMMENDATION:END -->
 
@@ -106,8 +106,8 @@ Scenario descriptions:
 ## Selected-vs-runner-up payoff diagnostic
 
 <!-- GENERATED:CASE_STUDY_PAYOFF_DELTA:START -->
-- Selected option: **Stabilize Core**.
-- Best excluded alternative: **Feature Extension**.
+- Selected option: Stabilize Core.
+- Best excluded alternative: Feature Extension.
 - Mean payoff delta: €176,174 (selected option leads the comparison option).
 - P05 payoff delta: €-611,191.
 - Win rate vs comparison: 63%.
@@ -200,7 +200,7 @@ This section is the decision-support view. It uses partial rank correlation with
 ## How to read the result
 
 - `Feature Extension` still looks best on expected value in the base case, but it misses the downside floor badly enough to fall out of policy scope.
-- `Do Nothing` is not a victory lap result. It survives because it is the only option that clears the current guardrails.
-- The scenario table is a worldview exercise, not just an option-effectiveness toggle. It lets exogenous business conditions move too.
+- `Do Nothing` is not a good-news result. It survives because it is the only option that clears the current guardrails.
+- The scenario table is a worldview exercise, not only an option-effectiveness toggle. It lets external business conditions move too.
 - The payoff-delta section is descriptive. The policy-frontier section is the one that answers what would need to change for the recommendation to flip.
 - The robustness artifact now includes a dependency ablation that reruns the model with all configured correlations set to zero. Use it to check whether the copula changes the recommendation or mainly changes the downside shape.
