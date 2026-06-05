@@ -34,12 +34,12 @@ This is the published case-study view of the current model. For the repo map and
 ## Published recommendation
 
 <!-- GENERATED:CASE_STUDY_RECOMMENDATION:START -->
-- Recommendation: Stabilize Core.
+- Recommendation: **Stabilize Core**.
 - Policy: `guardrailed_expected_value`.
 - Why it wins: No option clears both guardrails, so the policy falls back to expected value.
-- Guardrail reality: no option passes both guardrails, so Stabilize Core wins on expected value.
-- Best remaining excluded alternative: Feature Extension.
-- Expected-value comparison: the selected option leads Feature Extension by €176,174.
+- Guardrail reality: no option passes both guardrails, so **Stabilize Core** wins on expected value.
+- Best remaining excluded alternative: **Feature Extension**.
+- Expected-value comparison: the selected option leads **Feature Extension** by €176,174.
 - Published run: `20,000` worlds, seed `42`, annual volume `250,000`, horizon `2` years, discount rate `8%`, declared model version `5.0.0`.
 <!-- GENERATED:CASE_STUDY_RECOMMENDATION:END -->
 
@@ -106,8 +106,8 @@ Scenario descriptions:
 ## Selected-vs-runner-up payoff diagnostic
 
 <!-- GENERATED:CASE_STUDY_PAYOFF_DELTA:START -->
-- Selected option: Stabilize Core.
-- Best excluded alternative: Feature Extension.
+- Selected option: **Stabilize Core**.
+- Best excluded alternative: **Feature Extension**.
 - Mean payoff delta: €176,174 (selected option leads the comparison option).
 - P05 payoff delta: €-611,191.
 - Win rate vs comparison: 63%.

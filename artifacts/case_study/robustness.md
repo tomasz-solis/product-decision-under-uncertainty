@@ -1,7 +1,7 @@
-- Baseline selected option: Stabilize Core.
+- Baseline selected option: **Stabilize Core**.
 - This artifact separates convergence, frontier stability, and directional driver stress.
-- Dependency ablation: the correlated run selects Stabilize Core, while the independence rerun selects Stabilize Core.
-- For the correlated selected option, downside P05 moves from -306541.279637 under independence to -360761.416674 with dependencies.
+- Dependency ablation: the correlated run selects **Stabilize Core**, while the independence rerun selects **Stabilize Core**.
+- For the correlated selected option, downside P05 moves from **-306541.279637** under independence to **-360761.416674** with dependencies.
 
 Dependency ablation by option:
 
