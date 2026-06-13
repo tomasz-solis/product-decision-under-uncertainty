@@ -1,0 +1,165 @@
+{
+  "baseline_expected_value_eur": 373233.468058,
+  "ev_optimal_option": "stabilize_core",
+  "evpi_eur": 131456.508832,
+  "evppi_bins": 10,
+  "evppi_rows": [
+    {
+      "evppi_eur": 72117.831326,
+      "parameter": "extension_uptake",
+      "share_of_evpi": 0.548606
+    },
+    {
+      "evppi_eur": 35757.490731,
+      "parameter": "extension_value_per_uptake_eur",
+      "share_of_evpi": 0.27201
+    },
+    {
+      "evppi_eur": 28311.902831,
+      "parameter": "baseline_failure_rate",
+      "share_of_evpi": 0.215371
+    },
+    {
+      "evppi_eur": 19422.376645,
+      "parameter": "stabilize_failure_reduction",
+      "share_of_evpi": 0.147748
+    },
+    {
+      "evppi_eur": 11327.724251,
+      "parameter": "cost_per_failure_eur",
+      "share_of_evpi": 0.086171
+    },
+    {
+      "evppi_eur": 5000.108178,
+      "parameter": "failure_to_churn_rel",
+      "share_of_evpi": 0.038036
+    },
+    {
+      "evppi_eur": 1189.976458,
+      "parameter": "stabilize_core_launch_delay_months",
+      "share_of_evpi": 0.009052
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "value_per_success_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "do_nothing_drift_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_benefit_ramp_months",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "extension_exposure_reduction",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "extension_loss_rate",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_annual_maintenance_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_benefit_ramp_months",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_cost_overrun_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_launch_delay_months",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_regression_prob_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "feature_extension_upfront_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_annual_maintenance_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_cost_overrun_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_launch_delay_months",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_regression_prob_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_upfront_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_uplift",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "regression_event_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "regression_event_prob",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "stabilize_core_annual_maintenance_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "stabilize_core_benefit_ramp_months",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "stabilize_core_cost_overrun_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "stabilize_core_regression_prob_multiplier",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "stabilize_core_upfront_cost_eur",
+      "share_of_evpi": 0.0
+    }
+  ],
+  "expected_value_with_perfect_information_eur": 504689.97689,
+  "n_worlds": 20000
+}

@@ -86,6 +86,7 @@ def test_published_json_and_fragments_match_fresh_generation(generated_artifact_
         "evidence_summary.json",
         "robustness.json",
         "metadata.json",
+        "value_of_information.json",
     }
     expected_text_files = {
         "parameter_registry.csv",
@@ -100,6 +101,7 @@ def test_published_json_and_fragments_match_fresh_generation(generated_artifact_
         "stability.md",
         "sensitivity_table.md",
         "robustness.md",
+        "value_of_information.md",
     }
 
     for filename in expected_json_files:

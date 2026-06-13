@@ -1,0 +1,16 @@
+# Normalize line endings to LF for all text files on every platform.
+#
+# The published artifacts fingerprint their inputs with SHA-256 hashes
+# (see simulator/artifact_freshness.py). Those hashes read the working-tree
+# bytes, so a CRLF checkout on Windows would produce different fingerprints
+# than the Linux CI runner and break the artifact-freshness gate. Forcing LF
+# keeps `make artifacts` reproducible across Windows, macOS, and Linux.
+* text=auto eol=lf
+
+# Common binary types should never be line-ending normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

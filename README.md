@@ -1,5 +1,14 @@
 # Product Decision Under Uncertainty
 
+[![CI](https://github.com/tomasz-solis/product-decision-under-uncertainty/actions/workflows/ci.yml/badge.svg)](https://github.com/tomasz-solis/product-decision-under-uncertainty/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+
+> **Frame one irreversible platform investment under uncertainty — and surface what would change the call, not just what the model picked.**
+
+**Try it:** `make app` (or `uv run streamlit run app.py`) for the interactive explorer · `make artifacts` to regenerate every published number from the model.
+<!-- Live demo: add your hosted Streamlit URL here once deployed, e.g. [Live demo](https://your-app.streamlit.app). -->
+
 A decision-analysis case study showing how to frame a platform investment
 choice under uncertainty - with a Monte Carlo sampler, an explicit guardrail
 policy, a policy frontier, and a full provenance chain from assumptions to
@@ -151,6 +160,8 @@ uv run --extra dev mypy app.py simulator tests
 - Model spec: [simulator/model_spec.md](simulator/model_spec.md)
 - Formula appendix: [simulator/formulas.md](simulator/formulas.md)
 - Economic terms: [simulator/economic_terms.md](simulator/economic_terms.md)
+- Architecture decisions: [docs/adr](docs/adr)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Generated artifacts: [artifacts/case_study](artifacts/case_study)
 
 ## Evidence Workflow

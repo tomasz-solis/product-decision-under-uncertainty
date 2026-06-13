@@ -155,8 +155,8 @@ def profile_public_evidence(
 
     if not files:
         return {
-            "input_dir": str(directory),
-            "manifest_path": str(Path(manifest_path)),
+            "input_dir": directory.as_posix(),
+            "manifest_path": Path(manifest_path).as_posix(),
             "status": "ready_for_data",
             "source_count": 0,
             "file_count": 0,
@@ -269,7 +269,7 @@ def summarize_public_evidence(profile: dict[str, Any]) -> dict[str, Any]:
         "source_count": int(profile.get("source_count", 0)),
         "assumption_families": assumption_families,
         "source_ids": [str(source["source_id"]) for source in profile.get("sources", [])],
-        "note_artifact_path": str(PUBLIC_EVIDENCE_PROFILE_MARKDOWN),
+        "note_artifact_path": PUBLIC_EVIDENCE_PROFILE_MARKDOWN.as_posix(),
         "note": str(profile.get("note", "")),
     }
 

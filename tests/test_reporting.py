@@ -19,6 +19,7 @@ from simulator.reporting import (
     build_recommendation_markdown,
     build_sensitivity_markdown,
     build_stability_markdown,
+    build_value_of_information_markdown,
     write_case_study_artifacts,
 )
 from simulator.visualizations import create_ranked_payoff_profile
@@ -62,6 +63,8 @@ def test_write_case_study_artifacts_emits_traceable_outputs(tmp_path: Path) -> N
         "stability.md",
         "sensitivity_table.md",
         "robustness.md",
+        "value_of_information.json",
+        "value_of_information.md",
     }
 
     assert expected_files.issubset({path.name for path in tmp_path.iterdir()})
@@ -281,6 +284,17 @@ def test_stability_markdown_reports_frequency_tables() -> None:
 
     assert "Recommendation frequency" in markdown
     assert "EV leader frequency" in markdown
+
+
+def test_value_of_information_markdown_reports_evpi_and_evppi() -> None:
+    """The value-of-information fragment should quantify EVPI and per-parameter EVPPI."""
+
+    artifacts = build_case_study_artifacts(CONFIG_PATH, n_worlds=1500, seed=42)
+    markdown = build_value_of_information_markdown(artifacts)
+
+    assert "EVPI" in markdown
+    assert "Share of EVPI" in markdown
+    assert "expected-value-optimal action" in markdown
 
 
 def test_formula_appendix_covers_the_key_model_terms() -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,7 @@ DEFAULT_STABILITY_SEEDS = (11, 17, 23, 31, 42, 57)
 DEFAULT_STABILITY_WORLD_COUNTS = (5000, 10000, 20000, 40000)
 DEFAULT_DRIVER_BOOTSTRAP_SAMPLES = 40
 DEFAULT_DRIVER_CONFIDENCE_LEVEL = 0.95
+DEFAULT_EVPPI_BINS = 10
 
 
 def spearman_rank_correlation(left: pd.Series, right: pd.Series) -> float:
@@ -425,6 +427,113 @@ def independence_ablation(
     }
 
 
+def value_of_information(
+    df: pd.DataFrame,
+    *,
+    n_bins: int = DEFAULT_EVPPI_BINS,
+) -> dict[str, Any]:
+    """Return the expected value of perfect and partial perfect information.
+
+    EVPI is the expected gain from resolving every uncertainty before choosing,
+    measured against the expected-value-optimal action. EVPPI for a parameter is
+    the expected gain from resolving only that parameter on its own. Both are
+    reported in euros and answer the practical question "which uncertainty is
+    worth measuring before we decide?".
+
+    EVPI equals the mean regret of the expected-value-optimal option, and every
+    EVPPI is bounded in ``[0, EVPI]`` by construction. EVPPI values are not
+    additive across parameters because resolving one parameter changes the
+    information value of the others.
+    """
+
+    option_values = df[OPTION_COLUMNS].to_numpy(dtype=float)
+    if option_values.size == 0:
+        return {
+            "evpi_eur": 0.0,
+            "ev_optimal_option": None,
+            "expected_value_with_perfect_information_eur": 0.0,
+            "baseline_expected_value_eur": 0.0,
+            "n_worlds": 0,
+            "evppi_bins": int(n_bins),
+            "evppi_rows": [],
+        }
+
+    option_means = option_values.mean(axis=0)
+    ev_optimal_index = int(np.argmax(option_means))
+    baseline_value = float(option_means[ev_optimal_index])
+    expected_with_perfect_info = float(option_values.max(axis=1).mean())
+    evpi = max(0.0, expected_with_perfect_info - baseline_value)
+
+    params = [column for column in df.columns if column not in {*OPTION_COLUMNS, "scenario"}]
+    evppi_by_parameter: list[tuple[str, float]] = []
+    for parameter in params:
+        evppi = _evppi_for_parameter(
+            df[parameter].to_numpy(dtype=float),
+            option_values,
+            baseline_value=baseline_value,
+            n_bins=n_bins,
+        )
+        evppi_by_parameter.append((str(parameter), evppi))
+
+    evppi_by_parameter.sort(key=lambda item: (-item[1], item[0]))
+    rows: list[dict[str, object]] = [
+        {
+            "parameter": parameter,
+            "evppi_eur": evppi,
+            "share_of_evpi": float(evppi / evpi) if evpi > 0.0 else 0.0,
+        }
+        for parameter, evppi in evppi_by_parameter
+    ]
+
+    return {
+        "evpi_eur": evpi,
+        "ev_optimal_option": OPTION_COLUMNS[ev_optimal_index],
+        "expected_value_with_perfect_information_eur": expected_with_perfect_info,
+        "baseline_expected_value_eur": baseline_value,
+        "n_worlds": int(len(df)),
+        "evppi_bins": int(n_bins),
+        "evppi_rows": rows,
+    }
+
+
+def _evppi_for_parameter(
+    parameter_values: np.ndarray,
+    option_values: np.ndarray,
+    *,
+    baseline_value: float,
+    n_bins: int,
+) -> float:
+    """Return a binned EVPPI estimate for one parameter, in euros.
+
+    Worlds are split into roughly equal-count quantile bins of the parameter.
+    Within each bin the best option by conditional mean is taken, and the bins
+    are averaged back together weighted by membership. A constant parameter
+    carries no information and returns zero. The estimate is bounded in
+    ``[0, EVPI]`` because conditioning on a coarser partition can never beat
+    perfect information, and the EV-optimal option is always available in every
+    bin.
+    """
+
+    n_worlds = len(parameter_values)
+    unique_count = int(np.unique(parameter_values).size)
+    if n_worlds == 0 or unique_count <= 1 or n_bins < 1:
+        return 0.0
+
+    bin_count = min(int(n_bins), unique_count)
+    order = np.argsort(parameter_values, kind="mergesort")
+    edges = np.linspace(0, n_worlds, bin_count + 1).astype(int)
+
+    expected_best = 0.0
+    for bin_index in range(bin_count):
+        members = order[edges[bin_index] : edges[bin_index + 1]]
+        if members.size == 0:
+            continue
+        conditional_means = option_values[members].mean(axis=0)
+        expected_best += (members.size / n_worlds) * float(conditional_means.max())
+
+    return max(0.0, expected_best - baseline_value)
+
+
 def _partial_rank_correlations(
     features: pd.DataFrame,
     target: pd.Series,
@@ -551,4 +660,5 @@ __all__ = [
     "stability_analysis",
     "stability_summary",
     "summarize_results",
+    "value_of_information",
 ]

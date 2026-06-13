@@ -264,6 +264,32 @@ Where it lives: `simulator/output_utils.py::material_driver_rows`,
 
 ---
 
+### Value of information (EVPI and EVPPI)
+
+What it does: quantifies how much the decision would improve if uncertainty
+were resolved before choosing. EVPI (expected value of perfect information) is
+the gain from resolving everything; EVPPI (expected value of partial perfect
+information) is the gain from resolving one parameter on its own, estimated by
+partitioning the sampled worlds into equal-count quantile bins of that
+parameter and taking the best option by conditional mean within each bin.
+
+What it buys: a euro-denominated answer to "what should we measure first?".
+EVPI equals the mean regret of the expected-value-optimal option, so it sets a
+ceiling on what any data collection could be worth. The per-parameter EVPPI
+ranking turns the narrative advice ("get telemetry on drift cost before
+deciding") into a defensible measurement-spend prioritisation.
+
+Limits: the binned EVPPI estimator is nonparametric and bounded in
+`[0, EVPI]`, but it is a coarse approximation for continuous parameters and the
+values are not additive across parameters. It is computed against the
+expected-value-optimal action - the risk-neutral baseline - rather than the
+guardrailed policy pick.
+
+Where it lives: `simulator/analytics.py::value_of_information`,
+`simulator/analytics.py::_evppi_for_parameter`.
+
+---
+
 ## Governance
 
 ### Assumption provenance registry

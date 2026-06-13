@@ -10,7 +10,9 @@ from simulator.project_paths import PUBLIC_EVIDENCE_PROFILE_MARKDOWN
 def test_evidence_workflow_docs_point_to_the_generated_profile_note() -> None:
     """Evidence workflow docs should reference the real generated evidence note."""
 
-    expected_path = str(PUBLIC_EVIDENCE_PROFILE_MARKDOWN)
+    # Docs use forward-slash links, so compare against a POSIX-style path. Using
+    # str() here would embed OS-specific separators and fail on Windows.
+    expected_path = PUBLIC_EVIDENCE_PROFILE_MARKDOWN.as_posix()
     for path in [
         Path("README.md"),
         Path("simulator/data_sources.md"),

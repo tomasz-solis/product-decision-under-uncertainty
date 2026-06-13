@@ -26,6 +26,7 @@ from simulator.analytics import (
     stability_analysis,
     stability_summary,
     summarize_results,
+    value_of_information,
 )
 from simulator.artifact_freshness import build_artifact_metadata, sha256_file
 from simulator.config import (
@@ -117,6 +118,10 @@ CASE_STUDY_MARKERS = {
         "<!-- GENERATED:CASE_STUDY_SENSITIVITY:START -->",
         "<!-- GENERATED:CASE_STUDY_SENSITIVITY:END -->",
     ),
+    "value_of_information": (
+        "<!-- GENERATED:CASE_STUDY_VALUE_OF_INFORMATION:START -->",
+        "<!-- GENERATED:CASE_STUDY_VALUE_OF_INFORMATION:END -->",
+    ),
 }
 
 EXEC_SUMMARY_MARKERS = {
@@ -154,6 +159,7 @@ class CaseStudyArtifacts:
     robustness: dict[str, Any]
     scenario_metadata: dict[str, dict[str, str]]
     analysis: AnalysisConfig
+    value_of_information: dict[str, Any]
 
 
 def build_case_study_artifacts(
@@ -234,6 +240,7 @@ def build_case_study_artifacts(
         selected_option=recommendation.selected_option,
     )
     scenario_metadata = get_scenario_metadata(cfg)
+    value_of_information_result = value_of_information(base_results)
 
     metadata = build_artifact_metadata(
         cfg=cfg,
@@ -269,6 +276,7 @@ def build_case_study_artifacts(
         robustness=robustness,
         scenario_metadata=scenario_metadata,
         analysis=analysis,
+        value_of_information=value_of_information_result,
     )
     logger.info(
         "Case study artifact payload assembled (summary_rows=%d, scenario_rows=%d).",
@@ -309,6 +317,7 @@ def write_case_study_artifacts(
     _write_json_object(out_dir / "evidence_summary.json", artifacts.evidence_summary)
     _write_json_object(out_dir / "robustness.json", artifacts.robustness)
     _write_json_object(out_dir / "metadata.json", artifacts.metadata)
+    _write_json_object(out_dir / "value_of_information.json", artifacts.value_of_information)
     _write_csv(out_dir / "parameter_registry.csv", artifacts.parameter_registry)
     _write_plotly_html(
         out_dir / "decision_summary.html",
@@ -336,12 +345,13 @@ def write_case_study_artifacts(
         "driver_analysis.md": sensitivity_markdown,
         "sensitivity_table.md": sensitivity_markdown,
         "robustness.md": build_robustness_markdown(artifacts.robustness),
+        "value_of_information.md": build_value_of_information_markdown(artifacts),
     }
     for filename, content in fragments.items():
         (out_dir / filename).write_text(content, encoding="utf-8")
     logger.info(
         "Artifacts complete. %d files written to %s.",
-        19 + len(fragments),
+        20 + len(fragments),
         out_dir,
     )
     return fragments
@@ -399,6 +409,11 @@ def update_case_study_docs(
         case_study_content,
         *CASE_STUDY_MARKERS["sensitivity"],
         fragments["driver_analysis.md"],
+    )
+    case_study_content = _replace_section(
+        case_study_content,
+        *CASE_STUDY_MARKERS["value_of_information"],
+        fragments["value_of_information.md"],
     )
     Path(case_study_path).write_text(case_study_content, encoding="utf-8")
 
@@ -844,6 +859,60 @@ def build_sensitivity_markdown(artifacts: CaseStudyArtifacts) -> str:
         sections.append(_markdown_table(rows[["Parameter", "Partial rank corr", "95% CI"]]))
         sections.append("")
     return "\n".join(sections).strip()
+
+
+VALUE_OF_INFORMATION_MAX_ROWS = 8
+VALUE_OF_INFORMATION_MIN_EUR = 1.0
+
+
+def build_value_of_information_markdown(artifacts: CaseStudyArtifacts) -> str:
+    """Render the value-of-information view (EVPI and per-parameter EVPPI)."""
+
+    voi = artifacts.value_of_information
+    registry = artifacts.parameter_registry.set_index("parameter_name")
+    unit_lookup = registry["unit"].to_dict()
+    meaning_lookup = registry["business_meaning"].to_dict()
+
+    evpi = float(voi["evpi_eur"])
+    ev_optimal = voi["ev_optimal_option"]
+    ev_optimal_label = labeled_option(str(ev_optimal)) if ev_optimal is not None else "n/a"
+    lines = [
+        (
+            "- This view answers which uncertainty is worth resolving before deciding. "
+            "It is computed against the expected-value-optimal action, not the policy pick."
+        ),
+        f"- Expected-value-optimal action under full uncertainty: **{ev_optimal_label}**.",
+        f"- EVPI (value of resolving every uncertainty before deciding): {format_eur_markdown(evpi)}.",
+        (
+            "- EVPPI below is the value of resolving one parameter on its own. Each EVPPI is "
+            "bounded by the EVPI, and the values are not additive across parameters."
+        ),
+    ]
+
+    material_rows = [
+        row
+        for row in voi["evppi_rows"]
+        if float(row["evppi_eur"]) >= VALUE_OF_INFORMATION_MIN_EUR
+    ]
+    if not material_rows:
+        lines.append("- No single parameter carries material decision-relevant information.")
+        return "\n".join(lines)
+
+    table = pd.DataFrame(material_rows[:VALUE_OF_INFORMATION_MAX_ROWS])
+    table["Parameter"] = table["parameter"]
+    table["Unit"] = table["parameter"].map(lambda value: unit_lookup.get(str(value), ""))
+    table["EVPPI"] = table["evppi_eur"].map(lambda value: format_eur_markdown(float(value)))
+    table["Share of EVPI"] = table["share_of_evpi"].map(lambda value: format_pct(float(value)))
+    table["What it measures"] = table["parameter"].map(
+        lambda value: meaning_lookup.get(str(value), "")
+    )
+    lines.append("")
+    lines.append(
+        _markdown_table(
+            table[["Parameter", "Unit", "EVPPI", "Share of EVPI", "What it measures"]]
+        )
+    )
+    return "\n".join(lines)
 
 
 def _published_driver_analysis_rows(
