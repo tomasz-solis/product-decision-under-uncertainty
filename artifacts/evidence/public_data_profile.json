@@ -1,7 +1,7 @@
 {
   "file_count": 1,
-  "input_dir": "data\\public",
-  "manifest_path": "data\\public\\sources.yaml",
+  "input_dir": "data/public",
+  "manifest_path": "data/public/sources.yaml",
   "note": "All manifest-declared public sources matched the expected files and schema.",
   "source_count": 1,
   "sources": [

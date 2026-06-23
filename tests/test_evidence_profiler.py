@@ -47,6 +47,8 @@ def test_profile_public_evidence_with_clean_csv_fixture(tmp_path: Path) -> None:
 
     assert profile["status"] == "profiled"
     assert profile["file_count"] == 1
+    assert "\\" not in profile["input_dir"]
+    assert "\\" not in profile["manifest_path"]
     source = profile["sources"][0]
     assert source["duplicate_row_count"] == 0
     assert source["row_count"] == 2

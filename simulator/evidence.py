@@ -51,6 +51,12 @@ SUPPORTED_SCHEMA_TYPES = {
 LOW_CARDINALITY_LIMIT = 20
 
 
+def _artifact_path(path: str | Path) -> str:
+    """Render a path with stable separators for checked-in artifacts."""
+
+    return Path(path).as_posix().replace("\\", "/")
+
+
 def load_source_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
     """Load and validate the public-source manifest."""
 
@@ -155,8 +161,8 @@ def profile_public_evidence(
 
     if not files:
         return {
-            "input_dir": directory.as_posix(),
-            "manifest_path": Path(manifest_path).as_posix(),
+            "input_dir": _artifact_path(directory),
+            "manifest_path": _artifact_path(manifest_path),
             "status": "ready_for_data",
             "source_count": 0,
             "file_count": 0,
@@ -176,8 +182,8 @@ def profile_public_evidence(
         sources.append(_profile_source(frame, path, entry))
 
     return {
-        "input_dir": str(directory),
-        "manifest_path": str(Path(manifest_path)),
+        "input_dir": _artifact_path(directory),
+        "manifest_path": _artifact_path(manifest_path),
         "status": "profiled",
         "source_count": len(manifest_entries),
         "file_count": len(files),
