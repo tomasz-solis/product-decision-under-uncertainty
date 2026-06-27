@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from simulator.config import PARAM_VALUE_FIELDS
+from simulator.validation import normalize_iso_date, validate_allowed_keys
 from simulator.yaml_utils import load_yaml_mapping
 
 ALLOWED_SOURCE_TYPES = {
@@ -87,7 +87,7 @@ def load_parameter_registry(registry_path: str | Path) -> pd.DataFrame:
         _validate_non_empty(row["source_reference"], f"{parameter_name}.source_reference")
         _validate_non_empty(row["reason_for_range"], f"{parameter_name}.reason_for_range")
         _validate_non_empty(row["owner"], f"{parameter_name}.owner")
-        row["last_updated"] = _normalize_iso_date(
+        row["last_updated"] = normalize_iso_date(
             row["last_updated"], f"{parameter_name}.last_updated"
         )
         row["evidence_ids"] = _normalize_evidence_ids(
@@ -156,7 +156,7 @@ def validate_assumption_registry(
 ) -> dict[str, Any]:
     """Validate simulation, policy, dependency, analysis, and scenario assumptions."""
 
-    _validate_allowed_keys(
+    validate_allowed_keys(
         registry,
         {"simulation", "decision_policy", "analysis", "dependencies", "scenarios"},
         "assumption_registry",
@@ -264,7 +264,7 @@ def _validate_scalar_section(
         _validate_non_empty(payload["source_reference"], f"{section_name}.{key}.source_reference")
         _validate_non_empty(payload["reason_for_choice"], f"{section_name}.{key}.reason_for_choice")
         _validate_non_empty(payload["owner"], f"{section_name}.{key}.owner")
-        last_updated = _normalize_iso_date(
+        last_updated = normalize_iso_date(
             payload["last_updated"], f"{section_name}.{key}.last_updated"
         )
         value = _coerce_finite_float(payload["value"], f"{section_name}.{key}.value")
@@ -334,7 +334,7 @@ def _validate_dependency_section(
         _validate_non_empty(payload["source_reference"], f"dependencies.{name}.source_reference")
         _validate_non_empty(payload["reason_for_choice"], f"dependencies.{name}.reason_for_choice")
         _validate_non_empty(payload["owner"], f"dependencies.{name}.owner")
-        last_updated = _normalize_iso_date(
+        last_updated = normalize_iso_date(
             payload["last_updated"], f"dependencies.{name}.last_updated"
         )
 
@@ -398,7 +398,7 @@ def _validate_scenario_section(
         )
         _validate_non_empty(payload["rationale"], f"scenarios.{scenario_name}.rationale")
         _validate_non_empty(payload["owner"], f"scenarios.{scenario_name}.owner")
-        last_updated = _normalize_iso_date(
+        last_updated = normalize_iso_date(
             payload["last_updated"], f"scenarios.{scenario_name}.last_updated"
         )
 
@@ -561,7 +561,7 @@ def _validate_simulation_overrides(
             payload["owner"],
             f"scenarios.{scenario_name}.simulation_overrides.{setting_name}.owner",
         )
-        last_updated = _normalize_iso_date(
+        last_updated = normalize_iso_date(
             payload["last_updated"],
             f"scenarios.{scenario_name}.simulation_overrides.{setting_name}.last_updated",
         )
@@ -669,18 +669,6 @@ def _validate_record_keys(
         raise ValueError(f"Field set for '{context}' has unknown keys: {sorted(extras)}.")
 
 
-def _validate_allowed_keys(
-    payload: dict[str, Any],
-    allowed_keys: set[str],
-    context: str,
-) -> None:
-    """Reject unknown keys in one registry mapping."""
-
-    unknown = sorted(str(key) for key in set(payload) - allowed_keys)
-    if unknown:
-        raise ValueError(f"Unknown field(s) in '{context}': {', '.join(unknown)}.")
-
-
 def _validate_source_type(source_type: str, context: str) -> None:
     """Reject unsupported provenance source types."""
 
@@ -695,21 +683,6 @@ def _validate_non_empty(value: Any, context: str) -> None:
 
     if not str(value).strip():
         raise ValueError(f"Field '{context}' must be non-empty.")
-
-
-def _normalize_iso_date(value: Any, context: str) -> str:
-    """Return an ISO date string and reject malformed values."""
-
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    if not isinstance(value, str):
-        raise ValueError(f"Field '{context}' must be an ISO date string.")
-    try:
-        return date.fromisoformat(value).isoformat()
-    except ValueError as exc:  # pragma: no cover - small branch
-        raise ValueError(f"Field '{context}' must be an ISO date string.") from exc
 
 
 def _normalize_evidence_ids(value: Any, context: str) -> list[str]:
@@ -731,7 +704,12 @@ def _normalize_evidence_ids(value: Any, context: str) -> list[str]:
 
 
 def _coerce_finite_float(value: Any, context: str) -> float:
-    """Return a finite float or raise a readable validation error."""
+    """Coerce a registry value to a finite float, parsing numeric strings.
+
+    This is the lenient counterpart to ``config._require_finite_float``:
+    registries are hand-edited evidence notes, so a quoted number like
+    ``"0.42"`` is accepted via ``float`` coercion rather than rejected.
+    """
 
     if isinstance(value, bool):
         raise ValueError(f"Field '{context}' must be numeric, not a boolean.")

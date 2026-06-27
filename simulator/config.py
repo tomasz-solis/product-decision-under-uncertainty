@@ -10,6 +10,7 @@ from numbers import Integral, Real
 from pathlib import Path
 from typing import Any, Literal
 
+from simulator.validation import validate_allowed_keys
 from simulator.yaml_utils import load_yaml_mapping
 
 DistName = Literal["tri", "uniform", "constant", "lognormal"]
@@ -165,7 +166,7 @@ def load_config(config_path: str | Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Config not found: {path}")
     cfg = load_yaml_mapping(path)
-    _validate_allowed_keys(cfg, TOP_LEVEL_KEYS, "config")
+    validate_allowed_keys(cfg, TOP_LEVEL_KEYS, "config")
     return cfg
 
 
@@ -175,7 +176,7 @@ def get_seed(cfg: dict[str, Any]) -> int:
     project = cfg.get("project", {})
     if not isinstance(project, dict):
         raise ValueError("'project' must be a mapping if provided.")
-    _validate_allowed_keys(project, PROJECT_KEYS, "project")
+    validate_allowed_keys(project, PROJECT_KEYS, "project")
     if "seed" in project:
         return _coerce_strict_int(project["seed"], "project.seed")
     return 42
@@ -187,7 +188,7 @@ def get_declared_model_version(cfg: dict[str, Any]) -> str:
     project = cfg.get("project", {})
     if not isinstance(project, dict):
         raise ValueError("'project' must be a mapping if provided.")
-    _validate_allowed_keys(project, PROJECT_KEYS, "project")
+    validate_allowed_keys(project, PROJECT_KEYS, "project")
     if "model_version" in project:
         return str(project["model_version"])
     return "unversioned"
@@ -205,7 +206,7 @@ def get_simulation_settings(cfg: dict[str, Any]) -> dict[str, Any]:
     simulation = cfg.get("simulation", {})
     if not isinstance(simulation, dict):
         raise ValueError("'simulation' must be a mapping if provided.")
-    _validate_allowed_keys(simulation, SIMULATION_KEYS, "simulation")
+    validate_allowed_keys(simulation, SIMULATION_KEYS, "simulation")
 
     annual_volume = simulation.get("annual_volume")
     legacy_volume = simulation.get("volume")
@@ -227,7 +228,7 @@ def get_simulation_settings(cfg: dict[str, Any]) -> dict[str, Any]:
             simulation.get("time_horizon_years", 2),
             "simulation.time_horizon_years",
         ),
-        "discount_rate_annual": _coerce_finite_float(
+        "discount_rate_annual": _require_finite_float(
             simulation.get("discount_rate_annual", 0.08),
             "simulation.discount_rate_annual",
         ),
@@ -243,19 +244,19 @@ def get_decision_policy(cfg: dict[str, Any]) -> DecisionPolicyConfig:
     policy = cfg.get("decision_policy", {})
     if not isinstance(policy, dict):
         raise ValueError("'decision_policy' must be a mapping if provided.")
-    _validate_allowed_keys(policy, DECISION_POLICY_KEYS, "decision_policy")
+    validate_allowed_keys(policy, DECISION_POLICY_KEYS, "decision_policy")
 
     parsed = DecisionPolicyConfig(
         name=str(policy.get("name", "guardrailed_expected_value")),
-        minimum_p05_value_eur=_coerce_finite_float(
+        minimum_p05_value_eur=_require_finite_float(
             policy.get("minimum_p05_value_eur", -300000.0),
             "decision_policy.minimum_p05_value_eur",
         ),
-        maximum_mean_regret_eur=_coerce_finite_float(
+        maximum_mean_regret_eur=_require_finite_float(
             policy.get("maximum_mean_regret_eur", 450000.0),
             "decision_policy.maximum_mean_regret_eur",
         ),
-        ev_tolerance_eur=_coerce_finite_float(
+        ev_tolerance_eur=_require_finite_float(
             policy.get("ev_tolerance_eur", 100000.0),
             "decision_policy.ev_tolerance_eur",
         ),
@@ -276,10 +277,10 @@ def get_analysis_settings(cfg: dict[str, Any]) -> AnalysisConfig:
     analysis = cfg.get("analysis", {})
     if not isinstance(analysis, dict):
         raise ValueError("'analysis' must be a mapping if provided.")
-    _validate_allowed_keys(analysis, ANALYSIS_KEYS, "analysis")
+    validate_allowed_keys(analysis, ANALYSIS_KEYS, "analysis")
 
     parsed = AnalysisConfig(
-        sensitivity_materiality_threshold_abs_spearman=_coerce_finite_float(
+        sensitivity_materiality_threshold_abs_spearman=_require_finite_float(
             analysis.get("sensitivity_materiality_threshold_abs_spearman", 0.10),
             "analysis.sensitivity_materiality_threshold_abs_spearman",
         ),
@@ -311,7 +312,7 @@ def get_dependency_settings(cfg: dict[str, Any]) -> dict[str, dict[str, float]]:
         return {}
     if not isinstance(dependencies, dict):
         raise ValueError("'dependencies' must be a mapping if provided.")
-    _validate_allowed_keys(dependencies, DEPENDENCY_KEYS, "dependencies")
+    validate_allowed_keys(dependencies, DEPENDENCY_KEYS, "dependencies")
 
     method = dependencies.get("method", "gaussian_copula")
     if method != "gaussian_copula":
@@ -327,7 +328,7 @@ def get_dependency_settings(cfg: dict[str, Any]) -> dict[str, dict[str, float]]:
             raise ValueError(f"Dependency row for '{left}' must be a mapping.")
         normalized[str(left)] = {}
         for right, value in targets.items():
-            corr = _coerce_finite_float(
+            corr = _require_finite_float(
                 value,
                 f"dependencies.rank_correlations.{left}.{right}",
             )
@@ -409,7 +410,7 @@ def extract_scenario_simulation_overrides(
     overrides = entry.get("simulation_overrides", {})
     if not isinstance(overrides, dict):
         raise TypeError(f"Scenario '{scenario_name}' simulation_overrides must be a mapping.")
-    _validate_allowed_keys(
+    validate_allowed_keys(
         overrides,
         SCENARIO_SIMULATION_OVERRIDE_KEYS,
         f"scenarios.{scenario_name}.simulation_overrides",
@@ -447,12 +448,12 @@ def parse_param_specs(cfg: dict[str, Any]) -> dict[str, ParamSpec]:
 def validate_config(cfg: dict[str, Any]) -> dict[str, Any]:
     """Validate the full config contract before simulation begins."""
 
-    _validate_allowed_keys(cfg, TOP_LEVEL_KEYS, "config")
+    validate_allowed_keys(cfg, TOP_LEVEL_KEYS, "config")
     project = cfg.get("project", {})
     if project not in ({}, None):
         if not isinstance(project, dict):
             raise ValueError("'project' must be a mapping if provided.")
-        _validate_allowed_keys(project, PROJECT_KEYS, "project")
+        validate_allowed_keys(project, PROJECT_KEYS, "project")
 
     simulation = get_simulation_settings(cfg)
     param_specs = parse_param_specs(cfg)
@@ -506,14 +507,14 @@ def _validate_scenario_entry(scenario_name: str, entry: Any) -> None:
 
     if not isinstance(entry, dict):
         raise TypeError(f"Scenario '{scenario_name}' must be a mapping.")
-    _validate_allowed_keys(entry, SCENARIO_KEYS, f"scenarios.{scenario_name}")
+    validate_allowed_keys(entry, SCENARIO_KEYS, f"scenarios.{scenario_name}")
     parameter_overrides = entry.get("parameter_overrides", {})
     simulation_overrides = entry.get("simulation_overrides", {})
     if not isinstance(parameter_overrides, dict):
         raise TypeError(f"Scenario '{scenario_name}' parameter_overrides must be a mapping.")
     if not isinstance(simulation_overrides, dict):
         raise TypeError(f"Scenario '{scenario_name}' simulation_overrides must be a mapping.")
-    _validate_allowed_keys(
+    validate_allowed_keys(
         simulation_overrides,
         SCENARIO_SIMULATION_OVERRIDE_KEYS,
         f"scenarios.{scenario_name}.simulation_overrides",
@@ -550,29 +551,29 @@ def _parse_param_spec(name: str, dist: str, raw_spec: dict[str, Any]) -> ParamSp
     """Validate a single parameter spec."""
 
     if dist == "constant":
-        value = _coerce_finite_float(raw_spec.get("value"), f"params.{name}.value")
+        value = _require_finite_float(raw_spec.get("value"), f"params.{name}.value")
         _validate_values(name, [value])
         return ParamSpec(dist="constant", value=value)
 
     if dist == "uniform":
-        low = _coerce_finite_float(raw_spec.get("low"), f"params.{name}.low")
-        high = _coerce_finite_float(raw_spec.get("high"), f"params.{name}.high")
+        low = _require_finite_float(raw_spec.get("low"), f"params.{name}.low")
+        high = _require_finite_float(raw_spec.get("high"), f"params.{name}.high")
         if low > high:
             raise ValueError(f"Param '{name}' must satisfy low <= high.")
         _validate_values(name, [low, high])
         return ParamSpec(dist="uniform", low=low, high=high)
 
     if dist == "tri":
-        low = _coerce_finite_float(raw_spec.get("low"), f"params.{name}.low")
-        mode = _coerce_finite_float(raw_spec.get("mode"), f"params.{name}.mode")
-        high = _coerce_finite_float(raw_spec.get("high"), f"params.{name}.high")
+        low = _require_finite_float(raw_spec.get("low"), f"params.{name}.low")
+        mode = _require_finite_float(raw_spec.get("mode"), f"params.{name}.mode")
+        high = _require_finite_float(raw_spec.get("high"), f"params.{name}.high")
         if not (low <= mode <= high):
             raise ValueError(f"Param '{name}' must satisfy low <= mode <= high.")
         _validate_values(name, [low, mode, high])
         return ParamSpec(dist="tri", low=low, mode=mode, high=high)
 
-    median = _coerce_finite_float(raw_spec.get("median"), f"params.{name}.median")
-    p95 = _coerce_finite_float(raw_spec.get("p95"), f"params.{name}.p95")
+    median = _require_finite_float(raw_spec.get("median"), f"params.{name}.median")
+    p95 = _require_finite_float(raw_spec.get("p95"), f"params.{name}.p95")
     if median <= 0.0 or p95 <= 0.0:
         raise ValueError(f"Param '{name}' lognormal parameters must be positive.")
     if p95 < median:
@@ -599,7 +600,7 @@ def _validate_param_spec_keys(
         allowed.add("dist")
     else:
         allowed.add("dist")
-    _validate_allowed_keys(raw_spec, allowed, f"params.{name}")
+    validate_allowed_keys(raw_spec, allowed, f"params.{name}")
 
 
 def _get_scenario_entry(cfg: dict[str, Any], scenario_name: str) -> dict[str, Any]:
@@ -625,8 +626,13 @@ def _coerce_strict_int(value: Any, field_name: str) -> int:
     return int(value)
 
 
-def _coerce_finite_float(value: Any, field_name: str) -> float:
-    """Return one numeric field and reject booleans, NaN, or infinity."""
+def _require_finite_float(value: Any, field_name: str) -> float:
+    """Return a finite float, requiring an already-numeric value.
+
+    This is the strict counterpart to ``provenance._require_finite_float``: it
+    rejects ``None``, booleans, numeric strings, and any non-``Real`` type so
+    that config typos surface as validation errors instead of silent coercions.
+    """
 
     if value is None:
         raise ValueError(f"Missing required numeric field '{field_name}'.")
@@ -660,15 +666,3 @@ def _validate_simulation_settings(settings: dict[str, Any]) -> None:
         raise ValueError("'simulation.time_horizon_years' must be positive.")
     if settings["discount_rate_annual"] < 0.0:
         raise ValueError("'simulation.discount_rate_annual' must be non-negative.")
-
-
-def _validate_allowed_keys(
-    payload: dict[str, Any],
-    allowed_keys: set[str],
-    context: str,
-) -> None:
-    """Reject unknown keys in one config mapping."""
-
-    unknown = sorted(str(key) for key in payload.keys() - allowed_keys)
-    if unknown:
-        raise ValueError(f"Unknown field(s) in '{context}': {', '.join(unknown)}.")

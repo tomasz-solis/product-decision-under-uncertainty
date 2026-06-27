@@ -216,4 +216,7 @@ def test_stability_cache_invalidates_when_same_config_path_changes(tmp_path: Pat
 def test_artifact_fingerprint_includes_output_utils() -> None:
     """Artifact fingerprints should cover every module that changes published outputs."""
 
-    assert Path("simulator/output_utils.py") in artifact_code_paths()
+    fingerprinted = artifact_code_paths()
+    assert Path("simulator/output_utils.py") in fingerprinted
+    assert Path("simulator/serialization.py") in fingerprinted
+    assert Path("simulator/validation.py") in fingerprinted

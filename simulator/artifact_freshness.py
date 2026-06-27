@@ -38,8 +38,11 @@ def combined_sha256(paths: list[Path]) -> str:
     """Hash a deterministic ordered list of files into one combined fingerprint."""
 
     digest = sha256()
-    for path in sorted(paths):
-        digest.update(str(path).encode("utf-8"))
+    for path in sorted(paths, key=lambda candidate: candidate.as_posix()):
+        # Use POSIX-style paths so the fingerprint is identical across operating
+        # systems (Windows would otherwise fold "\" separators into the digest
+        # and sort Path objects case-insensitively).
+        digest.update(path.as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
         digest.update(b"\0")
@@ -56,9 +59,12 @@ def artifact_code_paths() -> list[Path]:
         Path("simulator/policy.py"),
         Path("simulator/provenance.py"),
         Path("simulator/reporting.py"),
+        Path("simulator/report_markdown.py"),
         Path("simulator/evidence.py"),
         Path("simulator/output_utils.py"),
+        Path("simulator/serialization.py"),
         Path("simulator/robustness.py"),
+        Path("simulator/validation.py"),
         Path("simulator/yaml_utils.py"),
         Path("simulator/artifact_freshness.py"),
         Path("simulator/project_paths.py"),

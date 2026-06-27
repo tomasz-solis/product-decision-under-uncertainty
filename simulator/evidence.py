@@ -18,6 +18,8 @@ from pandas.api.types import (
 )
 
 from simulator.project_paths import PUBLIC_EVIDENCE_PROFILE_MARKDOWN
+from simulator.serialization import markdown_table, stable_json_value
+from simulator.validation import normalize_iso_date
 from simulator.yaml_utils import load_yaml_mapping
 
 SUPPORTED_SUFFIXES = {".csv", ".jsonl", ".parquet"}
@@ -102,7 +104,7 @@ def load_source_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
                 "source_url": _normalize_optional_text(entry.get("source_url")),
                 "publication": _normalize_optional_text(entry.get("publication")),
                 "license": str(entry["license"]).strip(),
-                "extraction_date": _normalize_iso_date(entry["extraction_date"], context),
+                "extraction_date": normalize_iso_date(entry["extraction_date"], f"{context}.extraction_date"),
                 "grain": str(entry["grain"]).strip(),
                 "expected_schema": expected_schema,
                 "allowed_values": _normalize_allowed_values(
@@ -204,7 +206,7 @@ def write_public_evidence_outputs(
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
 
-    stable_profile = _stable_json_value(profile)
+    stable_profile = stable_json_value(profile)
     json_path.write_text(
         json.dumps(stable_profile, indent=2, sort_keys=True, allow_nan=False),
         encoding="utf-8",
@@ -245,7 +247,7 @@ def build_public_evidence_markdown(profile: dict[str, Any]) -> str:
             f"- Source count: `{profile['source_count']}`.",
             f"- File count: `{profile['file_count']}`.",
             "",
-            _markdown_table(pd.DataFrame(rows)),
+            markdown_table(pd.DataFrame(rows)),
         ]
     )
 
@@ -553,21 +555,6 @@ def _normalize_optional_text(value: Any) -> str | None:
     return text or None
 
 
-def _normalize_iso_date(value: Any, context: str) -> str:
-    """Return an ISO date string and reject malformed values."""
-
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    if not isinstance(value, str):
-        raise ValueError(f"Field '{context}.extraction_date' must be an ISO date string.")
-    try:
-        return date.fromisoformat(value).isoformat()
-    except ValueError as exc:  # pragma: no cover - small guard branch
-        raise ValueError(f"Field '{context}.extraction_date' must be an ISO date string.") from exc
-
-
 def _series_matches_schema(
     series: pd.Series,
     expected_type: str,
@@ -672,29 +659,6 @@ def _numeric_summaries(frame: pd.DataFrame) -> dict[str, dict[str, float | None]
             "median": float(series.median()),
         }
     return summaries
-
-
-def _stable_json_value(value: Any) -> Any:
-    """Normalize floats and datelike values before JSON serialization."""
-
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, Integral):
-        return int(value)
-    if isinstance(value, Real):
-        number = float(value)
-        if pd.isna(number):
-            return None
-        return round(number, 6)
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {key: _stable_json_value(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_stable_json_value(item) for item in value]
-    return value
 
 
 def _validate_declared_constraint_columns(entry: dict[str, Any], context: str) -> None:
@@ -832,18 +796,3 @@ def _parse_datetime_values(values: pd.Series) -> pd.Series:
     """Parse mixed date-like values without falling back to noisy warnings."""
 
     return pd.to_datetime(values, errors="coerce", format="mixed")
-
-
-def _markdown_table(frame: pd.DataFrame) -> str:
-    """Render a tiny markdown table without optional dependencies."""
-
-    headers = [str(column) for column in frame.columns]
-    rows = frame.astype(str).values.tolist()
-    separator = ["---"] * len(headers)
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join(separator) + " |",
-    ]
-    for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
-    return "\n".join(lines)

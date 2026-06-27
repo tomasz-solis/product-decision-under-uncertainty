@@ -6,7 +6,8 @@ from pathlib import Path
 
 from simulator.analytics import decision_diagnostics, sensitivity_analysis, summarize_results
 from simulator.output_utils import material_sensitivity_rows, sensitivity_note
-from simulator.reporting import build_case_study_artifacts, recommendation_lines
+from simulator.report_markdown import recommendation_lines
+from simulator.reporting import build_case_study_artifacts
 from simulator.simulation import (
     OPTION_COLUMNS,
     OPTION_LABELS,

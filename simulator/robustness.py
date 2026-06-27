@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from numbers import Integral, Real
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +25,7 @@ from simulator.config import (
 )
 from simulator.output_utils import labeled_option, material_driver_rows
 from simulator.policy import policy_frontier_analysis, select_recommendation
+from simulator.serialization import markdown_scalar, markdown_table
 from simulator.simulation import run_simulation
 
 logger = logging.getLogger(__name__)
@@ -103,15 +103,15 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
                 ),
                 (
                     "- For the correlated selected option, downside P05 moves from "
-                    f"**{_markdown_scalar(dependency_ablation_payload['selected_option_p05_independent_eur'])}** "
+                    f"**{markdown_scalar(dependency_ablation_payload['selected_option_p05_independent_eur'])}** "
                     "under independence to "
-                    f"**{_markdown_scalar(dependency_ablation_payload['selected_option_p05_correlated_eur'])}** "
+                    f"**{markdown_scalar(dependency_ablation_payload['selected_option_p05_correlated_eur'])}** "
                     "with dependencies."
                 ),
                 "",
                 "Dependency ablation by option:",
                 "",
-                _markdown_table(
+                markdown_table(
                     pd.DataFrame(dependency_ablation_payload["comparison_rows"]).reindex(
                         columns=[
                             "option_label",
@@ -138,7 +138,7 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             "",
             "Convergence by world count:",
             "",
-            _markdown_table(
+            markdown_table(
                 pd.DataFrame(payload["convergence_rows"]).reindex(
                     columns=[
                         "world_count",
@@ -160,7 +160,7 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             "",
             "Frontier stability across the published seed/world-count grid:",
             "",
-            _markdown_table(
+            markdown_table(
                 pd.DataFrame(payload["frontier_stability_rows"]).reindex(
                     columns=[
                         "threshold_label",
@@ -182,7 +182,7 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             "",
             "Monte Carlo error bands by option and world count:",
             "",
-            _markdown_table(
+            markdown_table(
                 pd.DataFrame(payload["metric_error_rows"]).reindex(
                     columns=[
                         "world_count",
@@ -202,7 +202,7 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
             "",
             "Directional stress tests on the strongest material drivers:",
             "",
-            _markdown_table(
+            markdown_table(
                 pd.DataFrame(payload["stress_test_rows"]).reindex(
                     columns=[
                         "parameter",
@@ -239,7 +239,7 @@ def build_robustness_markdown(payload: dict[str, Any]) -> str:
                 "- Rows show whether the recommendation changed when a single dependency "
                 "correlation was moved to a tested value while others stayed fixed.",
                 "",
-                _markdown_table(
+                markdown_table(
                     pd.DataFrame(dvf_rows)
                     .reindex(
                         columns=[
@@ -633,35 +633,3 @@ def _stress_override_for_direction(
     else:
         target_level = "low" if hurts_when_higher else "high"
     return {"dist": "constant", "value": float(levels[target_level])}
-
-
-def _markdown_table(frame: pd.DataFrame) -> str:
-    """Render a small markdown table without optional dependencies."""
-
-    headers = [str(column) for column in frame.columns]
-    rows = [[_markdown_scalar(value) for value in row] for row in frame.values.tolist()]
-    separator = ["---"] * len(headers)
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join(separator) + " |",
-    ]
-    for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
-    return "\n".join(lines)
-
-
-def _markdown_scalar(value: Any) -> str:
-    """Return one stable markdown-cell string."""
-
-    if value is None:
-        return ""
-    if isinstance(value, bool):
-        return str(value)
-    if isinstance(value, Integral):
-        return str(int(value))
-    if isinstance(value, Real):
-        number = float(value)
-        if pd.isna(number):
-            return ""
-        return f"{round(number, 6):.6f}".rstrip("0").rstrip(".")
-    return str(value)
