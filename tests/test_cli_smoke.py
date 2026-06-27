@@ -29,12 +29,14 @@ def test_streamlit_app_smoke_runs_without_exceptions() -> None:
 
     # The app runs the full scenario sweep on boot, so a cold subprocess (fresh
     # imports of streamlit/numpy/pandas/plotly plus the simulation) can take well
-    # over 30s on a slower or Windows runner. Use a generous ceiling; a fast
-    # environment still returns as soon as the app finishes booting.
+    # over 30s on a slower or Windows runner. A clean boot is ~40s, but under a
+    # full-suite run with coverage instrumentation on a loaded Windows machine it
+    # can roughly double. Use a generous ceiling; a fast environment still returns
+    # as soon as the app finishes booting.
     code = (
         "from streamlit.testing.v1 import AppTest\n"
         "app = AppTest.from_file('app.py')\n"
-        "app.run(timeout=90)\n"
+        "app.run(timeout=150)\n"
         "assert [title.value for title in app.title] == ['Product Decision Under Uncertainty']\n"
         "assert 'Guardrail eligibility' in [item.value for item in app.subheader]\n"
         "assert 'Published-case stability' in [item.value for item in app.subheader]\n"

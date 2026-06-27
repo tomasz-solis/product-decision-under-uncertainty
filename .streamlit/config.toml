@@ -1,0 +1,12 @@
+[theme]
+# The app's visual system (static/app_styles.css) is a light design: white panels,
+# dark `--ink` text. Without pinning, Streamlit follows the viewer's OS preference and
+# renders its dark base theme on machines in dark mode — which leaves tab/button labels
+# as light text on the light panels (invisible) and renders the dataframe grid canvas
+# dark ("black tables"). The grid canvas is only themable here, not via CSS, so pin the
+# light base and the surface colours the CSS assumes.
+base = "light"
+primaryColor = "#2563ff"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f4f7fb"
+textColor = "#0f1728"

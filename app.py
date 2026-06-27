@@ -956,9 +956,16 @@ def compute_outputs(
     )
 
 
-@st.cache_data(show_spinner=False)
 def load_published_governance() -> PublishedGovernance:
-    """Load the published governance summaries plus live manifest counts."""
+    """Load the published governance summaries plus live manifest counts.
+
+    Deliberately uncached: the freshness verdict compares the committed metadata
+    against live fingerprints of the current code/config/lockfile. Caching it for
+    the server's lifetime would pin a stale verdict, so regenerating artifacts in a
+    side terminal would still show the "do not match" banner until a restart. The
+    work here is light (YAML loads + hashing ~20 small files); the Monte Carlo run
+    stays cached separately.
+    """
 
     cfg = load_config(CONFIG_PATH)
     parameter_registry = validate_parameter_registry(

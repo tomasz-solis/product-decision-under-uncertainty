@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from simulator import reporting
-from simulator.artifact_freshness import artifact_code_paths
+from simulator.artifact_freshness import artifact_code_paths, combined_sha256, sha256_file
 from simulator.calibration import (
     build_parameter_candidates,
     load_calibration_contract,
@@ -167,6 +167,38 @@ def test_metadata_includes_code_and_dependency_fingerprints(
     assert len(metadata["code_sha256"]) == 64
     assert len(metadata["generator_script_sha256"]) == 64
     assert len(metadata["lockfile_sha256"]) == 64
+
+
+def test_fingerprints_are_line_ending_independent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CRLF and LF copies of the same source must produce identical fingerprints.
+
+    The artifact-freshness gate compares fingerprints generated on the developer's
+    machine against the Linux CI runner. A Windows CRLF checkout would otherwise
+    hash differently than git's ``eol=lf`` Linux checkout and break the gate, so the
+    hashers normalise newlines before digesting.
+    """
+
+    lf_content = b"line one\nline two\nline three\n"
+    crlf_content = lf_content.replace(b"\n", b"\r\n")
+
+    lf_dir = tmp_path / "lf"
+    crlf_dir = tmp_path / "crlf"
+    lf_dir.mkdir()
+    crlf_dir.mkdir()
+    (lf_dir / "module.py").write_bytes(lf_content)
+    (crlf_dir / "module.py").write_bytes(crlf_content)
+
+    assert sha256_file(lf_dir / "module.py") == sha256_file(crlf_dir / "module.py")
+
+    # combined_sha256 also folds the POSIX path into the digest, so hash the same
+    # relative path from each directory to isolate the line-ending normalisation.
+    monkeypatch.chdir(lf_dir)
+    lf_combined = combined_sha256([Path("module.py")])
+    monkeypatch.chdir(crlf_dir)
+    crlf_combined = combined_sha256([Path("module.py")])
+    assert lf_combined == crlf_combined
 
 
 def test_stability_cache_invalidates_when_same_config_path_changes(tmp_path: Path) -> None:

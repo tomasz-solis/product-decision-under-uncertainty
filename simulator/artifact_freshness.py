@@ -20,10 +20,24 @@ class ArtifactFreshness:
     guidance: str
 
 
-def sha256_file(path: Path) -> str:
-    """Hash one file using SHA-256."""
+def _read_normalized_bytes(path: Path) -> bytes:
+    """Read a file's bytes with CRLF newlines folded to LF.
 
-    return sha256(path.read_bytes()).hexdigest()
+    The artifact fingerprints must be identical across operating systems. Reading
+    raw bytes would fold a Windows CRLF checkout into a different digest than the
+    Linux CI runner, even when the committed source is byte-identical (git's
+    ``eol=lf`` smudges CRLF blobs to LF on checkout — see ``.gitattributes``).
+    Normalising CRLF -> LF before hashing matches that checkout behaviour, so the
+    digest is stable regardless of the working tree's line endings.
+    """
+
+    return path.read_bytes().replace(b"\r\n", b"\n")
+
+
+def sha256_file(path: Path) -> str:
+    """Hash one file using SHA-256 with line endings normalised to LF."""
+
+    return sha256(_read_normalized_bytes(path)).hexdigest()
 
 
 def sha256_optional_file(path: Path) -> str | None:
@@ -44,7 +58,7 @@ def combined_sha256(paths: list[Path]) -> str:
         # and sort Path objects case-insensitively).
         digest.update(path.as_posix().encode("utf-8"))
         digest.update(b"\0")
-        digest.update(path.read_bytes())
+        digest.update(_read_normalized_bytes(path))
         digest.update(b"\0")
     return digest.hexdigest()
 
