@@ -10,3 +10,12 @@ archive/
 .ruff_cache/
 .mypy_cache/
 review_output.md
+
+# AI assistant tooling
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md

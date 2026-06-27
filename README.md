@@ -6,8 +6,17 @@
 
 > **Frame one irreversible platform investment under uncertainty — and surface what would change the call, not just what the model picked.**
 
-**Try it:** `make app` (or `uv run streamlit run app.py`) for the interactive explorer · `make artifacts` to regenerate every published number from the model.
-<!-- Live demo: add your hosted Streamlit URL here once deployed, e.g. [Live demo](https://your-app.streamlit.app). -->
+**[▶ Live demo](https://beforeyouship.streamlit.app/)** — open it, move the guardrail
+thresholds in the sidebar, and watch the recommendation and policy frontier update. No install.
+(Hosted on Streamlit Community Cloud; if it has gone to sleep, give it a few seconds to wake.)
+
+**Run it locally:** `make app` (or `uv run streamlit run app.py`) for the interactive explorer · `make artifacts` to regenerate every published number from the model.
+
+**Bring your own numbers:** in the app sidebar, download the config template and
+re-parameterize this four-option platform-investment model — your own costs, volumes, rates,
+correlations, scenarios, and risk guardrails — then upload it; the app validates it and runs
+your case. Export a one-page decision brief (HTML or Markdown) from the Downloads tab for a
+stakeholder review.
 
 A decision-analysis case study showing how to frame a platform investment
 choice under uncertainty - with a Monte Carlo sampler, an explicit guardrail

@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import atexit
+import copy
 import html
 import json
+import re
+import shutil
+import tempfile
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, TypedDict
 
 import pandas as pd
 import streamlit as st
+import yaml
 
 from simulator.analytics import (
     decision_diagnostics,
@@ -19,6 +26,7 @@ from simulator.analytics import (
 from simulator.app_state import AppOutputs, PublishedGovernance
 from simulator.artifact_freshness import build_artifact_metadata, compare_artifact_metadata
 from simulator.config import (
+    DecisionPolicyConfig,
     apply_scenario,
     get_analysis_settings,
     get_decision_policy,
@@ -27,6 +35,7 @@ from simulator.config import (
     get_seed,
     get_simulation_settings,
     load_config,
+    validate_config,
 )
 from simulator.output_utils import build_run_context, format_eur, labeled_option
 from simulator.policy import (
@@ -53,6 +62,7 @@ from simulator.project_paths import (
     ASSUMPTION_REGISTRY_PATH,
     CASE_STUDY_ARTIFACTS_DIR,
     CONFIG_PATH,
+    EVIDENCE_ARTIFACTS_DIR,
     GENERATOR_SCRIPT_PATH,
     PARAMETER_REGISTRY_PATH,
 )
@@ -62,7 +72,9 @@ from simulator.provenance import (
     load_parameter_registry,
     validate_parameter_registry,
 )
+from simulator.report_markdown import recommendation_lines
 from simulator.reporting import build_case_study_artifacts
+from simulator.serialization import markdown_table
 from simulator.simulation import OPTION_LABELS, run_all_scenarios, run_simulation
 from simulator.visualizations import (
     create_frontier_switch_chart,
@@ -525,23 +537,404 @@ def render_metric_dictionary() -> None:
             st.dataframe(table, width="stretch", hide_index=True)
 
 
-@st.cache_data(show_spinner=False)
-def compute_outputs(n_worlds: int, seed: int, scenario: str) -> AppOutputs:
-    """Run the simulator and cache the main analytical outputs for the app."""
+def _persist_uploaded_config(raw: bytes) -> Path:
+    """Write an uploaded config to a per-session private dir under a content hash.
 
-    cfg = load_config(CONFIG_PATH)
+    The engine consumes a path (``load_config``/``run_simulation`` re-read it on every
+    rerun), so the upload must live on disk. ``mkdtemp`` gives an owner-only random
+    directory rather than a world-readable predictable path, and the full SHA-256
+    filename keeps the path content-addressed so the cache key stays stable and
+    identical content de-duplicates.
+    """
+
+    upload_dir = st.session_state.get("_pduu_upload_dir")
+    if upload_dir is None or not Path(upload_dir).exists():
+        upload_dir = tempfile.mkdtemp(prefix="pduu_")
+        st.session_state["_pduu_upload_dir"] = upload_dir
+        atexit.register(shutil.rmtree, upload_dir, ignore_errors=True)
+    path = Path(upload_dir) / f"{sha256(raw).hexdigest()}.yaml"
+    if not path.exists():
+        path.write_bytes(raw)
+    return path
+
+
+def build_config_from_form(base_cfg: dict[str, Any], values: dict[str, float]) -> dict[str, Any]:
+    """Overlay headline economic levers from the no-YAML form onto the built-in config.
+
+    Returns a new config dict for the caller to validate via ``validate_config``. The
+    triangular params keep a sensible spread around the chosen typical value so
+    ``low <= mode <= high`` always holds.
+    """
+
+    cfg = copy.deepcopy(base_cfg)
+    simulation = cfg["simulation"]
+    simulation["annual_volume"] = int(values["annual_volume"])
+    simulation["time_horizon_years"] = int(values["time_horizon_years"])
+    simulation["discount_rate_annual"] = float(values["discount_rate_annual"])
+
+    params = cfg["params"]
+    failure_mode = float(values["baseline_failure_rate"])
+    params["baseline_failure_rate"] = {
+        "dist": "tri",
+        "low": round(max(0.0, failure_mode * 0.6), 6),
+        "mode": failure_mode,
+        "high": round(min(1.0, max(failure_mode, failure_mode * 1.5)), 6),
+    }
+    drift_mode = float(values["do_nothing_drift_cost_eur"])
+    params["do_nothing_drift_cost_eur"] = {
+        "dist": "tri",
+        "low": round(max(0.0, drift_mode * 0.6), 6),
+        "mode": drift_mode,
+        "high": round(max(drift_mode, drift_mode * 1.6), 6),
+    }
+    for key in (
+        "stabilize_core_upfront_cost_eur",
+        "feature_extension_upfront_cost_eur",
+        "new_capability_upfront_cost_eur",
+    ):
+        params[key] = {"dist": "constant", "value": float(values[key])}
+    return cfg
+
+
+def _render_config_builder() -> tuple[Path, str, str | None] | None:
+    """Render the no-YAML config form; return an active (path, key, error) or None.
+
+    A built config is remembered in session state so it survives reruns (e.g. while the
+    guardrail sliders move) until the user clears it or uploads a file.
+    """
+
+    base_cfg = load_config(CONFIG_PATH)
+    simulation = base_cfg["simulation"]
+    params = base_cfg["params"]
+    with st.expander("Build a config (no YAML)"):
+        st.caption("Set the headline economics; the four options and their structure stay fixed.")
+        values: dict[str, float] = {
+            "annual_volume": st.number_input(
+                "Annual volume (units)", min_value=1_000, max_value=100_000_000,
+                value=int(simulation["annual_volume"]), step=10_000,
+            ),
+            "time_horizon_years": st.number_input(
+                "Time horizon (years)", min_value=1, max_value=10,
+                value=int(simulation["time_horizon_years"]), step=1,
+            ),
+            "discount_rate_annual": st.number_input(
+                "Discount rate (annual)", min_value=0.0, max_value=0.5,
+                value=float(simulation["discount_rate_annual"]), step=0.01, format="%.2f",
+            ),
+            "baseline_failure_rate": st.number_input(
+                "Baseline failure rate (typical)", min_value=0.0, max_value=1.0,
+                value=float(params["baseline_failure_rate"]["mode"]), step=0.01, format="%.2f",
+            ),
+            "do_nothing_drift_cost_eur": st.number_input(
+                "Do-nothing drift cost / yr (EUR)", min_value=0.0, max_value=10_000_000.0,
+                value=float(params["do_nothing_drift_cost_eur"]["mode"]), step=10_000.0,
+            ),
+            "stabilize_core_upfront_cost_eur": st.number_input(
+                "Stabilize Core upfront (EUR)", min_value=0.0, max_value=50_000_000.0,
+                value=float(params["stabilize_core_upfront_cost_eur"]["value"]), step=50_000.0,
+            ),
+            "feature_extension_upfront_cost_eur": st.number_input(
+                "Feature Extension upfront (EUR)", min_value=0.0, max_value=50_000_000.0,
+                value=float(params["feature_extension_upfront_cost_eur"]["value"]), step=50_000.0,
+            ),
+            "new_capability_upfront_cost_eur": st.number_input(
+                "New Capability upfront (EUR)", min_value=0.0, max_value=50_000_000.0,
+                value=float(params["new_capability_upfront_cost_eur"]["value"]), step=50_000.0,
+            ),
+        }
+        apply_clicked = st.button("Use these values")
+        clear_clicked = st.button("Clear (back to built-in)")
+
+    if clear_clicked:
+        st.session_state.pop("_pduu_form_config", None)
+        return None
+    if apply_clicked:
+        try:
+            built = build_config_from_form(base_cfg, values)
+            validate_config(built)
+            raw = yaml.safe_dump(built, sort_keys=False).encode("utf-8")
+            path = _persist_uploaded_config(raw)
+            st.session_state["_pduu_form_config"] = str(path)
+            return path, sha256(raw).hexdigest(), None
+        except Exception:
+            st.session_state.pop("_pduu_form_config", None)
+            return (
+                Path(CONFIG_PATH),
+                "default",
+                "Those values didn't make a valid config (costs must be non-negative and "
+                "rates between 0 and 1). Showing the built-in case.",
+            )
+
+    stored = st.session_state.get("_pduu_form_config")
+    if stored and Path(stored).exists():
+        return Path(stored), sha256(Path(stored).read_bytes()).hexdigest(), None
+    return None
+
+
+def _evidence_candidate_value() -> float | None:
+    """Return the ready evidence-backed baseline-failure-rate candidate, if available."""
+
+    path = EVIDENCE_ARTIFACTS_DIR / "parameter_candidates.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    for candidate in payload.get("candidates", []):
+        if (
+            candidate.get("target_name") == "baseline_failure_rate"
+            and candidate.get("candidate_status") == "candidate_ready"
+            and candidate.get("candidate_value") is not None
+        ):
+            return float(candidate["candidate_value"])
+    return None
+
+
+def _overlay_evidence(cfg: dict[str, Any], value: float) -> dict[str, Any]:
+    """Return a config copy with baseline_failure_rate pinned around the evidence value.
+
+    Kept a tight triangular rather than a constant so the parameter stays valid as a
+    Gaussian-copula dependency anchor (the engine rejects constant dependency parameters).
+    """
+
+    overlaid = copy.deepcopy(cfg)
+    pinned = round(float(value), 6)
+    overlaid["params"]["baseline_failure_rate"] = {
+        "dist": "tri",
+        "low": round(max(0.0, pinned * 0.9), 6),
+        "mode": pinned,
+        "high": round(min(1.0, pinned * 1.1), 6),
+    }
+    return overlaid
+
+
+def _apply_evidence_overlay(base_path: Path) -> tuple[Path, str, str | None]:
+    """Overlay the evidence-backed baseline failure rate onto a config and persist it.
+
+    Guards: the value flows through ``validate_config`` before use, and the overlaid config
+    is content-addressed so toggling it is part of the cache key (never served stale).
+    """
+
+    candidate = _evidence_candidate_value()
+    if candidate is None:
+        return Path(CONFIG_PATH), "default", None
+    try:
+        overlaid = _overlay_evidence(load_config(base_path), candidate)
+        validate_config(overlaid)
+        raw = yaml.safe_dump(overlaid, sort_keys=False).encode("utf-8")
+        path = _persist_uploaded_config(raw)
+        return path, sha256(raw).hexdigest(), None
+    except Exception:
+        return (
+            Path(CONFIG_PATH),
+            "default",
+            "Couldn't apply the evidence-backed value to this config; showing the built-in case.",
+        )
+
+
+def _resolve_data_source() -> tuple[Path, str, str | None]:
+    """Render the data-source controls and return (config_path, cache_key, error).
+
+    Sources in precedence order: a freshly uploaded ``config.yaml``, a config built from the
+    no-YAML form, or the built-in case — with an optional evidence-backed overlay on top.
+    Anything that fails validation falls back to the built-in case with a readable reason.
+    """
+
+    with st.sidebar:
+        st.header("Data source")
+        st.caption(
+            "Explore the built-in checkout case, upload your own config.yaml, or build one "
+            "below — all re-parameterize this four-option platform-investment model with your "
+            "own costs, volumes, rates, scenarios, and risk guardrails."
+        )
+        uploaded = st.file_uploader(
+            "Upload config.yaml",
+            type=["yaml", "yml"],
+            help="Start from the template below, edit the costs, rates, and guardrails, then upload.",
+        )
+        st.download_button(
+            "Download config template",
+            data=Path(CONFIG_PATH).read_text(encoding="utf-8"),
+            file_name="config.template.yaml",
+            mime="text/yaml",
+        )
+        form_result = _render_config_builder()
+        candidate = _evidence_candidate_value()
+        use_evidence = st.toggle(
+            "Use evidence-backed baseline failure rate",
+            key="_pduu_use_evidence",
+            disabled=candidate is None,
+            help=(
+                f"Overlay the HM Land Registry search-completion proxy ({candidate:.1%}) onto "
+                "baseline_failure_rate, through the validated config path."
+                if candidate is not None
+                else "No evidence-backed candidate is available."
+            ),
+        )
+
+    if uploaded is not None:
+        raw = uploaded.getvalue()
+        try:
+            base_path = _persist_uploaded_config(raw)
+            validate_config(load_config(base_path))
+        except Exception:
+            return (
+                Path(CONFIG_PATH),
+                "default",
+                "We couldn't use that config file. Check it against the template — every "
+                "required parameter present, distributions well-formed, values in range — "
+                "then re-upload. Showing the built-in case for now.",
+            )
+        base = (base_path, sha256(raw).hexdigest())
+    elif form_result is not None:
+        if form_result[2] is not None:
+            return form_result
+        base = (form_result[0], form_result[1])
+    else:
+        base = (Path(CONFIG_PATH), "default")
+
+    if use_evidence and candidate is not None:
+        return _apply_evidence_overlay(base[0])
+    return base[0], base[1], None
+
+
+def _md_inline_to_html(text: str) -> str:
+    """Convert the small markdown subset used in brief bullets to safe HTML."""
+
+    escaped = html.escape(text)
+    escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"`(.+?)`", r"<code>\1</code>", escaped)
+    return escaped
+
+
+def build_decision_brief(
+    outputs: AppOutputs,
+    current_metadata: dict[str, Any],
+    selected_policy: DecisionPolicyConfig,
+) -> tuple[str, str]:
+    """Return a one-page board readout as (markdown, self-contained html).
+
+    Reuses the same recommendation wording and display tables the app renders,
+    so an exported brief never drifts from what the stakeholder saw on screen.
+    """
+
+    rec_lines = recommendation_lines(outputs.recommendation, outputs.summary, current_metadata)
+    verdict = _verdict_line(outputs.recommendation)
+    policy_line = f"Guardrails — {format_guardrails(selected_policy)}."
+    title = f"Decision brief — {current_metadata.get('scenario_label', 'Published case')}"
+    tables = {
+        "Option payoffs": summary_display_table(outputs.summary),
+        "Guardrail eligibility": eligibility_display_table(outputs.policy_eligibility),
+        "What would change the call (policy frontier)": frontier_display_table(
+            pd.DataFrame(outputs.policy_frontier["frontier_rows"])
+        ),
+    }
+    disclaimer = (
+        "Generated from the Product Decision Under Uncertainty app. The recommendation is an "
+        "output of the configured risk preferences, not a substitute for them."
+    )
+
+    markdown_lines = [
+        f"# {title}",
+        "",
+        f"**{verdict}**",
+        "",
+        "## Recommendation",
+        *rec_lines,
+        "",
+        f"- {policy_line}",
+    ]
+    for heading, table in tables.items():
+        markdown_lines.extend(["", f"## {heading}", "", markdown_table(table)])
+    markdown_lines.extend(["", f"_{disclaimer}_"])
+    markdown = "\n".join(markdown_lines)
+
+    bullets = "".join(
+        f"<li>{_md_inline_to_html(line.lstrip('- '))}</li>" for line in rec_lines
+    )
+    sections = "".join(
+        f"<h2>{html.escape(heading)}</h2>{table.to_html(index=False, border=0, classes='t')}"
+        for heading, table in tables.items()
+    )
+    brief_html = (
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+        f"<title>{html.escape(title)}</title><style>"
+        "body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"
+        "max-width:900px;margin:2rem auto;padding:0 1.25rem;color:#1a1a1a;line-height:1.45}"
+        "h1{font-size:1.5rem;margin-bottom:.25rem}h2{font-size:1.05rem;margin-top:1.5rem}"
+        "ul{padding-left:1.1rem}table.t{border-collapse:collapse;width:100%;font-size:.85rem;margin-top:.25rem}"
+        "table.t th,table.t td{border:1px solid #ddd;padding:6px 9px;text-align:left}"
+        "table.t th{background:#f5f5f7}.muted{color:#666;font-size:.8rem;margin-top:1.5rem}"
+        "</style></head><body>"
+        f"<h1>{html.escape(title)}</h1>"
+        f"<p><strong>{html.escape(verdict)}</strong></p>"
+        f"<h2>Recommendation</h2><ul>{bullets}</ul>"
+        f"<p>{_md_inline_to_html(policy_line)}</p>{sections}"
+        f"<p class='muted'>{html.escape(disclaimer)}</p></body></html>"
+    )
+    return markdown, brief_html
+
+
+@st.cache_data(show_spinner=False, max_entries=16)
+def _compute_simulation(
+    config_path: str,
+    n_worlds: int,
+    seed: int,
+    scenario: str,
+) -> dict[str, Any]:
+    """Run the threshold-independent Monte Carlo layer (cached, no guardrail args).
+
+    The guardrail thresholds are a policy overlay that never change the simulated
+    worlds, so the expensive sampling/analytics live here keyed only on the run
+    settings. Moving a guardrail slider then hits this cache instead of re-simulating.
+    """
+
+    results = run_simulation(config_path, n_worlds=n_worlds, seed=seed, scenario=scenario)
+    return {
+        "results": results,
+        "summary": summarize_results(results),
+        "diagnostics": decision_diagnostics(results),
+        "sensitivity": sensitivity_analysis(results),
+        "driver_analysis": driver_analysis(results),
+        "scenario_results": run_all_scenarios(config_path, n_worlds=n_worlds, seed=seed),
+    }
+
+
+@st.cache_data(show_spinner=False, max_entries=64)
+def compute_outputs(
+    config_path: str,
+    n_worlds: int,
+    seed: int,
+    scenario: str,
+    minimum_p05_value_eur: float,
+    maximum_mean_regret_eur: float,
+    ev_tolerance_eur: float,
+) -> AppOutputs:
+    """Assemble app outputs: the cached sim layer plus a cheap guardrail-dependent overlay.
+
+    ``config_path`` is content-addressed for uploads, so it keys the cache on content
+    without a separate hash. The three guardrail values feed only the fast policy layer,
+    so dragging a threshold re-runs the recommendation/frontier but not the simulation.
+    """
+
+    cfg = load_config(config_path)
     analysis = get_analysis_settings(cfg)
-    policy = get_decision_policy(cfg)
-    scenario_cfg = apply_scenario(cfg, scenario)
-    simulation_settings = get_simulation_settings(scenario_cfg)
-    simulation_settings["n_worlds"] = int(n_worlds)
+    policy = DecisionPolicyConfig(
+        name=get_decision_policy(cfg).name,
+        minimum_p05_value_eur=float(minimum_p05_value_eur),
+        maximum_mean_regret_eur=float(maximum_mean_regret_eur),
+        ev_tolerance_eur=float(ev_tolerance_eur),
+    )
+    sim = _compute_simulation(config_path, int(n_worlds), int(seed), str(scenario))
+    results = sim["results"]
+    summary = sim["summary"]
+    diagnostics = sim["diagnostics"]
 
-    results = run_simulation(CONFIG_PATH, n_worlds=n_worlds, seed=seed, scenario=scenario)
-    summary = summarize_results(results)
-    diagnostics = decision_diagnostics(results)
-    sensitivity = sensitivity_analysis(results)
-    driver_rows = driver_analysis(results)
-    scenario_results = run_all_scenarios(CONFIG_PATH, n_worlds=n_worlds, seed=seed)
+    simulation_settings = get_simulation_settings(apply_scenario(cfg, scenario))
+    simulation_settings["n_worlds"] = int(n_worlds)
+    simulation_settings["scenario"] = str(scenario)
+
     recommendation = select_recommendation(summary, diagnostics, policy)
     policy_eligibility = build_policy_eligibility_table(summary, diagnostics, policy)
     payoff_delta = payoff_delta_diagnostic(results, recommendation, analysis)
@@ -552,9 +945,9 @@ def compute_outputs(n_worlds: int, seed: int, scenario: str) -> AppOutputs:
         results=results,
         summary=summary,
         diagnostics=diagnostics,
-        sensitivity=sensitivity,
-        driver_analysis=driver_rows,
-        scenario_results=scenario_results,
+        sensitivity=sim["sensitivity"],
+        driver_analysis=sim["driver_analysis"],
+        scenario_results=sim["scenario_results"],
         recommendation=recommendation,
         policy_eligibility=policy_eligibility,
         payoff_delta=payoff_delta,
@@ -655,8 +1048,11 @@ def _show_governance_warning(governance: PublishedGovernance) -> None:
         st.info(warning_message)
 
 
-def _render_sidebar(cfg: dict[str, Any]) -> tuple[int, int, str]:
-    """Render the sidebar controls and return the selected run settings."""
+def _render_sidebar(
+    cfg: dict[str, Any],
+    default_policy: DecisionPolicyConfig,
+) -> tuple[int, int, str, DecisionPolicyConfig]:
+    """Render the sidebar controls and return the selected run settings and policy."""
 
     simulation = get_simulation_settings(cfg)
     scenario_metadata = get_scenario_metadata(cfg)
@@ -664,18 +1060,20 @@ def _render_sidebar(cfg: dict[str, Any]) -> tuple[int, int, str]:
 
     with st.sidebar:
         st.header("Run settings")
+        worlds_value = int(simulation["n_worlds"])
+        seed_value = int(get_seed(cfg))
         n_worlds = st.number_input(
             "Simulation runs",
-            min_value=1_000,
-            max_value=100_000,
-            value=int(simulation["n_worlds"]),
+            min_value=min(1_000, worlds_value),
+            max_value=max(100_000, worlds_value),
+            value=worlds_value,
             step=1_000,
         )
         seed = st.number_input(
             "Seed",
-            min_value=0,
-            max_value=10_000_000,
-            value=int(get_seed(cfg)),
+            min_value=min(0, seed_value),
+            max_value=max(10_000_000, seed_value),
+            value=seed_value,
             step=1,
         )
         scenario = st.selectbox(
@@ -690,7 +1088,86 @@ def _render_sidebar(cfg: dict[str, Any]) -> tuple[int, int, str]:
             description = scenario_metadata[name]["description"]
             st.caption(f"{label}: {description}")
 
-    return int(n_worlds), int(seed), str(scenario)
+        st.markdown("**Policy guardrails**")
+        st.caption(
+            "These encode the team's risk tolerance. Move them to see what would "
+            "change the call — the recommendation, charts, and frontier update live."
+        )
+        floor_value = float(default_policy.minimum_p05_value_eur)
+        regret_value = float(default_policy.maximum_mean_regret_eur)
+        tolerance_value = float(default_policy.ev_tolerance_eur)
+        floor_lo, floor_hi = guardrail_widget_bounds(floor_value, -2_000_000.0, 0.0)
+        regret_lo, regret_hi = guardrail_widget_bounds(regret_value, 0.0, 2_000_000.0)
+        tolerance_lo, tolerance_hi = guardrail_widget_bounds(tolerance_value, 0.0, 1_000_000.0)
+        minimum_p05_value_eur = st.number_input(
+            "Downside floor — keep P05 at or above (EUR)",
+            min_value=floor_lo,
+            max_value=floor_hi,
+            value=floor_value,
+            step=25_000.0,
+        )
+        maximum_mean_regret_eur = st.number_input(
+            "Regret cap — keep mean regret at or below (EUR)",
+            min_value=regret_lo,
+            max_value=regret_hi,
+            value=regret_value,
+            step=25_000.0,
+        )
+        ev_tolerance_eur = st.number_input(
+            "EV tolerance band (EUR)",
+            min_value=tolerance_lo,
+            max_value=tolerance_hi,
+            value=tolerance_value,
+            step=10_000.0,
+        )
+
+    selected_policy = DecisionPolicyConfig(
+        name=default_policy.name,
+        minimum_p05_value_eur=float(minimum_p05_value_eur),
+        maximum_mean_regret_eur=float(maximum_mean_regret_eur),
+        ev_tolerance_eur=float(ev_tolerance_eur),
+    )
+    return int(n_worlds), int(seed), str(scenario), selected_policy
+
+
+def guardrail_widget_bounds(value: float, floor: float, ceil: float) -> tuple[float, float]:
+    """Widen ``[floor, ceil]`` so a validated config value is always inside the slider.
+
+    ``validate_config`` accepts policy values beyond the default widget ranges (e.g. a
+    positive downside floor, or an unusually large regret cap), so seeding a
+    ``number_input`` with such a value would make Streamlit raise outside the upload
+    try/except. Widening the bounds to include the value removes that crash class for any
+    config the engine accepts, from any source, without clamping (mis-stating) the value.
+    """
+
+    return (min(floor, value), max(ceil, value))
+
+
+def format_guardrails(policy: DecisionPolicyConfig) -> str:
+    """Return the shared 'floor / cap / tolerance' clause for the caption and the brief.
+
+    One formatter keeps the on-screen "Active guardrails" caption and the exported brief
+    from ever drifting apart.
+    """
+
+    return (
+        f"downside floor {format_eur(policy.minimum_p05_value_eur)}, "
+        f"regret cap {format_eur(policy.maximum_mean_regret_eur)}, "
+        f"EV tolerance {format_eur(policy.ev_tolerance_eur)}"
+    )
+
+
+def _verdict_line(recommendation: RecommendationResult) -> str:
+    """One-sentence plain-English verdict for the hero and the exported brief."""
+
+    label = labeled_option(recommendation.selected_option)
+    if recommendation.selected_reason_type == "guardrails_relaxed_highest_ev":
+        return f"We recommend {label} — the least-bad option, because no option clears both safety bars."
+    if recommendation.selected_reason_type == "only_option_passing_guardrails":
+        return f"We recommend {label} — the only option that clears both safety bars."
+    if recommendation.selected_reason_type == "ev_tolerance_override":
+        return f"We recommend {label} — within the EV-tolerance band it wins the lower-regret tie-break."
+    return f"We recommend {label} — it clears both guardrails and leads on expected value."
 
 
 def _render_run_summary(
@@ -731,13 +1208,17 @@ def _build_current_metadata(
     *,
     n_worlds: int,
     seed: int,
+    scenario: str,
+    scenario_metadata: dict[str, dict[str, str]],
     outputs: AppOutputs,
 ) -> dict[str, Any]:
-    """Build the metadata payload used in the recommendation summary."""
+    """Build the metadata payload used in the recommendation summary and brief."""
 
     return {
         "seed": int(seed),
         "n_worlds": int(n_worlds),
+        "scenario": str(scenario),
+        "scenario_label": str(scenario_metadata.get(scenario, {}).get("label", scenario)),
         "annual_volume": int(outputs.simulation_settings["annual_volume"]),
         "time_horizon_years": int(outputs.simulation_settings["time_horizon_years"]),
         "discount_rate_annual": float(outputs.simulation_settings["discount_rate_annual"]),
@@ -752,6 +1233,7 @@ def _render_hero_section(outputs: AppOutputs, current_metadata: dict[str, Any]) 
     hero_left, hero_right = st.columns([3, 2])
     with hero_left:
         st.subheader("Recommendation")
+        st.markdown(f"### {_verdict_line(outputs.recommendation)}")
         render_section_copy(
             "Start here for the decision call, the core value and risk numbers, and the honest comparison against the nearest alternative."
         )
@@ -795,6 +1277,9 @@ def _render_policy_section(
     st.subheader("Guardrail eligibility")
     render_section_copy(
         "An option stays eligible only if its downside P05 stays above the floor and its mean regret stays below the cap. This is the policy-defining filter, not just a descriptive chart."
+    )
+    st.caption(
+        f"Active guardrails — {format_guardrails(decision_policy)}. Adjust them in the sidebar."
     )
     render_plotly_figure(
         create_guardrail_chart(
@@ -935,6 +1420,9 @@ def _render_reference_section(
     outputs: AppOutputs,
     scenario_metadata: dict[str, dict[str, str]],
     published_governance: PublishedGovernance,
+    selected_policy: DecisionPolicyConfig,
+    current_metadata: dict[str, Any],
+    is_custom_config: bool,
 ) -> None:
     """Render the reference tabs with provenance, downloads, and raw tables."""
 
@@ -954,6 +1442,12 @@ def _render_reference_section(
         render_section_copy(
             "This ties the published artifacts back to the current model version, dependency state, assumption manifest, and public evidence profile."
         )
+        if is_custom_config:
+            st.warning(
+                "These provenance, evidence, and freshness details describe the built-in "
+                "published case. Your uploaded run is exploratory and is not covered by "
+                "these governance artifacts."
+            )
         st.dataframe(
             governance_display_table(published_governance),
             width="stretch",
@@ -965,6 +1459,33 @@ def _render_reference_section(
         )
 
     with reference_downloads:
+        st.subheader("Board readout")
+        render_section_copy(
+            "Export a one-page decision brief for a stakeholder review. It carries the recommendation, the active guardrails, the option payoffs, and what would change the call — so the deck never drifts from what the app showed."
+        )
+        brief_markdown, brief_html = build_decision_brief(
+            outputs,
+            current_metadata,
+            selected_policy,
+        )
+        brief_left, brief_right = st.columns(2)
+        with brief_left:
+            st.download_button(
+                "Decision brief (HTML)",
+                data=brief_html,
+                file_name="decision_brief.html",
+                mime="text/html",
+                help="Open in a browser and print to PDF for a slide-ready one-pager.",
+            )
+        with brief_right:
+            st.download_button(
+                "Decision brief (Markdown)",
+                data=brief_markdown,
+                file_name="decision_brief.md",
+                mime="text/markdown",
+                help="Paste into a doc, ticket, or wiki.",
+            )
+
         st.subheader("Downloads")
         render_section_copy(
             "Use the CSV downloads for external review or follow-on analysis. The raw tables below mirror the main app views with exact formatted values."
@@ -1049,28 +1570,66 @@ def render_app() -> None:
     inject_app_styles()
     st.title("Product Decision Under Uncertainty")
 
-    cfg = load_config(CONFIG_PATH)
+    config_path, config_key, config_error = _resolve_data_source()
+    is_custom_config = config_key != "default"
+    cfg = load_config(config_path)
     analysis = get_analysis_settings(cfg)
-    decision_policy = get_decision_policy(cfg)
+    default_policy = get_decision_policy(cfg)
     scenario_metadata = get_scenario_metadata(cfg)
     published_governance = load_published_governance()
 
     _show_governance_warning(published_governance)
-    n_worlds, seed, scenario = _render_sidebar(cfg)
+    if config_error is not None:
+        st.warning(config_error)
+    n_worlds, seed, scenario, selected_policy = _render_sidebar(cfg, default_policy)
     _render_run_summary(cfg, scenario=scenario, seed=seed, n_worlds=n_worlds)
+    if bool(st.session_state.get("_pduu_use_evidence")):
+        st.info(
+            "Using the evidence-backed baseline failure rate (HM Land Registry proxy). Every "
+            "other input remains an elicited assumption; this run diverges from the published "
+            "elicited case."
+        )
+    elif is_custom_config:
+        st.info(
+            "Running your uploaded or built config. Every input is an elicited assumption you "
+            "provided; the Provenance & evidence and freshness panels describe the built-in "
+            "published case, not this run."
+        )
+    else:
+        st.caption(
+            "All model inputs are elicited assumptions with documented provenance, "
+            "not fitted to private data."
+        )
 
-    outputs = compute_outputs(n_worlds, seed, scenario)
+    outputs = compute_outputs(
+        str(config_path),
+        n_worlds,
+        seed,
+        scenario,
+        selected_policy.minimum_p05_value_eur,
+        selected_policy.maximum_mean_regret_eur,
+        selected_policy.ev_tolerance_eur,
+    )
     current_metadata = _build_current_metadata(
         cfg,
         n_worlds=n_worlds,
         seed=seed,
+        scenario=scenario,
+        scenario_metadata=scenario_metadata,
         outputs=outputs,
     )
 
     _render_hero_section(outputs, current_metadata)
-    _render_policy_section(outputs, decision_policy, scenario_metadata)
+    _render_policy_section(outputs, selected_policy, scenario_metadata)
     _render_analysis_section(outputs, analysis, published_governance)
-    _render_reference_section(outputs, scenario_metadata, published_governance)
+    _render_reference_section(
+        outputs,
+        scenario_metadata,
+        published_governance,
+        selected_policy,
+        current_metadata,
+        is_custom_config,
+    )
 
 
 def _load_json(path: Path) -> dict[str, Any]:
