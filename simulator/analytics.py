@@ -475,7 +475,13 @@ def value_of_information(
         )
         evppi_by_parameter.append((str(parameter), evppi))
 
-    evppi_by_parameter.sort(key=lambda item: (-item[1], item[0]))
+    # Sort by EVPPI descending, then parameter name. Round the EVPPI sort key to
+    # the published 6-dp precision first: most parameters carry no information and
+    # yield EVPPI values that are zero only up to sub-6dp floating-point noise,
+    # which differs between the Windows dev machine and the Linux CI runner (numpy
+    # reduction order). Rounding the key collapses that noise so tied rows break
+    # deterministically by name and the artifact ordering is platform-independent.
+    evppi_by_parameter.sort(key=lambda item: (-round(item[1], 6), item[0]))
     rows: list[dict[str, object]] = [
         {
             "parameter": parameter,

@@ -41,17 +41,7 @@
     },
     {
       "evppi_eur": 0.0,
-      "parameter": "value_per_success_eur",
-      "share_of_evpi": 0.0
-    },
-    {
-      "evppi_eur": 0.0,
       "parameter": "do_nothing_drift_cost_eur",
-      "share_of_evpi": 0.0
-    },
-    {
-      "evppi_eur": 0.0,
-      "parameter": "new_capability_benefit_ramp_months",
       "share_of_evpi": 0.0
     },
     {
@@ -97,6 +87,11 @@
     {
       "evppi_eur": 0.0,
       "parameter": "new_capability_annual_maintenance_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "new_capability_benefit_ramp_months",
       "share_of_evpi": 0.0
     },
     {
@@ -157,6 +152,11 @@
     {
       "evppi_eur": 0.0,
       "parameter": "stabilize_core_upfront_cost_eur",
+      "share_of_evpi": 0.0
+    },
+    {
+      "evppi_eur": 0.0,
+      "parameter": "value_per_success_eur",
       "share_of_evpi": 0.0
     }
   ],
