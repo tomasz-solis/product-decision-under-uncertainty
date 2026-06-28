@@ -534,7 +534,10 @@ def render_metric_dictionary() -> None:
         strict=False,
     ):
         with tab:
-            st.dataframe(table, width="stretch", hide_index=True)
+            # st.table renders a static HTML table whose cells wrap onto new
+            # lines, so the long definitions fit the page width instead of forcing
+            # the horizontal scroll / truncation of the fixed-height dataframe grid.
+            st.table(table.set_index("Term"))
 
 
 def _persist_uploaded_config(raw: bytes) -> Path:

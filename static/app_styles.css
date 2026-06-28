@@ -281,8 +281,8 @@ h1 {
     margin: 0.45rem 0 0 0;
 }
 
-.stButton > button,
-.stDownloadButton > button {
+.stButton button,
+.stDownloadButton button {
     border-radius: 16px;
     border: 1px solid rgba(15, 23, 42, 0.08);
     background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
@@ -291,12 +291,109 @@ h1 {
     transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
-.stButton > button:hover,
-.stDownloadButton > button:hover {
+.stButton button:hover,
+.stDownloadButton button:hover {
     transform: translateY(-1px);
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
 }
 
+.stButton button p,
+.stDownloadButton button p {
+    color: inherit;
+}
+
 hr {
     border-color: rgba(15, 23, 42, 0.08);
+}
+
+/* --- Sidebar controls on the dark sidebar -------------------------------- */
+/* The data-source controls sit on the dark sidebar gradient. Force a solid
+   light chip with dark ink so the button labels (Browse files, Download config
+   template, Use these values, Clear) stay legible instead of falling back to
+   the default transparent/dark-text styling. */
+[data-testid="stSidebar"] .stButton button,
+[data-testid="stSidebar"] .stDownloadButton button,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
+    background: #ffffff !important;
+    color: var(--ink) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28) !important;
+}
+
+[data-testid="stSidebar"] .stButton button p,
+[data-testid="stSidebar"] .stDownloadButton button p,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button p,
+[data-testid="stSidebar"] .stButton button span,
+[data-testid="stSidebar"] .stDownloadButton button span {
+    color: var(--ink) !important;
+    -webkit-text-fill-color: var(--ink) !important;
+}
+
+/* File uploader dropzone: translucent light panel + readable instructions. */
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] span,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] small,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"],
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] * {
+    color: var(--sidebar-muted) !important;
+}
+
+/* "Build a config (no YAML)" expander: the global stExpander rule paints it
+   light, which hides its white labels and translucent inputs. Keep it dark so
+   the form stays legible against the rest of the sidebar. */
+[data-testid="stSidebar"] [data-testid="stExpander"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: none;
+}
+
+[data-testid="stSidebar"] [data-testid="stExpander"] summary,
+[data-testid="stSidebar"] [data-testid="stExpander"] summary p,
+[data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
+    color: var(--sidebar-ink) !important;
+    fill: var(--sidebar-ink) !important;
+}
+
+/* --- Definition tables (st.table): wrap to fit width, no horizontal scroll - */
+[data-testid="stTable"] {
+    width: 100%;
+    overflow-x: visible;
+}
+
+[data-testid="stTable"] table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+[data-testid="stTable"] th,
+[data-testid="stTable"] td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    vertical-align: top;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    color: var(--ink) !important;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+[data-testid="stTable"] thead th {
+    background: var(--app-bg-deep);
+    font-weight: 700;
+}
+
+/* Give the Term column less room so the prose columns get the width they need. */
+[data-testid="stTable"] th:first-child,
+[data-testid="stTable"] td:first-child {
+    width: 22%;
+    font-weight: 600;
 }
