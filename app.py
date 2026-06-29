@@ -124,12 +124,14 @@ def governance_warning_message(governance: PublishedGovernance) -> str | None:
 
 
 _APP_STYLES_PATH = Path(__file__).parent / "static" / "app_styles.css"
+_THEME_TOKENS_PATH = Path(__file__).parent / "static" / "theme-tokens.css"
 
 
 def inject_app_styles() -> None:
     """Apply the app-specific visual system on top of Streamlit defaults."""
+    tokens = _THEME_TOKENS_PATH.read_text(encoding="utf-8")
     css = _APP_STYLES_PATH.read_text(encoding="utf-8")
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    st.markdown(f"<style>{tokens}{css}</style>", unsafe_allow_html=True)
 
 
 def render_section_copy(text: str) -> None:
@@ -1578,7 +1580,16 @@ def render_app() -> None:
 
     st.set_page_config(page_title="Product Decision Under Uncertainty", layout="wide")
     inject_app_styles()
-    st.title("Product Decision Under Uncertainty")
+    st.markdown(
+        """
+        <section class="app-hero">
+          <p class="app-hero__kicker">Decision analysis under uncertainty</p>
+          <h1 class="app-hero__title">Product Decision Under Uncertainty</h1>
+          <p class="app-hero__subtitle">Frame one irreversible platform investment, and surface what would change the call — not just what the model picked.</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
 
     config_path, config_key, config_error = _resolve_data_source()
     is_custom_config = config_key != "default"

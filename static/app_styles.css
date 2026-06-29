@@ -1,17 +1,19 @@
 :root {
-    --app-bg: #f4f7fb;
-    --app-bg-deep: #eef2f8;
-    --panel-bg: rgba(255, 255, 255, 0.92);
-    --panel-border: rgba(15, 23, 42, 0.14);
+    /* Local names map onto the shared design tokens (static/theme-tokens.css). */
+    --app-bg: var(--ds-bg);
+    --app-bg-deep: var(--ds-bg-deep);
+    --panel-bg: var(--ds-card-bg);
+    --panel-border: var(--ds-card-border);
     --panel-shadow: rgba(15, 23, 42, 0.08);
     --panel-shadow-strong: rgba(15, 23, 42, 0.14);
-    --ink: #0f1728;
-    --muted: #475066;
-    --accent: #2563ff;
-    --accent-soft: rgba(37, 99, 255, 0.12);
-    --accent-strong: #1d4ed8;
-    --sidebar-bg-top: #0f1728;
-    --sidebar-bg-bottom: #182236;
+    --ink: var(--ds-ink);
+    --muted: var(--ds-muted);
+    --accent: var(--ds-blue);
+    --accent-soft: var(--ds-blue-soft);
+    --accent-strong: var(--ds-blue-strong);
+    --mint: var(--ds-mint);
+    --sidebar-bg-top: var(--ds-sidebar-top);
+    --sidebar-bg-bottom: var(--ds-sidebar-bottom);
     --sidebar-border: rgba(255, 255, 255, 0.10);
     --sidebar-ink: #f8fbff;
     --sidebar-muted: rgba(248, 251, 255, 0.84);
@@ -34,7 +36,7 @@
         radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 28%),
         linear-gradient(180deg, #fbfdff 0%, var(--app-bg) 40%, var(--app-bg-deep) 100%);
     color: var(--ink);
-    font-family: "Soehne", "Avenir Next", "IBM Plex Sans", "Helvetica Neue", sans-serif;
+    font-family: var(--ds-font-sans);
 }
 
 .block-container {
@@ -283,18 +285,22 @@ h1 {
 
 .stButton button,
 .stDownloadButton button {
-    border-radius: 16px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+    border-radius: var(--ds-radius-pill);
+    border: 1px solid rgba(79, 109, 255, 0.18);
+    background: linear-gradient(180deg, rgba(79, 109, 255, 0.10), rgba(79, 109, 255, 0.06));
     color: var(--ink);
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    padding: 0.7rem 1.15rem;
+    font-weight: 600;
+    box-shadow: 0 10px 24px rgba(79, 109, 255, 0.08);
     transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .stButton button:hover,
 .stDownloadButton button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+    border-color: rgba(79, 109, 255, 0.34);
+    color: var(--accent-strong);
+    box-shadow: 0 16px 34px rgba(79, 109, 255, 0.12);
 }
 
 .stButton button p,
@@ -304,6 +310,8 @@ h1 {
 
 hr {
     border-color: rgba(15, 23, 42, 0.08);
+    margin-top: 1.6rem;
+    margin-bottom: 1.6rem;
 }
 
 /* --- Sidebar controls on the dark sidebar -------------------------------- */
@@ -396,4 +404,80 @@ hr {
 [data-testid="stTable"] td:first-child {
     width: 22%;
     font-weight: 600;
+}
+
+/* --- Tabs: keep labels and panel content off the separator line ----------- */
+[data-testid="stTabs"] [role="tablist"] {
+    gap: 0.4rem;
+    padding-bottom: 0.5rem;
+}
+
+[data-testid="stTabs"] [role="tabpanel"] {
+    padding-top: 0.95rem;
+}
+
+/* --- Page hero: the title sits inside a dark branded banner, matching the --
+   sibling apps (experiment-architect .editorial-hero, MMF .mmf-hero). */
+.app-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 1.9rem 2.1rem;
+    margin: 0.2rem 0 1.5rem;
+    background:
+        radial-gradient(circle at 12% 18%, rgba(79, 109, 255, 0.30), transparent 30%),
+        radial-gradient(circle at 88% 12%, rgba(30, 207, 155, 0.18), transparent 26%),
+        linear-gradient(135deg, var(--sidebar-bg-top) 0%, #141c29 52%, var(--sidebar-bg-top) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 72px rgba(12, 16, 24, 0.22);
+    color: #f6f8fc;
+}
+
+.app-hero__kicker {
+    margin: 0 0 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(244, 247, 255, 0.62);
+}
+
+.app-hero__title {
+    margin: 0;
+    font-size: clamp(2.1rem, 3.6vw, 3.1rem);
+    line-height: 1.0;
+    letter-spacing: -0.045em;
+    color: #ffffff;
+}
+
+.app-hero__subtitle {
+    margin: 0.85rem 0 0;
+    max-width: 48rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(242, 245, 252, 0.78);
+}
+
+/* --- Sidebar upload controls: full width so nothing floats to the right ---- */
+[data-testid="stSidebar"] .stButton button,
+[data-testid="stSidebar"] .stDownloadButton button {
+    width: 100%;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 0.6rem;
+}
+
+/* Stop the instructions block from growing and shoving the button to the edge. */
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] {
+    flex: 0 0 auto !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
+    width: auto !important;
+    margin: 0 !important;
+    align-self: flex-start !important;
 }

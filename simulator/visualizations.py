@@ -22,12 +22,15 @@ COLORS = {
 }
 
 BACKGROUND = "rgba(0, 0, 0, 0)"
-GRID_COLOR = "#d8d1c5"
-TEXT_COLOR = "#172026"
+# Chart chrome aligned to the shared design tokens (cool neutrals), so plots
+# stop reading warm against the periwinkle UI. The per-option COLORS and the
+# POLICY_* colors below stay semantic and are intentionally left unchanged.
+GRID_COLOR = "#dde3ec"
+TEXT_COLOR = "#10131a"
 POLICY_SELECTED_COLOR = "#0b6e4f"
 POLICY_COMPARISON_COLOR = "#c46a2d"
-MUTED_COLOR = "#b8b2a7"
-HOVER_BACKGROUND = "#fffdf8"
+MUTED_COLOR = "#9aa3b2"
+HOVER_BACKGROUND = "#ffffff"
 
 
 def create_ranked_payoff_profile(
@@ -692,7 +695,7 @@ def _apply_theme(figure: go.Figure) -> None:
         paper_bgcolor=BACKGROUND,
         plot_bgcolor=BACKGROUND,
         font=dict(
-            family="IBM Plex Sans, Avenir Next, Segoe UI, sans-serif",
+            family="Avenir Next, Segoe UI, Helvetica Neue, system-ui, sans-serif",
             color=TEXT_COLOR,
             size=13,
         ),

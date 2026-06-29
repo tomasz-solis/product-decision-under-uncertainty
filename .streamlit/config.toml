@@ -6,7 +6,7 @@
 # dark ("black tables"). The grid canvas is only themable here, not via CSS, so pin the
 # light base and the surface colours the CSS assumes.
 base = "light"
-primaryColor = "#2563ff"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f4f7fb"
-textColor = "#0f1728"
+primaryColor = "#4f6dff"
+backgroundColor = "#eff2f7"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#10131a"
